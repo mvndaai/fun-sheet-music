@@ -1,0 +1,140 @@
+name: Build Android
+
+# Runs on every merge to main (i.e. when a PR is merged) and on tags that
+# look like version numbers (e.g. v1.2.3) so tagged releases also get a build.
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+# Only allow one build at a time per branch/tag so we don't waste runners.
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Android APK & AAB
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # needed to create/update GitHub Releases
+
+    steps:
+      # ── 1. Source ────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Java (required by the Android Gradle plugin) ──────────────────
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # ── 3. Flutter SDK ───────────────────────────────────────────────────
+      - name: Set up Flutter (stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true           # caches the Flutter SDK between runs
+
+      # ── 4. Dependencies ──────────────────────────────────────────────────
+      - name: Install Dart/Flutter dependencies
+        run: flutter pub get
+
+      # ── 5. Tests ─────────────────────────────────────────────────────────
+      - name: Run unit tests
+        run: flutter test
+
+      # ── 6. Build ─────────────────────────────────────────────────────────
+      # Release APK — signed with the debug key by default (good for
+      # sideloading).  To publish to the Play Store you must configure a
+      # signing key (see docs/release-signing.md for instructions).
+      - name: Build release APK (sideload / direct install)
+        run: flutter build apk --release
+
+      # App Bundle — the format the Play Store requires.
+      - name: Build release App Bundle (Play Store format)
+        run: flutter build appbundle --release
+
+      # ── 7. Collect version info ──────────────────────────────────────────
+      - name: Read version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "artifact_tag=${VERSION}+${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      # ── 8. Rename artifacts ──────────────────────────────────────────────
+      - name: Rename build outputs with version + commit
+        env:
+          TAG: ${{ steps.version.outputs.artifact_tag }}
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             "dist/flutter-music-${TAG}.apk"
+          # Also keep a stable name so AppLinks.androidApkUrl can always
+          # point to the same filename on GitHub Releases.
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             "dist/flutter-music.apk"
+          cp build/app/outputs/bundle/release/app-release.aab \
+             "dist/flutter-music-${TAG}.aab"
+
+      # ── 9. Upload as GitHub Actions Artifacts ────────────────────────────
+      # Artifacts appear in the "Artifacts" section of this workflow run and
+      # can be downloaded from the Actions tab in GitHub.  They are kept for
+      # 90 days by default.
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-music-apk-${{ steps.version.outputs.artifact_tag }}
+          path: dist/flutter-music-${{ steps.version.outputs.artifact_tag }}.apk
+          retention-days: 90
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-music-aab-${{ steps.version.outputs.artifact_tag }}
+          path: dist/flutter-music-${{ steps.version.outputs.artifact_tag }}.aab
+          retention-days: 90
+
+      # ── 10. Publish to GitHub Releases (latest tag) ──────────────────────
+      # This attaches the stable-named APK to a rolling "latest" pre-release
+      # so that AppLinks.androidApkUrl
+      #   https://github.com/mvndaai/flutter-music/releases/latest/download/flutter-music.apk
+      # always resolves to the most-recent main-branch build.
+      #
+      # On a real version tag (e.g. v1.2.3) a proper versioned release is
+      # created instead, making the download permanent.
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('Latest build ({0})', steps.version.outputs.artifact_tag) }}
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          body: |
+            ### Flutter Music – Android build
+
+            | Field | Value |
+            |-------|-------|
+            | Version | `${{ steps.version.outputs.version }}` |
+            | Commit  | `${{ github.sha }}` |
+            | Branch  | `${{ github.ref_name }}` |
+            | Built   | `${{ github.event.head_commit.timestamp }}` |
+
+            #### Sideloading the APK
+            1. Download `flutter-music.apk` below.
+            2. On your Android device go to **Settings → Apps → Special app access → Install unknown apps** and allow your browser/file manager.
+            3. Open the downloaded APK and tap **Install**.
+
+            > **Note:** this APK is signed with the debug key and is suitable for personal use / testing.
+            > To publish on the Play Store, configure proper release signing (see `docs/release-signing.md`).
+          files: |
+            dist/flutter-music.apk
+            dist/flutter-music-${{ steps.version.outputs.artifact_tag }}.apk
+            dist/flutter-music-${{ steps.version.outputs.artifact_tag }}.aab

@@ -37,6 +37,12 @@ dependencies:
   # FFT for pitch detection
   fftea: ^1.3.0
 
+  # QR code rendering for share/download screen
+  qr_flutter: ^4.1.0
+
+  # Open URLs in browser / external apps
+  url_launcher: ^6.2.6
+
   # Icons
   cupertino_icons: ^1.0.6
 

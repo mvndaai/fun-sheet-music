@@ -26,6 +26,11 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Flutter Music needs microphone access to detect notes you are playing in practice mode.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

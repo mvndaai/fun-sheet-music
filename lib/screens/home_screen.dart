@@ -6,6 +6,7 @@ import '../widgets/tag_chip.dart';
 import 'sheet_music_screen.dart';
 import 'upload_screen.dart';
 import 'color_schemes_screen.dart';
+import 'share_screen.dart';
 
 /// Home screen showing the song library with tag-based filtering.
 class HomeScreen extends StatefulWidget {
@@ -36,6 +37,14 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ColorSchemesScreen()),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.ios_share),
+            tooltip: 'Get the app / share',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ShareScreen()),
             ),
           ),
           IconButton(
