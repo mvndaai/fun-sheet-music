@@ -5,6 +5,7 @@ import '../models/song.dart';
 import '../widgets/tag_chip.dart';
 import 'sheet_music_screen.dart';
 import 'upload_screen.dart';
+import 'color_schemes_screen.dart';
 
 /// Home screen showing the song library with tag-based filtering.
 class HomeScreen extends StatefulWidget {
@@ -29,6 +30,14 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('🎵 Music Library'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.palette_outlined),
+            tooltip: 'Instrument colors',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ColorSchemesScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'Add song',

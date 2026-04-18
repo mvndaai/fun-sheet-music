@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/song_provider.dart';
+import 'providers/color_scheme_provider.dart';
 import 'screens/home_screen.dart';
 
 void main() {
@@ -15,6 +16,13 @@ class FlutterMusicApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SongProvider()),
+        ChangeNotifierProvider(
+          create: (_) {
+            final p = ColorSchemeProvider();
+            p.load(); // load persisted scheme & label toggle
+            return p;
+          },
+        ),
       ],
       child: MaterialApp(
         title: 'Flutter Music',

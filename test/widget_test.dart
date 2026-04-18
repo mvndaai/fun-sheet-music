@@ -1,8 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_music/models/music_note.dart';
 import 'package:flutter_music/models/measure.dart';
 import 'package:flutter_music/models/song.dart';
+import 'package:flutter_music/models/instrument_color_scheme.dart';
 import 'package:flutter_music/services/musicxml_parser.dart';
+import 'package:flutter_music/providers/color_scheme_provider.dart';
 import 'package:flutter_music/utils/music_constants.dart';
 import 'package:flutter_music/utils/note_colors.dart';
 import 'package:flutter/material.dart';
@@ -254,6 +257,142 @@ void main() {
       expect(MusicConstants.stepToSolfege.length, 7);
       expect(MusicConstants.stepToSolfege['C'], 'Do');
       expect(MusicConstants.stepToSolfege['G'], 'Sol');
+    });
+  });
+
+  group('InstrumentColorScheme', () {
+    test('built-in schemes have all 12 note keys', () {
+      for (final scheme in InstrumentColorScheme.builtIns) {
+        expect(scheme.colors.length, kNoteKeys.length,
+            reason: '${scheme.name} should have 12 note colors');
+        for (final key in kNoteKeys) {
+          expect(scheme.colors.containsKey(key), isTrue,
+              reason: '${scheme.name} missing key $key');
+        }
+      }
+    });
+
+    test('colorForNote returns correct color for natural note', () {
+      const color = Color(0xFFE53935);
+      expect(
+          InstrumentColorScheme.defaultXylophone.colorForNote('C', 0), color);
+    });
+
+    test('colorForNote returns sharp color for alter=1', () {
+      final sharp = InstrumentColorScheme.defaultXylophone.colorForNote('C', 1);
+      final natural = InstrumentColorScheme.defaultXylophone.colorForNote('C', 0);
+      expect(sharp, isNot(equals(natural)));
+    });
+
+    test('colorForNote uses flat enharmonic mapping for alter=-1', () {
+      // Bb should map to A# color
+      final bbColor = InstrumentColorScheme.defaultXylophone.colorForNote('B', -1);
+      final aSharpColor =
+          InstrumentColorScheme.defaultXylophone.colors['A#']!;
+      expect(bbColor, aSharpColor);
+    });
+
+    test('toJson / fromJson roundtrip preserves all fields', () {
+      const scheme = InstrumentColorScheme.defaultXylophone;
+      final json = scheme.toJson();
+      final restored = InstrumentColorScheme.fromJson(json);
+      expect(restored.id, scheme.id);
+      expect(restored.name, scheme.name);
+      expect(restored.colors.length, scheme.colors.length);
+      for (final key in kNoteKeys) {
+        expect(restored.colors[key], scheme.colors[key]);
+      }
+    });
+
+    test('copyWith changes only specified fields', () {
+      const original = InstrumentColorScheme.defaultXylophone;
+      final copy = original.copyWith(name: 'Renamed');
+      expect(copy.id, original.id);
+      expect(copy.name, 'Renamed');
+      expect(copy.colors, original.colors);
+    });
+
+    test('kFlatToSharp covers all flat enharmonics', () {
+      const expectedFlats = ['Db', 'Eb', 'Gb', 'Ab', 'Bb'];
+      for (final flat in expectedFlats) {
+        expect(kFlatToSharp.containsKey(flat), isTrue);
+      }
+    });
+  });
+
+  group('ColorSchemeProvider', () {
+    setUp(() {
+      // Provide an empty in-memory store so SharedPreferences calls don't fail.
+      SharedPreferences.setMockInitialValues({});
+    });
+    test('starts with default xylophone scheme active', () {
+      final provider = ColorSchemeProvider();
+      expect(provider.activeId, InstrumentColorScheme.defaultXylophone.id);
+    });
+
+    test('allSchemes contains all built-ins', () {
+      final provider = ColorSchemeProvider();
+      for (final b in InstrumentColorScheme.builtIns) {
+        expect(provider.allSchemes.any((s) => s.id == b.id), isTrue);
+      }
+    });
+
+    test('showNoteLabels defaults to true', () {
+      final provider = ColorSchemeProvider();
+      expect(provider.showNoteLabels, isTrue);
+    });
+
+    test('setActive changes activeId and notifies listeners', () async {
+      final provider = ColorSchemeProvider();
+      var notified = false;
+      provider.addListener(() => notified = true);
+
+      await provider.setActive(InstrumentColorScheme.rainbow.id);
+
+      expect(provider.activeId, InstrumentColorScheme.rainbow.id);
+      expect(notified, isTrue);
+    });
+
+    test('createCustom adds scheme and makes it available', () async {
+      final provider = ColorSchemeProvider();
+      final scheme = await provider.createCustom(name: 'Test Scheme');
+
+      expect(provider.allSchemes.any((s) => s.id == scheme.id), isTrue);
+      expect(scheme.name, 'Test Scheme');
+      expect(scheme.isBuiltIn, isFalse);
+    });
+
+    test('updateCustom saves color changes', () async {
+      final provider = ColorSchemeProvider();
+      final scheme = await provider.createCustom(name: 'Edit Me');
+      final updated =
+          scheme.copyWith(colors: {...scheme.colors, 'C': const Color(0xFF000000)});
+
+      await provider.updateCustom(updated);
+
+      final found = provider.allSchemes.firstWhere((s) => s.id == scheme.id);
+      expect(found.colors['C'], const Color(0xFF000000));
+    });
+
+    test('deleteCustom removes the scheme', () async {
+      final provider = ColorSchemeProvider();
+      final scheme = await provider.createCustom(name: 'Delete Me');
+      expect(provider.allSchemes.any((s) => s.id == scheme.id), isTrue);
+
+      await provider.deleteCustom(scheme.id);
+
+      expect(provider.allSchemes.any((s) => s.id == scheme.id), isFalse);
+    });
+
+    test('deleteCustom falls back to default when active is deleted', () async {
+      final provider = ColorSchemeProvider();
+      final scheme = await provider.createCustom(name: 'Active Custom');
+      await provider.setActive(scheme.id);
+      expect(provider.activeId, scheme.id);
+
+      await provider.deleteCustom(scheme.id);
+
+      expect(provider.activeId, InstrumentColorScheme.defaultXylophone.id);
     });
   });
 }

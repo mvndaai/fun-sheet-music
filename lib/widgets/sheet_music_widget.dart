@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../models/music_note.dart';
 import '../models/measure.dart';
+import '../providers/color_scheme_provider.dart';
+import '../utils/music_constants.dart';
 import 'note_widget.dart';
 
 /// Displays the full sheet music for a song with color-coded notes.
@@ -187,49 +190,48 @@ class _MeasureWidget extends StatelessWidget {
   }
 }
 
-/// A compact legend row showing color → note name mapping.
+/// A compact legend row showing color → note name mapping using the active scheme.
 class _ColorLegend extends StatelessWidget {
   final bool showSolfege;
 
   const _ColorLegend({this.showSolfege = false});
 
+  // Natural notes only (C D E F G A B) for the legend
+  static const _naturalNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+
   @override
   Widget build(BuildContext context) {
-    const notes = [
-      ('C', 'Do', Color(0xFFE53935)),
-      ('D', 'Re', Color(0xFFF57C00)),
-      ('E', 'Mi', Color(0xFFFDD835)),
-      ('F', 'Fa', Color(0xFF43A047)),
-      ('G', 'Sol', Color(0xFF00ACC1)),
-      ('A', 'La', Color(0xFF1E88E5)),
-      ('B', 'Si', Color(0xFF8E24AA)),
-    ];
+    final scheme = context.watch<ColorSchemeProvider>().activeScheme;
+    final showLabels = context.watch<ColorSchemeProvider>().showNoteLabels;
 
     return Wrap(
       spacing: 6,
       runSpacing: 6,
-      children: notes.map((entry) {
-        final (letter, solfege, color) = entry;
-        final label = showSolfege ? '$solfege\n$letter' : letter;
+      children: _naturalNotes.map((note) {
+        final color = scheme.colors[note] ?? Colors.grey;
+        final solfege = MusicConstants.stepToSolfege[note] ?? note;
         final textColor = color.computeLuminance() > 0.35
             ? Colors.black87
             : Colors.white;
+        final label = showSolfege ? '$solfege\n$note' : note;
         return Container(
           width: 36,
           height: 36,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                height: 1.1,
-              ),
-            ),
-          ),
+          child: showLabels
+              ? Center(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      height: 1.1,
+                    ),
+                  ),
+                )
+              : null,
         );
       }).toList(),
     );

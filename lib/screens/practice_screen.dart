@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../models/music_note.dart';
+import '../providers/color_scheme_provider.dart';
 import '../services/audio_service.dart';
 import '../utils/music_constants.dart';
 import '../widgets/sheet_music_widget.dart';
+import 'color_schemes_screen.dart';
 
 /// Practice screen: displays sheet music and listens to the microphone.
 /// When the microphone hears the current note, the app advances to the next.
@@ -165,10 +168,29 @@ class _PracticeScreenState extends State<PracticeScreen>
       appBar: AppBar(
         title: Text('Practice: ${widget.song.title}'),
         actions: [
+          // Note label toggle
+          Consumer<ColorSchemeProvider>(
+            builder: (context, provider, _) => IconButton(
+              icon: Icon(provider.showNoteLabels ? Icons.label : Icons.label_off),
+              tooltip: provider.showNoteLabels ? 'Labels on' : 'Labels off',
+              onPressed: () =>
+                  provider.setShowNoteLabels(!provider.showNoteLabels),
+            ),
+          ),
+          // Solfège / letter toggle
           IconButton(
             icon: Icon(_showSolfege ? Icons.music_note : Icons.abc),
             tooltip: _showSolfege ? 'Show letters' : 'Show solfège',
             onPressed: () => setState(() => _showSolfege = !_showSolfege),
+          ),
+          // Color scheme shortcut
+          IconButton(
+            icon: const Icon(Icons.palette_outlined),
+            tooltip: 'Instrument colors',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ColorSchemesScreen()),
+            ),
           ),
         ],
       ),

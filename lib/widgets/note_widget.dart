@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/music_note.dart';
+import '../providers/color_scheme_provider.dart';
 import '../utils/note_colors.dart';
+
+/// Regex used to strip octave digits from letter names.
+final _octaveDigits = RegExp(r'\d');
 
 /// Displays a single musical note as a colored circle with the note name.
 class NoteWidget extends StatelessWidget {
@@ -25,10 +30,16 @@ class NoteWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     if (note.isRest) return _buildRest();
 
-    final color = NoteColors.forNote(note.step, note.alter);
+    // Use active color scheme from provider; fall back to static NoteColors.
+    final colorProvider = context.watch<ColorSchemeProvider>();
+    final color = colorProvider.colorForNote(note.step, note.alter);
     final textColor = NoteColors.textColorFor(color);
 
-    final displayName = showSolfege ? note.solfegeName : note.letterName.replaceAll(RegExp(r'\d'), '');
+    // Global label toggle overrides per-screen flags.
+    final showLabels = colorProvider.showNoteLabels && (showLetter || showSolfege);
+    final displayName = showSolfege
+        ? note.solfegeName
+        : note.letterName.replaceAll(_octaveDigits, '');
 
     final double scale = isActive ? 1.35 : 1.0;
     final opacity = isPast ? 0.4 : 1.0;
@@ -58,44 +69,46 @@ class NoteWidget extends StatelessWidget {
                 ? Border.all(color: Colors.white, width: 3)
                 : null,
           ),
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (showLetter && showSolfege) ...[
-                      Text(
-                        displayName,
-                        style: TextStyle(
-                          color: textColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: size * 0.28,
-                        ),
+          child: showLabels
+              ? Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (showLetter && showSolfege) ...[
+                            Text(
+                              displayName,
+                              style: TextStyle(
+                                color: textColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: size * 0.28,
+                              ),
+                            ),
+                            Text(
+                              note.letterName.replaceAll(_octaveDigits, ''),
+                              style: TextStyle(
+                                color: textColor.withOpacity(0.8),
+                                fontSize: size * 0.2,
+                              ),
+                            ),
+                          ] else
+                            Text(
+                              displayName,
+                              style: TextStyle(
+                                color: textColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: size * 0.32,
+                              ),
+                            ),
+                        ],
                       ),
-                      Text(
-                        note.letterName.replaceAll(RegExp(r'\d'), ''),
-                        style: TextStyle(
-                          color: textColor.withOpacity(0.8),
-                          fontSize: size * 0.2,
-                        ),
-                      ),
-                    ] else
-                      Text(
-                        displayName,
-                        style: TextStyle(
-                          color: textColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: size * 0.32,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+                    ),
+                  ),
+                )
+              : null,
         ),
       ),
     );
