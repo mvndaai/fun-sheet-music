@@ -82,7 +82,7 @@ class ColorSchemeProvider extends ChangeNotifier {
   Future<InstrumentColorScheme> createCustom({String? name}) async {
     final base = activeScheme;
     final scheme = InstrumentColorScheme(
-      id: _uuid.v4(),
+      id: _uuid.v7(),
       name: name ?? 'Custom ${_customSchemes.length + 1}',
       colors: Map.from(base.colors),
     );
