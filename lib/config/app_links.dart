@@ -14,7 +14,7 @@ class AppLinks {
   // ── Web ───────────────────────────────────────────────────────────────────
 
   /// Public URL of the hosted web version.
-  /// Replace with your actual domain once deployed.
+  // TODO(deploy): replace with your actual domain before going live.
   static const String webUrl = 'https://flutter-music.example.com';
 
   // ── Android ───────────────────────────────────────────────────────────────

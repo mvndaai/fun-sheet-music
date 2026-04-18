@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -268,7 +268,6 @@ class _QrBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: size,
       height: size,
@@ -281,11 +280,11 @@ class _QrBox extends StatelessWidget {
       child: QrImageView(
         data: url,
         version: QrVersions.auto,
-        eyeStyle: QrEyeStyle(
+        eyeStyle: const QrEyeStyle(
           eyeShape: QrEyeShape.square,
-          color: isDark ? Colors.black : Colors.black,
+          color: Colors.black, // always black for QR readability
         ),
-        dataModuleStyle: QrDataModuleStyle(
+        dataModuleStyle: const QrDataModuleStyle(
           dataModuleShape: QrDataModuleShape.square,
           color: Colors.black,
         ),
