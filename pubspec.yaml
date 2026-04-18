@@ -1,0 +1,57 @@
+name: flutter_music
+description: A Flutter app for reading MusicXML files, displaying color-coded sheet music for kids, with microphone practice mode.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # XML parsing for MusicXML files
+  xml: ^6.5.0
+
+  # File picker for uploading MusicXML files
+  file_picker: ^8.0.3
+
+  # HTTP client for Google Cloud Storage downloads
+  http: ^1.2.1
+
+  # Local persistent storage
+  shared_preferences: ^2.2.3
+
+  # Path utilities
+  path_provider: ^2.1.2
+
+  # State management
+  provider: ^6.1.2
+
+  # UUID generation
+  uuid: ^4.4.2
+
+  # Audio recording / microphone access
+  record: ^5.1.1
+
+  # FFT for pitch detection
+  fftea: ^1.3.0
+
+  # QR code rendering for share/download screen
+  qr_flutter: ^4.1.0
+
+  # Open URLs in browser / external apps
+  url_launcher: ^6.2.6
+
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/sample_songs/

@@ -107,6 +107,9 @@ unlinked_spec.ds
 # Coverage
 coverage/
 
+# Local build staging (CI uses dist/ to collect artifacts before upload)
+dist/
+
 # Symbols
 app.*.symbols
 
