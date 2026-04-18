@@ -125,7 +125,7 @@ jobs:
             | Version | `${{ steps.version.outputs.version }}` |
             | Commit  | `${{ github.sha }}` |
             | Branch  | `${{ github.ref_name }}` |
-            | Built   | `${{ github.event.head_commit.timestamp }}` |
+            | Built   | `${{ github.event.head_commit.timestamp || github.event.created_at || github.run_id }}` |
 
             #### Sideloading the APK
             1. Download `flutter-music.apk` below.
