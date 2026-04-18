@@ -60,7 +60,7 @@ class SongProvider extends ChangeNotifier {
     String? sourceUrl,
   }) async {
     try {
-      final id = _uuid.v4();
+      final id = _uuid.v7();
       final song = MusicXmlParser.parse(
         xmlContent,
         id: id,
