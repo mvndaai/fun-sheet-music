@@ -341,7 +341,8 @@ class _FileUploadTab extends StatelessWidget {
   }
 }
 
-class _UrlTab extends StatelessWidget {  final TextEditingController controller;
+class _UrlTab extends StatelessWidget {
+  final TextEditingController controller;
   final VoidCallback onFetch;
   final List<String> tags;
   final List<String> availableTags;
@@ -484,7 +485,7 @@ class _LibraryTabState extends State<_LibraryTab>
           })
           .map((item) => _LibraryEntry(
                 name: item['name'] as String,
-                downloadUrl: '$_rawBase${Uri.encodeComponent(item['name'] as String)}',
+                downloadUrl: Uri.parse(_rawBase).resolve(item['name'] as String).toString(),
               ))
           .toList()
         ..sort((a, b) => a.title.compareTo(b.title));
