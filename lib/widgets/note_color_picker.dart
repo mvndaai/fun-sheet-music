@@ -1,4 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+// ── Color utilities ───────────────────────────────────────────────────────────
+
+/// Converts [color] to a 6-digit uppercase hex string (e.g. `"E91E63"`).
+String colorToHex(Color color) =>
+    color.value.toRadixString(16).toUpperCase().padLeft(8, '0').substring(2);
+
+/// Parses a 6-digit hex string (without `#`) to a [Color], or returns `null`
+/// if [hex] is not exactly 6 valid hex digits.
+Color? hexToColor(String hex) {
+  if (hex.length != 6) return null;
+  final parsed = int.tryParse('FF$hex', radix: 16);
+  return parsed != null ? Color(parsed) : null;
+}
 
 /// A simple preset color palette dialog.
 ///
@@ -26,11 +41,40 @@ class _NoteColorPickerDialog extends StatefulWidget {
 
 class _NoteColorPickerDialogState extends State<_NoteColorPickerDialog> {
   late Color _selected;
+  late final TextEditingController _hexController;
+  bool _hexError = false;
 
   @override
   void initState() {
     super.initState();
     _selected = widget.current;
+    _hexController = TextEditingController(text: colorToHex(_selected));
+  }
+
+  @override
+  void dispose() {
+    _hexController.dispose();
+    super.dispose();
+  }
+
+  void _onHexChanged(String value) {
+    final color = hexToColor(value);
+    if (color != null) {
+      setState(() {
+        _selected = color;
+        _hexError = false;
+      });
+      return;
+    }
+    setState(() => _hexError = value.isNotEmpty && value.length != 6);
+  }
+
+  void _selectPaletteColor(Color color) {
+    setState(() {
+      _selected = color;
+      _hexController.text = colorToHex(color);
+      _hexError = false;
+    });
   }
 
   @override
@@ -42,7 +86,7 @@ class _NoteColorPickerDialogState extends State<_NoteColorPickerDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Preview
+            // Preview swatch
             AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               height: 36,
@@ -52,17 +96,35 @@ class _NoteColorPickerDialogState extends State<_NoteColorPickerDialog> {
                 border: Border.all(color: Colors.grey.shade300),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+            // Hex input
+            TextField(
+              controller: _hexController,
+              decoration: InputDecoration(
+                prefixText: '#',
+                labelText: 'Hex color',
+                hintText: 'RRGGBB',
+                border: const OutlineInputBorder(),
+                isDense: true,
+                errorText: _hexError ? 'Enter 6 hex digits' : null,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9a-fA-F]')),
+                LengthLimitingTextInputFormatter(6),
+              ],
+              onChanged: _onHexChanged,
+            ),
+            const SizedBox(height: 10),
             // Color grid
             Flexible(
               child: SingleChildScrollView(
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: _palette.map((color) {
+                  children: kNoteColorPalette.map((color) {
                     final isSelected = _selected == color;
                     return GestureDetector(
-                      onTap: () => setState(() => _selected = color),
+                      onTap: () => _selectPaletteColor(color),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 100),
                         width: 40,
@@ -109,7 +171,7 @@ class _NoteColorPickerDialogState extends State<_NoteColorPickerDialog> {
 }
 
 /// A hand-curated palette of distinct, saturated colors suitable for note circles.
-const List<Color> _palette = [
+const List<Color> kNoteColorPalette = [
   // Reds
   Color(0xFFD50000), Color(0xFFFF1744), Color(0xFFFF6D00),
   Color(0xFFE91E63), Color(0xFFAD1457), Color(0xFFD81B60),

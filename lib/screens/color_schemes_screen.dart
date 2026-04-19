@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/instrument_color_scheme.dart';
 import '../providers/color_scheme_provider.dart';
 import '../widgets/note_color_picker.dart';
+import '../widgets/add_key_wizard.dart';
 
 /// Screen for managing instrument color schemes.
 /// Users can activate built-in or custom schemes, create new ones by copying
@@ -365,49 +366,13 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
     }
   }
 
-  Future<void> _addOctaveOverride() async {
-    final keyController = TextEditingController();
-    final key = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Add octave override'),
-        content: TextField(
-          controller: keyController,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'e.g. C5  or  C#4',
-            helperText: 'Note name followed by octave number',
-            border: OutlineInputBorder(),
-          ),
-          onSubmitted: (v) => Navigator.pop(dialogContext, v.trim()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, keyController.text.trim()),
-            child: const Text('Next'),
-          ),
-        ],
-      ),
-    );
-    keyController.dispose();
-    if (key == null || key.isEmpty) return;
-    if (!mounted) return;
-    final picked = await showNoteColorPicker(
-      context,
-      current: _octaveOverrides[key] ?? Colors.grey,
-      label: key,
-    );
-    if (picked != null) {
-      setState(() {
-        _octaveOverrides[key] = picked;
-        _dirty = true;
-      });
-    }
+  Future<void> _addKeyWizard() async {
+    final result = await showAddKeyWizard(context);
+    if (result == null) return;
+    setState(() {
+      _octaveOverrides[result.noteKey] = result.color;
+      _dirty = true;
+    });
   }
 
   @override
@@ -496,23 +461,23 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
             );
           }
 
-          // ── Octave overrides section header ────────────────────────────
+          // ── Keys section header ────────────────────────────────────────
           if (index == 12) {
             return Padding(
               padding: const EdgeInsets.fromLTRB(4, 16, 4, 4),
               child: Row(
                 children: [
-                  const Icon(Icons.layers_outlined, size: 18),
+                  const Icon(Icons.piano_outlined, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    'Octave-specific overrides',
+                    'My Keys',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                   if (!hasOverrides)
                     Padding(
                       padding: const EdgeInsets.only(left: 8),
                       child: Text(
-                        '(none)',
+                        '(none yet – tap "Add Key" to get started)',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -585,17 +550,17 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
             );
           }
 
-          // ── Add override button ────────────────────────────────────────
+          // ── Add key button ─────────────────────────────────────────────
           return ListTile(
             leading: const CircleAvatar(
               child: Icon(Icons.add),
             ),
-            title: const Text('Add octave override…'),
+            title: const Text('Add Key…'),
             subtitle: const Text(
-              'Override the color for a specific octave, e.g. C5 = pink',
+              'Hit a key on your instrument to detect its note, then choose a color',
               style: TextStyle(fontSize: 12),
             ),
-            onTap: _addOctaveOverride,
+            onTap: _addKeyWizard,
           );
         },
       ),
