@@ -8,6 +8,14 @@ on:
       - main
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+    paths:
+      - 'android/**'
+      - 'lib/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/build-android.yml'
 
 # Only allow one build at a time per branch/tag so we don't waste runners.
 concurrency:

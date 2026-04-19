@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'web/**'
+      - 'lib/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
 
 permissions:
