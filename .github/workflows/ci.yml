@@ -11,6 +11,10 @@ concurrency:
   group: ci-${{ github.head_ref }}
   cancel-in-progress: true
 
+# Restrict permissions to minimum required
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test & Lint
