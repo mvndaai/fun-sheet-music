@@ -211,7 +211,7 @@ class _AddKeyWizardScreenState extends State<_AddKeyWizardScreen> {
                   boxShadow: _micActive
                       ? [
                           BoxShadow(
-                            color: Colors.green.withOpacity(0.5),
+                            color: Colors.green.withValues(alpha: 0.5),
                             blurRadius: 16,
                             spreadRadius: 4,
                           )
@@ -344,7 +344,7 @@ class _AddKeyWizardScreenState extends State<_AddKeyWizardScreen> {
           color: Theme.of(context)
               .colorScheme
               .primaryContainer
-              .withOpacity(0.6),
+              .withValues(alpha: 0.6),
           child: Row(
             children: [
               // Color circle preview
@@ -471,7 +471,7 @@ class _AddKeyWizardScreenState extends State<_AddKeyWizardScreen> {
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: color.withOpacity(0.6),
+                                color: color.withValues(alpha: 0.6),
                                 blurRadius: 8,
                               )
                             ]

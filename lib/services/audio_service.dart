@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
-import 'package:mic_stream/mic_stream.dart';
+import 'package:record/record.dart';
 import 'package:fftea/fftea.dart';
 import '../utils/music_constants.dart';
 
@@ -11,6 +11,7 @@ class AudioService {
   StreamSubscription<Uint8List>? _audioSub;
   StreamController<String>? _noteController;
   bool _isListening = false;
+  final AudioRecorder _recorder = AudioRecorder();
 
   static const int _sampleRate = 44100;
   static const int _chunkSize = 4096; // ~93ms at 44100 Hz
@@ -26,19 +27,26 @@ class AudioService {
   Future<bool> startListening() async {
     if (_isListening) return true;
 
+    // Check and request permission
+    if (!await _recorder.hasPermission()) {
+      debugPrint('Microphone permission denied');
+      return false;
+    }
+
     _noteController = StreamController<String>.broadcast();
     _isListening = true;
 
     try {
-      Stream<Uint8List>? audioStream = await MicStream.microphone(
-        audioSource: AudioSource.DEFAULT,
-        sampleRate: _sampleRate,
-        channelConfig: ChannelConfig.CHANNEL_IN_MONO,
-        audioFormat: AudioFormat.ENCODING_PCM_16BIT,
+      final stream = await _recorder.startStream(
+        const RecordConfig(
+          encoder: AudioEncoder.pcm16bits,
+          sampleRate: _sampleRate,
+          numChannels: 1,
+        ),
       );
 
       final buffer = <int>[];
-      _audioSub = audioStream?.listen((data) {
+      _audioSub = stream.listen((data) {
         buffer.addAll(data);
         while (buffer.length >= _chunkSize * 2) {
           // 2 bytes per PCM16 sample
@@ -61,6 +69,7 @@ class AudioService {
     _isListening = false;
     await _audioSub?.cancel();
     _audioSub = null;
+    await _recorder.stop();
     await _noteController?.close();
     _noteController = null;
   }
@@ -130,6 +139,5 @@ class AudioService {
 
   void dispose() {
     stopListening();
-    _recorder.dispose();
   }
 }

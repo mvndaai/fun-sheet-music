@@ -203,7 +203,7 @@ class _PracticeScreenState extends State<PracticeScreen>
           AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             color: _micActive
-                ? Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3)
+                ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
                 : Colors.transparent,
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
@@ -341,7 +341,7 @@ class _NavigationBar extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),

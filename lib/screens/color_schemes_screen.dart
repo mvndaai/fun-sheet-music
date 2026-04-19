@@ -188,7 +188,7 @@ class _LabelToggleBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
@@ -238,10 +238,9 @@ class _SchemeCard extends StatelessWidget {
           child: Row(
             children: [
               // Active indicator
-              Radio<bool>(
-                value: true,
-                groupValue: isActive,
-                onChanged: (_) => onActivate(),
+              Icon(
+                isActive ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                color: isActive ? Theme.of(context).colorScheme.primary : null,
               ),
               const SizedBox(width: 4),
               // Color swatch row
@@ -441,7 +440,7 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
               ),
               title: Text(note),
               subtitle: Text(
-                '#${color.value.toRadixString(16).toUpperCase().padLeft(8, '0').substring(2)}',
+                '#${color.toARGB32().toRadixString(16).toUpperCase().padLeft(8, '0').substring(2)}',
                 style: const TextStyle(fontSize: 12),
               ),
               trailing: const Icon(Icons.color_lens_outlined),
@@ -515,7 +514,7 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
               ),
               title: Text(key),
               subtitle: Text(
-                '#${color.value.toRadixString(16).toUpperCase().padLeft(8, '0').substring(2)}',
+                '#${color.toARGB32().toRadixString(16).toUpperCase().padLeft(8, '0').substring(2)}',
                 style: const TextStyle(fontSize: 12),
               ),
               trailing: Row(

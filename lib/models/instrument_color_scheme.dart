@@ -90,10 +90,10 @@ class InstrumentColorScheme {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
-        'colors': colors.map((k, v) => MapEntry(k, v.value)),
+        'colors': colors.map((k, v) => MapEntry(k, v.toARGB32())),
         if (octaveOverrides.isNotEmpty)
           'octaveOverrides':
-              octaveOverrides.map((k, v) => MapEntry(k, v.value)),
+              octaveOverrides.map((k, v) => MapEntry(k, v.toARGB32())),
       };
 
   factory InstrumentColorScheme.fromJson(Map<String, dynamic> json) {
