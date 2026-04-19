@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../providers/song_provider.dart';
 import '../widgets/tag_chip.dart';
@@ -25,7 +27,7 @@ class _UploadScreenState extends State<UploadScreen>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 2, vsync: this);
+    _tab = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -128,6 +130,7 @@ class _UploadScreenState extends State<UploadScreen>
           tabs: const [
             Tab(icon: Icon(Icons.upload_file), text: 'Upload File'),
             Tab(icon: Icon(Icons.cloud_download), text: 'From URL'),
+            Tab(icon: Icon(Icons.library_music), text: 'Library'),
           ],
         ),
       ),
@@ -154,6 +157,9 @@ class _UploadScreenState extends State<UploadScreen>
                   onAddTag: _addTag,
                   onRemoveTag: (t) => setState(() => _tags.remove(t)),
                   error: _tab.index == 1 ? _error : null,
+                ),
+                _LibraryTab(
+                  onSongAdded: (title) => _showSuccess(title),
                 ),
               ],
             ),
@@ -402,6 +408,219 @@ class _UrlTab extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A library entry from the musetrainer GitHub repository.
+class _LibraryEntry {
+  final String name;
+  final String downloadUrl;
+
+  const _LibraryEntry({required this.name, required this.downloadUrl});
+
+  /// Human-readable title derived from the filename.
+  String get title => name
+      .replaceAll(RegExp(r'\.(mxl|xml|musicxml)$', caseSensitive: false), '')
+      .replaceAll('_', ' ');
+}
+
+class _LibraryTab extends StatefulWidget {
+  final void Function(String title) onSongAdded;
+
+  const _LibraryTab({required this.onSongAdded});
+
+  @override
+  State<_LibraryTab> createState() => _LibraryTabState();
+}
+
+class _LibraryTabState extends State<_LibraryTab>
+    with AutomaticKeepAliveClientMixin {
+  static const _apiUrl =
+      'https://api.github.com/repos/musetrainer/library/contents/scores';
+  static const _rawBase =
+      'https://raw.githubusercontent.com/musetrainer/library/master/scores/';
+
+  List<_LibraryEntry> _entries = [];
+  bool _fetching = false;
+  String? _fetchError;
+  final Set<String> _adding = {};
+  final Set<String> _added = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEntries();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadEntries() async {
+    setState(() {
+      _fetching = true;
+      _fetchError = null;
+    });
+    try {
+      final response = await http.get(Uri.parse(_apiUrl));
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+      final List<dynamic> data = json.decode(response.body) as List<dynamic>;
+      final entries = data
+          .where((item) {
+            if (item['type'] != 'file') return false;
+            final name = (item['name'] as String).toLowerCase();
+            return name.endsWith('.mxl') ||
+                name.endsWith('.xml') ||
+                name.endsWith('.musicxml');
+          })
+          .map((item) => _LibraryEntry(
+                name: item['name'] as String,
+                downloadUrl: Uri.parse(_rawBase).resolve(item['name'] as String).toString(),
+              ))
+          .toList()
+        ..sort((a, b) => a.title.compareTo(b.title));
+      setState(() => _entries = entries);
+    } catch (e) {
+      setState(() => _fetchError = 'Failed to load library: $e');
+    } finally {
+      setState(() => _fetching = false);
+    }
+  }
+
+  Future<void> _addSong(_LibraryEntry entry) async {
+    setState(() => _adding.add(entry.name));
+    try {
+      final provider = context.read<SongProvider>();
+      final song = await provider.addSongFromUrl(entry.downloadUrl);
+      if (!mounted) return;
+      if (song != null) {
+        setState(() => _added.add(entry.name));
+        widget.onSongAdded(song.title);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(provider.error ?? 'Failed to add "${entry.title}"'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _adding.remove(entry.name));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    if (_fetching) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_fetchError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 8),
+              Text(_fetchError!, textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                onPressed: _loadEntries,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final filtered = _searchQuery.isEmpty
+        ? _entries
+        : _entries
+            .where((e) =>
+                e.title.toLowerCase().contains(_searchQuery.toLowerCase()))
+            .toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search songs…',
+              prefixIcon: const Icon(Icons.search),
+              border: const OutlineInputBorder(),
+              isDense: true,
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+            ),
+            onChanged: (v) => setState(() => _searchQuery = v),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Text(
+            '${filtered.length} songs from musetrainer/library',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              final entry = filtered[index];
+              final isAdding = _adding.contains(entry.name);
+              final isAdded = _added.contains(entry.name);
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor:
+                      Theme.of(context).colorScheme.primaryContainer,
+                  child: const Icon(Icons.music_note),
+                ),
+                title: Text(entry.title),
+                trailing: isAdding
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : isAdded
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            tooltip: 'Add to library',
+                            onPressed: () => _addSong(entry),
+                          ),
+                onTap: isAdding || isAdded ? null : () => _addSong(entry),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
