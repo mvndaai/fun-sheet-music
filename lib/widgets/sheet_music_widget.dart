@@ -398,7 +398,7 @@ class _StaffPainter extends CustomPainter {
   ) {
     final pos = _staffPos(note.step, note.octave);
     final y = _posToY(pos);
-    final color = colorProvider.colorForNote(note.step, note.alter);
+    final color = colorProvider.colorForNote(note.step, note.alter, octave: note.octave);
     final alpha = isPast ? 0.30 : 1.0;
 
     _drawLedgerLines(canvas, x, pos, alpha);

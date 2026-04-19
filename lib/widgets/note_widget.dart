@@ -32,7 +32,7 @@ class NoteWidget extends StatelessWidget {
 
     // Use active color scheme from provider; fall back to static NoteColors.
     final colorProvider = context.watch<ColorSchemeProvider>();
-    final color = colorProvider.colorForNote(note.step, note.alter);
+    final color = colorProvider.colorForNote(note.step, note.alter, octave: note.octave);
     final textColor = NoteColors.textColorFor(color);
 
     // Global label toggle overrides per-screen flags.

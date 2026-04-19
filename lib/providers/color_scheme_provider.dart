@@ -57,8 +57,8 @@ class ColorSchemeProvider extends ChangeNotifier {
   }
 
   /// Returns the color for a note using the active scheme.
-  Color colorForNote(String step, double alter) =>
-      activeScheme.colorForNote(step, alter);
+  Color colorForNote(String step, double alter, {int? octave}) =>
+      activeScheme.colorForNote(step, alter, octave: octave);
 
   /// Activates the scheme with the given [id].
   Future<void> setActive(String id) async {
@@ -85,6 +85,7 @@ class ColorSchemeProvider extends ChangeNotifier {
       id: _uuid.v7(),
       name: name ?? 'Custom ${_customSchemes.length + 1}',
       colors: Map.from(base.colors),
+      octaveOverrides: Map.from(base.octaveOverrides),
     );
     _customSchemes.add(scheme);
     await _persistCustom();

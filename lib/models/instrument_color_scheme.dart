@@ -15,6 +15,11 @@ const Map<String, String> kFlatToSharp = {
 };
 
 /// A named mapping from each of the 12 chromatic notes to a display [Color].
+///
+/// Optionally, [octaveOverrides] can hold colors keyed by note+octave strings
+/// such as `'C5'` or `'C#4'`, which take precedence over [colors] when an
+/// octave is known.  This lets the same pitch class (e.g. C) appear in
+/// different colors on different octaves (e.g. low-C purple, high-C pink).
 class InstrumentColorScheme {
   final String id;
   final String name;
@@ -25,15 +30,39 @@ class InstrumentColorScheme {
   /// Per-note colors keyed by the values in [kNoteKeys].
   final Map<String, Color> colors;
 
+  /// Optional octave-specific overrides, e.g. `{'C5': Color(0xFFE91E63)}`.
+  /// Keys are `step + octave` (or `step# + octave` for sharps).
+  final Map<String, Color> octaveOverrides;
+
   const InstrumentColorScheme({
     required this.id,
     required this.name,
     required this.colors,
     this.isBuiltIn = false,
+    this.octaveOverrides = const {},
   });
 
-  /// Returns the color for a note given its [step] (C–B) and [alter] (-1/0/+1).
-  Color colorForNote(String step, double alter) {
+  /// Returns the color for a note given its [step] (C–B), [alter] (-1/0/+1),
+  /// and optional [octave].  Octave-specific overrides are checked first.
+  Color colorForNote(String step, double alter, {int? octave}) {
+    if (octave != null && octaveOverrides.isNotEmpty) {
+      final key = alter == 1
+          ? '$step#$octave'
+          : alter == -1
+              ? '${step}b$octave'
+              : '$step$octave';
+      if (octaveOverrides.containsKey(key)) return octaveOverrides[key]!;
+
+      // Also try the enharmonic sharp form for flat notes.
+      if (alter == -1) {
+        final enharmonic = kFlatToSharp['${step}b'];
+        if (enharmonic != null &&
+            octaveOverrides.containsKey('$enharmonic$octave')) {
+          return octaveOverrides['$enharmonic$octave']!;
+        }
+      }
+    }
+
     if (alter == 1) {
       return colors['$step#'] ?? colors[step] ?? Colors.grey;
     } else if (alter == -1) {
@@ -47,12 +76,14 @@ class InstrumentColorScheme {
   InstrumentColorScheme copyWith({
     String? name,
     Map<String, Color>? colors,
+    Map<String, Color>? octaveOverrides,
   }) {
     return InstrumentColorScheme(
       id: id,
       name: name ?? this.name,
       colors: colors ?? Map.from(this.colors),
       isBuiltIn: isBuiltIn,
+      octaveOverrides: octaveOverrides ?? Map.from(this.octaveOverrides),
     );
   }
 
@@ -60,18 +91,54 @@ class InstrumentColorScheme {
         'id': id,
         'name': name,
         'colors': colors.map((k, v) => MapEntry(k, v.value)),
+        if (octaveOverrides.isNotEmpty)
+          'octaveOverrides':
+              octaveOverrides.map((k, v) => MapEntry(k, v.value)),
       };
 
   factory InstrumentColorScheme.fromJson(Map<String, dynamic> json) {
     final raw = json['colors'] as Map<String, dynamic>;
+    final rawOverrides =
+        json['octaveOverrides'] as Map<String, dynamic>? ?? {};
     return InstrumentColorScheme(
       id: json['id'] as String,
       name: json['name'] as String,
       colors: raw.map((k, v) => MapEntry(k, Color(v as int))),
+      octaveOverrides:
+          rawOverrides.map((k, v) => MapEntry(k, Color(v as int))),
     );
   }
 
   // ── Built-in schemes ──────────────────────────────────────────────────────
+
+  /// Xylophone with the traditional 8-bar diatonic palette:
+  /// C=purple, D=blue, E=green, F=lime, G=yellow, A=orange, B=red, C(high)=pink.
+  ///
+  /// The high C is modelled as octave overrides for C5 and C6 so the pink
+  /// colour is applied regardless of which octave range the instrument uses.
+  static const InstrumentColorScheme myXylophone = InstrumentColorScheme(
+    id: 'builtin_my_xylophone',
+    name: 'My Xylophone',
+    isBuiltIn: true,
+    colors: {
+      'C': Color(0xFF9C27B0),  // purple
+      'C#': Color(0xFF7B1FA2),
+      'D': Color(0xFF1E88E5),  // blue
+      'D#': Color(0xFF1565C0),
+      'E': Color(0xFF43A047),  // green
+      'F': Color(0xFF8BC34A),  // lime green
+      'F#': Color(0xFF558B2F),
+      'G': Color(0xFFFDD835),  // yellow
+      'G#': Color(0xFFF9A825),
+      'A': Color(0xFFF57C00),  // orange
+      'A#': Color(0xFFE65100),
+      'B': Color(0xFFE53935),  // red
+    },
+    octaveOverrides: {
+      'C5': Color(0xFFE91E63),  // pink – high C on an alto xylophone (C4–C5)
+      'C6': Color(0xFFE91E63),  // pink – high C on a soprano xylophone (C5–C6)
+    },
+  );
 
   /// Default xylophone palette (red → orange → yellow → green → teal → blue → purple).
   static const InstrumentColorScheme defaultXylophone = InstrumentColorScheme(
@@ -158,6 +225,7 @@ class InstrumentColorScheme {
   );
 
   static const List<InstrumentColorScheme> builtIns = [
+    myXylophone,
     defaultXylophone,
     rainbow,
     pastel,
