@@ -306,7 +306,7 @@ class _StaffPainter extends CustomPainter {
     // '𝄞' (U+1D11E) treble clef — positioned so the G4 curl sits on the G4 line.
     // G4 is at staff position 2 → y = _posToY(2).
     final g4y = _posToY(2);
-    final clefFontSize = _kLS * 5.8;
+    const clefFontSize = _kLS * 5.8;
     // Place the text so the curl (≈50% from top of glyph) aligns with G4.
     _drawText(
       canvas,
@@ -321,7 +321,7 @@ class _StaffPainter extends CustomPainter {
     if (row.isFirstRow && row.measures.isNotEmpty) {
       final beats = row.measures.first.beats;
       final beatType = row.measures.first.beatType;
-      final tsFontSize = _kLS * 1.55;
+      const tsFontSize = _kLS * 1.55;
       // Top number (beats) sits in the upper half of the staff.
       _drawText(
         canvas,
@@ -570,7 +570,7 @@ class _StaffPainter extends CustomPainter {
     final p = Paint()
       ..color = Colors.grey.shade700.withValues(alpha: alpha)
       ..strokeWidth = 1.2;
-    final hw = _kNRx + 4; // half-width, slightly wider than note head
+    const hw = _kNRx + 4; // half-width, slightly wider than note head
 
     // Lines below the staff sit at even positions: -2, -4, -6, …
     if (pos < 0) {

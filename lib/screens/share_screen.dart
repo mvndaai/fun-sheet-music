@@ -71,7 +71,7 @@ class ShareScreen extends StatelessWidget {
             const SizedBox(height: 12),
 
             // Web card
-            _PlatformCard(
+            const _PlatformCard(
               platform: _Platform.web,
               url: AppLinks.webUrl,
               title: 'Web Browser',
@@ -89,12 +89,12 @@ class ShareScreen extends StatelessWidget {
 
             // "Open web version" shortcut (only shown on native platforms)
             if (!kIsWeb) ...[
-              _OpenWebBanner(),
+              const _OpenWebBanner(),
               const SizedBox(height: 12),
             ],
 
             // Copy web link
-            _CopyLinkRow(url: AppLinks.webUrl),
+            const _CopyLinkRow(url: AppLinks.webUrl),
           ],
         ),
       ),
@@ -296,6 +296,8 @@ class _QrBox extends StatelessWidget {
 // ── "Open web version" banner for native platforms ────────────────────────
 
 class _OpenWebBanner extends StatelessWidget {
+  const _OpenWebBanner();
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -316,7 +318,7 @@ class _OpenWebBanner extends StatelessWidget {
           AppLinks.webUrl,
           style: TextStyle(
             fontSize: 12,
-            color: Theme.of(context).colorScheme.onPrimaryContainer.withOpacity(0.8),
+            color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
           ),
           overflow: TextOverflow.ellipsis,
         ),

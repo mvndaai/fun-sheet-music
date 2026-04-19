@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 /// Converts [color] to a 6-digit uppercase hex string (e.g. `"E91E63"`).
 String colorToHex(Color color) =>
-    color.value.toRadixString(16).toUpperCase().padLeft(8, '0').substring(2);
+    color.toARGB32().toRadixString(16).toUpperCase().padLeft(8, '0').substring(2);
 
 /// Parses a 6-digit hex string (without `#`) to a [Color], or returns `null`
 /// if [hex] is not exactly 6 valid hex digits.
@@ -141,7 +141,7 @@ class _NoteColorPickerDialogState extends State<_NoteColorPickerDialog> {
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
-                                    color: color.withOpacity(0.5),
+                                    color: color.withValues(alpha: 0.5),
                                     blurRadius: 8,
                                   )
                                 ]

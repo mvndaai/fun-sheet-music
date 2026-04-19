@@ -123,7 +123,7 @@ class _TagFilterBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 44,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

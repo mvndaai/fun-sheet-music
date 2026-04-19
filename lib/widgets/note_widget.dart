@@ -59,7 +59,7 @@ class NoteWidget extends StatelessWidget {
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                      color: color.withOpacity(0.6),
+                      color: color.withValues(alpha: 0.6),
                       blurRadius: 16,
                       spreadRadius: 4,
                     ),
@@ -90,7 +90,7 @@ class NoteWidget extends StatelessWidget {
                             Text(
                               note.letterName.replaceAll(_octaveDigits, ''),
                               style: TextStyle(
-                                color: textColor.withOpacity(0.8),
+                                color: textColor.withValues(alpha: 0.8),
                                 fontSize: size * 0.2,
                               ),
                             ),

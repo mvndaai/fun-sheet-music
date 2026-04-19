@@ -248,7 +248,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: rowMeasures.map((notes) {
                             return pw.Padding(
-                              padding: pw.EdgeInsets.only(
+                              padding: const pw.EdgeInsets.only(
                                   right: measureSpacing),
                               child: pw.Wrap(
                                 spacing: notePadding,
@@ -260,9 +260,9 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
                                     octave: note.octave,
                                   );
                                   final pdfColor = PdfColor(
-                                    color.red / 255,
-                                    color.green / 255,
-                                    color.blue / 255,
+                                    color.r,
+                                    color.g,
+                                    color.b,
                                   );
                                   final textColor =
                                       color.computeLuminance() > 0.35
