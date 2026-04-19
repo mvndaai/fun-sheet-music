@@ -43,6 +43,10 @@ dependencies:
   # Open URLs in browser / external apps
   url_launcher: ^6.3.1
 
+  # PDF generation and printing
+  pdf: ^3.12.0
+  printing: ^5.14.3
+
   # Icons
   cupertino_icons: ^1.0.8
 
