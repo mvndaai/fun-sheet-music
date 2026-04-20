@@ -120,6 +120,17 @@ jobs:
       #
       # On a real version tag (e.g. v1.2.3) a proper versioned release is
       # created instead, making the download permanent.
+
+      # Delete the existing "latest" release if present so we can create a
+      # fresh one. Repositories with immutable releases cannot upload new
+      # assets to a published release, so the old release must be removed.
+      - name: Delete existing "latest" release (if any)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v3
         with:
