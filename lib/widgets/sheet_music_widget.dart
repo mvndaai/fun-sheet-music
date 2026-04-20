@@ -192,6 +192,8 @@ class _StaffRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cp = context.watch<ColorSchemeProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: LayoutBuilder(
@@ -207,6 +209,7 @@ class _StaffRow extends StatelessWidget {
               labelsBelow: labelsBelow,
               coloredLabels: coloredLabels,
               colorProvider: cp,
+              isDark: isDark,
             ),
           ),
         ),
@@ -225,6 +228,7 @@ class _StaffPainter extends CustomPainter {
   final bool labelsBelow;
   final bool coloredLabels;
   final ColorSchemeProvider colorProvider;
+  final bool isDark;
 
   _StaffPainter({
     required this.row,
@@ -234,6 +238,7 @@ class _StaffPainter extends CustomPainter {
     required this.labelsBelow,
     required this.coloredLabels,
     required this.colorProvider,
+    required this.isDark,
   }) : super(repaint: colorProvider);
 
   @override
@@ -243,15 +248,24 @@ class _StaffPainter extends CustomPainter {
       old.showLetter != showLetter ||
       old.labelsBelow != labelsBelow ||
       old.coloredLabels != coloredLabels ||
+      old.isDark != isDark ||
       old.row != row;
 
   // ── paint ──────────────────────────────────────────────────────────────────
 
   @override
   void paint(Canvas canvas, Size size) {
-    _drawStaffLines(canvas, size.width);
+    // Use contrast colors
+    final color = isDark ? Colors.white70 : Colors.black87;
 
-    double x = _drawClefAndTimeSig(canvas);
+    // Use contrast colors
+    final linePaint = Paint()
+      ..color = color.withValues(alpha: 0.6)
+      ..strokeWidth = 1.0;
+
+    _drawStaffLines(canvas, size.width, linePaint);
+
+    double x = _drawClefAndTimeSig(canvas, color);
 
     // Calculate duration for each measure in this row
     final measureDurations = row.measures.map((m) {
@@ -278,10 +292,10 @@ class _StaffPainter extends CustomPainter {
       // Bar line
       final isLastMeasureInRow = mi == row.measures.length - 1;
       if (isLastMeasureInRow && row.isLastRow) {
-        _drawDoubleBarLine(canvas, x);
+        _drawDoubleBarLine(canvas, x, color);
       } else {
         final bp = Paint()
-          ..color = Colors.grey.shade700
+          ..color = color.withValues(alpha: 0.6)
           ..strokeWidth = isLastMeasureInRow ? 2.0 : 1.2;
         canvas.drawLine(
           Offset(x, _kTopMargin),
@@ -294,10 +308,7 @@ class _StaffPainter extends CustomPainter {
 
   // ── Staff lines ────────────────────────────────────────────────────────────
 
-  void _drawStaffLines(Canvas canvas, double width) {
-    final p = Paint()
-      ..color = Colors.grey.shade700
-      ..strokeWidth = 1.0;
+  void _drawStaffLines(Canvas canvas, double width, Paint p) {
     for (int i = 0; i < 5; i++) {
       final y = _kTopMargin + i * _kLS;
       canvas.drawLine(Offset(0, y), Offset(width, y), p);
@@ -308,19 +319,19 @@ class _StaffPainter extends CustomPainter {
 
   /// Draws the clef (and time sig on the first row) and returns the x position
   /// where note content begins.
-  double _drawClefAndTimeSig(Canvas canvas) {
+  double _drawClefAndTimeSig(Canvas canvas, Color color) {
     // '𝄞' (U+1D11E) treble clef — positioned so the G4 curl sits on the G4 line.
     // G4 is at staff position 2 → y = _posToY(2).
     final g4y = _posToY(2);
-    // Reduced size to fit within staff lines
-    const clefFontSize = _kLS * 4.2;
-    // Place the text so the curl (≈50% from top of glyph) aligns with G4.
+    // Increased size and adjusted position to be slightly lower than before.
+    const clefFontSize = _kLS * 3.8;
+    // Moved down: Adjusted offset from 1.35 to 1.1 to shift the larger glyph downwards.
     _drawText(
       canvas,
       '𝄞',
-      Offset(2, g4y - clefFontSize * 0.52),
+      Offset(2, g4y - clefFontSize * 1.1),
       fontSize: clefFontSize,
-      color: Colors.grey.shade800,
+      color: color,
     );
 
     double x = _kClefW;
@@ -335,7 +346,7 @@ class _StaffPainter extends CustomPainter {
         '$beats',
         Offset(x + 2, _kTopMargin + _kLS * 0.1),
         fontSize: tsFontSize,
-        color: Colors.grey.shade800,
+        color: color,
         fontWeight: FontWeight.bold,
       );
       // Bottom number (beat type) sits in the lower half.
@@ -344,13 +355,17 @@ class _StaffPainter extends CustomPainter {
         '$beatType',
         Offset(x + 2, _kTopMargin + _kStaffH / 2 + _kLS * 0.1),
         fontSize: tsFontSize,
-        color: Colors.grey.shade800,
+        color: color,
         fontWeight: FontWeight.bold,
       );
       x += _kTimeSigW;
     }
 
     return x;
+  }
+
+  bool _isDark(Size size) {
+    return colorProvider.themeMode == ThemeMode.dark;
   }
 
   // ── Measure number ─────────────────────────────────────────────────────────
@@ -741,12 +756,12 @@ class _StaffPainter extends CustomPainter {
 
   // ── Double bar line ───────────────────────────────────────────────────────
 
-  void _drawDoubleBarLine(Canvas canvas, double x) {
+  void _drawDoubleBarLine(Canvas canvas, double x, Color color) {
     final thin = Paint()
-      ..color = Colors.grey.shade700
+      ..color = color.withValues(alpha: 0.6)
       ..strokeWidth = 1.2;
     final thick = Paint()
-      ..color = Colors.grey.shade800
+      ..color = color.withValues(alpha: 0.8)
       ..strokeWidth = 2.8;
     canvas.drawLine(Offset(x - 4, _kTopMargin), Offset(x - 4, _kTopMargin + _kStaffH), thin);
     canvas.drawLine(Offset(x, _kTopMargin), Offset(x, _kTopMargin + _kStaffH), thick);

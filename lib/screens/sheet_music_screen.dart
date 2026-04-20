@@ -376,6 +376,9 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
     final provider = context.read<ColorSchemeProvider>();
     final song = widget.song;
 
+    // Load a font that supports music symbols
+    final musicFont = await PdfGoogleFonts.notoMusicRegular();
+
     await Printing.layoutPdf(
       name: song.title,
       onLayout: (PdfPageFormat format) async {
@@ -479,6 +482,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
                           isFirstRow,
                           isLastRow,
                           totalSongDuration,
+                          musicFont,
                         ),
                       );
                     }),
@@ -507,6 +511,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
     bool isFirstRow,
     bool isLastRow,
     double totalSongDuration,
+    pw.Font musicFont,
   ) {
     return pw.SizedBox(
       height: topMargin + staffHeight + topMargin,
@@ -526,15 +531,16 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
             );
           }),
 
-          // Treble clef - using Unicode symbol
+          // Treble clef - using Unicode symbol with music font
           pw.Positioned(
             left: 2,
-            top: topMargin - ls * 0.5,
+            top: topMargin - ls * 1.35, // Corrected offset to match screen
             child: pw.Text(
               '𝄞',
               style: pw.TextStyle(
-                fontSize: ls * 4.2,
-                color: PdfColors.grey800,
+                font: musicFont,
+                fontSize: ls * 3.2,
+                color: PdfColors.black,
               ),
             ),
           ),
@@ -641,15 +647,15 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
           : displayNotes.fold(0.0, (sum, n) => sum + n.duration);
       
       // Add padding within the measure for visual clarity
-      const measurePadding = 8.0; // padding to prevent overlap with bar lines
-      final contentWidth = measureWidth - (measurePadding * 2);
+      const leftPadding = 20.0;
+      const rightPadding = 20.0;
       
       double cumulativeDuration = 0.0;
       for (int ni = 0; ni < displayNotes.length; ni++) {
         final note = displayNotes[ni];
         if (!note.isRest) {
-          // Position note at the start of its duration slot, with padding
-          final noteX = x + measurePadding + (cumulativeDuration / noteTotalDuration) * contentWidth;
+          // Position note in the center of its duration slot within the measure (matching screen behavior)
+          final noteX = x + leftPadding + ((cumulativeDuration + note.duration / 2) / noteTotalDuration) * (measureWidth - leftPadding - rightPadding).clamp(0.0, measureWidth);
           
           widgets.addAll(_buildNote(
             note,
