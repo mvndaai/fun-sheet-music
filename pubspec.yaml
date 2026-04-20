@@ -14,7 +14,7 @@ dependencies:
   xml: ^6.5.0
 
   # File picker for uploading MusicXML files
-  file_picker: ^8.1.4
+  file_picker: ^11.0.2
 
   # HTTP client for Google Cloud Storage downloads
   http: ^1.3.0
@@ -38,7 +38,7 @@ dependencies:
   fftea: ^1.3.0
   
   # Audio playback for notes and metronome
-  flutter_beep: ^1.0.0
+  audioplayers: ^6.1.0
 
   # QR code rendering for share/download screen
   qr_flutter: ^4.1.0
@@ -56,7 +56,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true

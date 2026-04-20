@@ -1,14 +1,17 @@
-import 'package:flutter_beep/flutter_beep.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'tone_player_stub.dart';
 
-/// Mobile implementation using flutter_beep
+/// Mobile implementation using audioplayers
 class MobileTonePlayer implements PlatformTonePlayer {
+  final AudioPlayer _player = AudioPlayer();
+
   @override
   Future<void> playTone(double frequency, int durationMs) async {
     try {
-      // flutter_beep doesn't support custom frequencies
-      // Fall back to system beep
-      await FlutterBeep.beep(false);
+      // audioplayers is better for actual audio files,
+      // but we'll use it to play a short notification sound or similar if needed.
+      // For now, let's just ensure it doesn't crash the build.
+      await _player.play(AssetSource('sample_songs/beep.mp3'));
     } catch (e) {
       // Ignore errors - audio is best-effort
     }
@@ -16,7 +19,7 @@ class MobileTonePlayer implements PlatformTonePlayer {
 
   @override
   void dispose() {
-    // Nothing to dispose for mobile
+    _player.dispose();
   }
 }
 

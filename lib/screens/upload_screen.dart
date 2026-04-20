@@ -39,7 +39,7 @@ class _UploadScreenState extends State<UploadScreen>
 
   Future<void> _pickFile() async {
     setState(() => _error = null);
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xml', 'mxl', 'musicxml'],
       withData: true,
