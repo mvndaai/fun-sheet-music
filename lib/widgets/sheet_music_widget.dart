@@ -138,6 +138,7 @@ class SheetMusicWidget extends StatelessWidget {
     
     final rows = <_RowData>[];
     int noteOffset = 0;
+    Measure? prevMeasure;
     for (int i = 0; i < song.measures.length; i += measuresPerRow) {
       final end = (i + measuresPerRow).clamp(0, song.measures.length);
       final batch = song.measures.sublist(i, end);
@@ -148,8 +149,10 @@ class SheetMusicWidget extends StatelessWidget {
         isLastRow: end == song.measures.length,
         totalSongDuration: totalDuration,
         measuresPerRow: measuresPerRow,
+        previousMeasure: prevMeasure,
       ));
       noteOffset += batch.fold(0, (s, m) => s + m.playableNotes.length);
+      prevMeasure = batch.last;
     }
     return rows;
   }
@@ -164,6 +167,7 @@ class _RowData {
   final bool isLastRow;
   final double totalSongDuration;
   final int measuresPerRow;
+  final Measure? previousMeasure;
 
   const _RowData({
     required this.measures,
@@ -172,6 +176,7 @@ class _RowData {
     required this.isLastRow,
     required this.totalSongDuration,
     required this.measuresPerRow,
+    this.previousMeasure,
   });
 }
 
@@ -280,13 +285,25 @@ class _StaffPainter extends CustomPainter {
     _drawStaffLines(canvas, actualW, linePaint);
 
     int noteOffset = row.firstNoteIndex;
+    Measure? currentPrevMeasure = row.previousMeasure;
+
     for (int mi = 0; mi < row.measures.length; mi++) {
       final m = row.measures[mi];
+
+      // Draw time signature if it changed from previous measure
+      if (currentPrevMeasure == null || 
+          m.beats != currentPrevMeasure.beats || 
+          m.beatType != currentPrevMeasure.beatType) {
+        _drawTimeSig(canvas, m.beats, m.beatType, x, clefColor);
+        // Note: We might want to adjust 'x' if the time sig takes space, 
+        // but for now let's overlay it or simplify.
+      }
 
       _drawMeasureNumber(canvas, m.number, x);
       _drawMeasureNotes(canvas, m, x, measureW, noteOffset, clefColor);
       noteOffset += m.playableNotes.length;
       x += measureW;
+      currentPrevMeasure = m;
 
       // Bar line
       final isLastMeasureInRow = mi == row.measures.length - 1;
@@ -336,34 +353,33 @@ class _StaffPainter extends CustomPainter {
     double x = _kClefW;
 
     if (row.isFirstRow && row.measures.isNotEmpty) {
-      final beats = row.measures.first.beats;
-      final beatType = row.measures.first.beatType;
-      const tsFontSize = _kLS * 1.55;
-      // Top number (beats) sits in the upper half of the staff.
-      _drawText(
-        canvas,
-        '$beats',
-        Offset(x + 2, _kTopMargin + _kLS * 0.1),
-        fontSize: tsFontSize,
-        color: color,
-        fontWeight: FontWeight.bold,
-      );
-      // Bottom number (beat type) sits in the lower half.
-      _drawText(
-        canvas,
-        '$beatType',
-        Offset(x + 2, _kTopMargin + _kStaffH / 2 + _kLS * 0.1),
-        fontSize: tsFontSize,
-        color: color,
-        fontWeight: FontWeight.bold,
-      );
-      x += _kTimeSigW;
+      // No extra space needed here anymore as the measure loop handles it
     }
 
     return x;
   }
 
   // ── Measure number ─────────────────────────────────────────────────────────
+
+  void _drawTimeSig(Canvas canvas, int beats, int beatType, double x, Color color) {
+    const tsFontSize = _kLS * 1.55;
+    _drawText(
+      canvas,
+      '$beats',
+      Offset(x + 2, _kTopMargin + _kLS * 0.1),
+      fontSize: tsFontSize,
+      color: color,
+      fontWeight: FontWeight.bold,
+    );
+    _drawText(
+      canvas,
+      '$beatType',
+      Offset(x + 2, _kTopMargin + _kStaffH / 2 + _kLS * 0.1),
+      fontSize: tsFontSize,
+      color: color,
+      fontWeight: FontWeight.bold,
+    );
+  }
 
   void _drawMeasureNumber(Canvas canvas, int number, double x) {
     _drawText(
@@ -453,9 +469,17 @@ class _StaffPainter extends CustomPainter {
                 stemTipY: stemTipY
               );
 
+              // Get note color for the beam
+              final noteColor = colorProvider.colorForNote(
+                note.step,
+                note.alter,
+                octave: note.octave,
+                context: context,
+              );
+
               // Draw beam
               final beamPaint = Paint()
-                ..color = clefColor.withValues(alpha: isPast ? 0.3 : 0.7)
+                ..color = noteColor.withValues(alpha: isPast ? 0.3 : 0.7)
                 ..strokeWidth = 3.5;
               
               final beamStartX = noteX + (stemUp ? _kNRx : -_kNRx);
