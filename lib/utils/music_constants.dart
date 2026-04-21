@@ -64,7 +64,7 @@ class MusicConstants {
   static int noteNameToMidi(String name) {
     if (name.isEmpty) return -1;
     // Parse e.g. "C5", "F#4", "Bb3"
-    final match = RegExp(r'^([A-G])(#|b)?(-?\d+)$').firstMatch(name);
+    final match = RegExp(r'^([A-G])([#b])?(-?\d+)$').firstMatch(name);
     if (match == null) return -1;
     final step = match.group(1)!;
     final acc = match.group(2) ?? '';

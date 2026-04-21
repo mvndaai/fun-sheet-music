@@ -652,7 +652,7 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
       initialOverrides: _tuningOverrides,
       colorProvider: (noteName) {
         // Parse noteName (e.g. "C4", "F#4")
-        final match = RegExp(r'^([A-G])(#|b)?(\d+)?$').firstMatch(noteName);
+        final match = RegExp(r'^([A-G])([#b])?(-?\d+)$').firstMatch(noteName);
         if (match == null) return Colors.grey;
         final step = match.group(1)!;
         final acc = match.group(2) ?? '';
