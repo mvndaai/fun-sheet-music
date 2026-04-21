@@ -11,6 +11,11 @@ class ColorSchemeProvider extends ChangeNotifier {
   static const String _activeIdKey = 'color_scheme_active_id';
   static const String _customSchemesKey = 'color_scheme_custom';
   static const String _showLabelsKey = 'color_scheme_show_labels';
+  static const String _showLetterKey = 'settings_show_letter';
+  static const String _showSolfegeKey = 'settings_show_solfege';
+  static const String _labelsBelowKey = 'settings_labels_below';
+  static const String _coloredLabelsKey = 'settings_colored_labels';
+  static const String _measuresPerRowKey = 'settings_measures_per_row';
   static const String _themeModeKey = 'app_theme_mode';
 
   final Uuid _uuid = const Uuid();
@@ -20,11 +25,22 @@ class ColorSchemeProvider extends ChangeNotifier {
 
   /// When false, note circles show only color – no text label at all.
   bool _showNoteLabels = true;
-  
+
+  bool _showLetter = true;
+  bool _showSolfege = false;
+  bool _labelsBelow = true;
+  bool _coloredLabels = false;
+  int _measuresPerRow = 4;
+
   /// App theme mode: system, light, or dark
   ThemeMode _themeMode = ThemeMode.system;
 
   bool get showNoteLabels => _showNoteLabels;
+  bool get showLetter => _showLetter;
+  bool get showSolfege => _showSolfege;
+  bool get labelsBelow => _labelsBelow;
+  bool get coloredLabels => _coloredLabels;
+  int get measuresPerRow => _measuresPerRow;
   String get activeId => _activeId;
   ThemeMode get themeMode => _themeMode;
 
@@ -45,7 +61,12 @@ class ColorSchemeProvider extends ChangeNotifier {
     _activeId =
         prefs.getString(_activeIdKey) ?? InstrumentColorScheme.defaultXylophone.id;
     _showNoteLabels = prefs.getBool(_showLabelsKey) ?? true;
-    
+    _showLetter = prefs.getBool(_showLetterKey) ?? true;
+    _showSolfege = prefs.getBool(_showSolfegeKey) ?? false;
+    _labelsBelow = prefs.getBool(_labelsBelowKey) ?? true;
+    _coloredLabels = prefs.getBool(_coloredLabelsKey) ?? false;
+    _measuresPerRow = prefs.getInt(_measuresPerRowKey) ?? 4;
+
     // Load theme mode
     final themeModeStr = prefs.getString(_themeModeKey) ?? 'system';
     _themeMode = switch (themeModeStr) {
@@ -89,6 +110,50 @@ class ColorSchemeProvider extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_showLabelsKey, value);
+  }
+
+  Future<void> setShowLetter(bool value) async {
+    if (_showLetter == value) return;
+    _showLetter = value;
+    _showNoteLabels = _showLetter || _showSolfege;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_showLetterKey, value);
+    await prefs.setBool(_showLabelsKey, _showNoteLabels);
+  }
+
+  Future<void> setShowSolfege(bool value) async {
+    if (_showSolfege == value) return;
+    _showSolfege = value;
+    _showNoteLabels = _showLetter || _showSolfege;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_showSolfegeKey, value);
+    await prefs.setBool(_showLabelsKey, _showNoteLabels);
+  }
+
+  Future<void> setLabelsBelow(bool value) async {
+    if (_labelsBelow == value) return;
+    _labelsBelow = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_labelsBelowKey, value);
+  }
+
+  Future<void> setColoredLabels(bool value) async {
+    if (_coloredLabels == value) return;
+    _coloredLabels = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_coloredLabelsKey, value);
+  }
+
+  Future<void> setMeasuresPerRow(int value) async {
+    if (_measuresPerRow == value) return;
+    _measuresPerRow = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_measuresPerRowKey, value);
   }
 
   /// Sets the app theme mode.

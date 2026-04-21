@@ -24,12 +24,6 @@ class SheetMusicScreen extends StatefulWidget {
 }
 
 class _SheetMusicScreenState extends State<SheetMusicScreen> {
-  bool _showLetter = true;
-  bool _showSolfege = false;
-  bool _labelsBelow = true;
-  bool _coloredLabels = false;
-  int _measuresPerRow = 4;
-  
   // Playback state
   bool _isPlaying = false;
   int _activeNoteIndex = -1;
@@ -166,7 +160,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
       ),
       builder: (sheetCtx) => StatefulBuilder(
         builder: (sheetCtx, setSheetState) {
-          final provider = context.watch<ColorSchemeProvider>();
           return Padding(
             padding: EdgeInsets.only(
               left: 16,
@@ -174,197 +167,178 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
               top: 12,
               bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Handle bar
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+            child: Consumer<ColorSchemeProvider>(
+              builder: (context, provider, _) => SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Handle bar
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
+                    Text(
+                      'Settings',
+                      style: Theme.of(sheetCtx).textTheme.titleLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    const Divider(height: 24),
+
+                  // Letters toggle
+                  SwitchListTile(
+                    title: const Text('Letters'),
+                    subtitle: const Text('Show letter names on notes (A, B, C…)'),
+                    value: provider.showLetter,
+                    onChanged: (v) => provider.setShowLetter(v),
                   ),
-                  Text(
-                    'Settings',
-                    style: Theme.of(sheetCtx).textTheme.titleLarge,
-                    textAlign: TextAlign.center,
+
+                  // Solfège toggle
+                  SwitchListTile(
+                    title: const Text('Solfège'),
+                    subtitle:
+                        const Text('Show solfège names on notes (Do, Re, Mi…)'),
+                    value: provider.showSolfege,
+                    onChanged: (v) => provider.setShowSolfege(v),
                   ),
+
+                  // Labels below toggle
+                  SwitchListTile(
+                    title: const Text('Labels Below Notes'),
+                    subtitle:
+                        const Text('Show labels under notes instead of inside'),
+                    value: provider.labelsBelow,
+                    onChanged: (v) => provider.setLabelsBelow(v),
+                  ),
+
+                  // Colored labels toggle
+                  SwitchListTile(
+                    title: const Text('Colored Labels'),
+                    subtitle:
+                        const Text('Match label color to note color'),
+                    value: provider.coloredLabels,
+                    onChanged: (v) => provider.setColoredLabels(v),
+                  ),
+
                   const Divider(height: 24),
 
-                // Letters toggle
-                SwitchListTile(
-                  title: const Text('Letters'),
-                  subtitle: const Text('Show letter names on notes (A, B, C…)'),
-                  value: _showLetter,
-                  onChanged: (v) {
-                    setState(() => _showLetter = v);
-                    setSheetState(() {});
-                    context
-                        .read<ColorSchemeProvider>()
-                        .setShowNoteLabels(v || _showSolfege);
-                  },
-                ),
+                  // Tempo/Speed control
+                  ListTile(
+                    title: const Text('Tempo'),
+                    subtitle: Text('${_tempo.round()} BPM'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Slider(
+                      value: _tempo,
+                      min: 40,
+                      max: 240,
+                      divisions: 40,
+                      label: '${_tempo.round()} BPM',
+                      onChanged: (v) {
+                        setState(() => _tempo = v);
+                        // Restart metronome if running
+                        if (_tonePlayer.isMetronomeRunning) {
+                          _tonePlayer.startMetronome(_tempo);
+                        }
+                      },
+                    ),
+                  ),
 
-                // Solfège toggle
-                SwitchListTile(
-                  title: const Text('Solfège'),
-                  subtitle:
-                      const Text('Show solfège names on notes (Do, Re, Mi…)'),
-                  value: _showSolfege,
-                  onChanged: (v) {
-                    setState(() => _showSolfege = v);
-                    setSheetState(() {});
-                    context
-                        .read<ColorSchemeProvider>()
-                        .setShowNoteLabels(_showLetter || v);
-                  },
-                ),
+                  const Divider(height: 24),
 
-                // Labels below toggle
-                SwitchListTile(
-                  title: const Text('Labels Below Notes'),
-                  subtitle:
-                      const Text('Show labels under notes instead of inside'),
-                  value: _labelsBelow,
-                  onChanged: (v) {
-                    setState(() => _labelsBelow = v);
-                    setSheetState(() {});
-                  },
-                ),
+                  // Measures per row
+                  ListTile(
+                    title: const Text('Measures per row'),
+                    trailing: DropdownButton<int>(
+                      value: provider.measuresPerRow,
+                      underline: const SizedBox.shrink(),
+                      items: [2, 3, 4, 6]
+                          .map(
+                            (v) => DropdownMenuItem(
+                              value: v,
+                              child: Text('$v'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          provider.setMeasuresPerRow(v);
+                        }
+                      },
+                    ),
+                  ),
 
-                // Colored labels toggle
-                SwitchListTile(
-                  title: const Text('Colored Labels'),
-                  subtitle:
-                      const Text('Match label color to note color'),
-                  value: _coloredLabels,
-                  onChanged: (v) {
-                    setState(() => _coloredLabels = v);
-                    setSheetState(() {});
-                  },
-                ),
+                  const Divider(height: 24),
 
-                const Divider(height: 24),
-
-                // Tempo/Speed control
-                ListTile(
-                  title: const Text('Tempo'),
-                  subtitle: Text('${_tempo.round()} BPM'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Slider(
-                    value: _tempo,
-                    min: 40,
-                    max: 240,
-                    divisions: 40,
-                    label: '${_tempo.round()} BPM',
-                    onChanged: (v) {
-                      setState(() => _tempo = v);
-                      setSheetState(() {});
-                      // Restart metronome if running
-                      if (_tonePlayer.isMetronomeRunning) {
-                        _tonePlayer.startMetronome(_tempo);
-                      }
+                  // Instrument
+                  ListTile(
+                    title: const Text('Instrument'),
+                    subtitle: Text(provider.activeScheme.name),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ColorSchemesScreen(),
+                        ),
+                      );
                     },
                   ),
-                ),
 
-                const Divider(height: 24),
+                  const Divider(height: 24),
 
-                // Measures per row
-                ListTile(
-                  title: const Text('Measures per row'),
-                  trailing: DropdownButton<int>(
-                    value: _measuresPerRow,
-                    underline: const SizedBox.shrink(),
-                    items: [2, 3, 4, 6]
-                        .map(
-                          (v) => DropdownMenuItem(
-                            value: v,
-                            child: Text('$v'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() => _measuresPerRow = v);
-                        setSheetState(() {});
-                      }
+                  // Theme
+                  ListTile(
+                    title: const Text('Theme'),
+                    trailing: DropdownButton<ThemeMode>(
+                      value: provider.themeMode,
+                      underline: const SizedBox.shrink(),
+                      items: const [
+                        DropdownMenuItem(
+                          value: ThemeMode.system,
+                          child: Text('System'),
+                        ),
+                        DropdownMenuItem(
+                          value: ThemeMode.light,
+                          child: Text('Light'),
+                        ),
+                        DropdownMenuItem(
+                          value: ThemeMode.dark,
+                          child: Text('Dark'),
+                        ),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) {
+                          provider.setThemeMode(v);
+                        }
+                      },
+                    ),
+                  ),
+
+                  const Divider(height: 24),
+
+                  // Print
+                  ListTile(
+                    leading: const Icon(Icons.print),
+                    title: const Text('Print'),
+                    subtitle: const Text('Generate a PDF of this song'),
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      _printSong();
                     },
                   ),
-                ),
-
-                const Divider(height: 24),
-
-                // Instrument
-                ListTile(
-                  title: const Text('Instrument'),
-                  subtitle: Text(provider.activeScheme.name),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.pop(sheetCtx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ColorSchemesScreen(),
-                      ),
-                    );
-                  },
-                ),
-
-                const Divider(height: 24),
-
-                // Theme
-                ListTile(
-                  title: const Text('Theme'),
-                  trailing: DropdownButton<ThemeMode>(
-                    value: provider.themeMode,
-                    underline: const SizedBox.shrink(),
-                    items: const [
-                      DropdownMenuItem(
-                        value: ThemeMode.system,
-                        child: Text('System'),
-                      ),
-                      DropdownMenuItem(
-                        value: ThemeMode.light,
-                        child: Text('Light'),
-                      ),
-                      DropdownMenuItem(
-                        value: ThemeMode.dark,
-                        child: Text('Dark'),
-                      ),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) {
-                        provider.setThemeMode(v);
-                        setSheetState(() {});
-                      }
-                    },
-                  ),
-                ),
-
-                const Divider(height: 24),
-
-                // Print
-                ListTile(
-                  leading: const Icon(Icons.print),
-                  title: const Text('Print'),
-                  subtitle: const Text('Generate a PDF of this song'),
-                  onTap: () {
-                    Navigator.pop(sheetCtx);
-                    _printSong();
-                  },
-                ),
-              ],
-            ),
+                ],
+              ),
+              ),
             ),
           );
         },
@@ -411,11 +385,11 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
 
         // Split measures into rows
         final List<List<Measure>> rows = [];
-        for (int i = 0; i < song.measures.length; i += _measuresPerRow) {
+        for (int i = 0; i < song.measures.length; i += provider.measuresPerRow) {
           rows.add(
             song.measures.sublist(
               i,
-              (i + _measuresPerRow).clamp(0, song.measures.length),
+              (i + provider.measuresPerRow).clamp(0, song.measures.length),
             ),
           );
         }
@@ -833,19 +807,19 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
     }
 
     // Note label - positioned below when _labelsBelow is true
-    if (_showLetter || _showSolfege) {
+    if (provider.showLetter || provider.showSolfege) {
       String label = '';
-      if (_showLetter && _showSolfege) {
+      if (provider.showLetter && provider.showSolfege) {
         label = '${note.step}\n${note.solfegeName}';
-      } else if (_showLetter) {
+      } else if (provider.showLetter) {
         label = note.step;
         if (note.alter == 1) label += '#';
         if (note.alter == -1) label += 'b';
-      } else if (_showSolfege) {
+      } else if (provider.showSolfege) {
         label = note.solfegeName;
       }
 
-      if (_labelsBelow) {
+      if (provider.labelsBelow) {
         // Position label below the note
         final stemUp = pos < 5;
         final stemLength = ls * 3.4;
@@ -893,51 +867,53 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.song.title),
-        actions: [
-          IconButton(
-            icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-            tooltip: _isPlaying ? 'Pause' : 'Play',
-            onPressed: _togglePlayback,
-          ),
-          IconButton(
-            icon: Icon(
-              _tonePlayer.isMetronomeRunning 
-                ? Icons.stop 
-                : Icons.av_timer,
+    return Consumer<ColorSchemeProvider>(
+      builder: (context, provider, _) => Scaffold(
+        appBar: AppBar(
+          title: Text(widget.song.title),
+          actions: [
+            IconButton(
+              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+              tooltip: _isPlaying ? 'Pause' : 'Play',
+              onPressed: _togglePlayback,
             ),
-            tooltip: _tonePlayer.isMetronomeRunning 
-              ? 'Stop Metronome' 
-              : 'Start Metronome',
-            onPressed: _toggleMetronome,
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-            onPressed: _openSettings,
-          ),
-        ],
-      ),
-      body: SheetMusicWidget(
-        song: widget.song,
-        showSolfege: _showSolfege,
-        showLetter: _showLetter,
-        labelsBelow: _labelsBelow,
-        coloredLabels: _coloredLabels,
-        activeNoteIndex: _activeNoteIndex,
-        measuresPerRow: _measuresPerRow,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PracticeScreen(song: widget.song),
-          ),
+            IconButton(
+              icon: Icon(
+                _tonePlayer.isMetronomeRunning
+                  ? Icons.stop
+                  : Icons.av_timer,
+              ),
+              tooltip: _tonePlayer.isMetronomeRunning
+                ? 'Stop Metronome'
+                : 'Start Metronome',
+              onPressed: _toggleMetronome,
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Settings',
+              onPressed: _openSettings,
+            ),
+          ],
         ),
-        icon: const Icon(Icons.mic),
-        label: const Text('Practice'),
+        body: SheetMusicWidget(
+          song: widget.song,
+          showSolfege: provider.showSolfege,
+          showLetter: provider.showLetter,
+          labelsBelow: provider.labelsBelow,
+          coloredLabels: provider.coloredLabels,
+          activeNoteIndex: _activeNoteIndex,
+          measuresPerRow: provider.measuresPerRow,
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PracticeScreen(song: widget.song),
+            ),
+          ),
+          icon: const Icon(Icons.mic),
+          label: const Text('Practice'),
+        ),
       ),
     );
   }

@@ -28,7 +28,6 @@ class _PracticeScreenState extends State<PracticeScreen>
   bool _micActive = false;
   String _detectedNote = '';
   String? _statusMessage;
-  bool _showSolfege = false;
   StreamSubscription<String>? _noteSubscription;
 
   List<MusicNote> get _notes => widget.song.allNotes;
@@ -157,6 +156,104 @@ class _PracticeScreenState extends State<PracticeScreen>
     return 12 * (octave + 1) + base + alter;
   }
 
+  void _openSettings() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 12,
+          bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
+        ),
+        child: Consumer<ColorSchemeProvider>(
+          builder: (context, provider, _) => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  'Settings',
+                  style: Theme.of(sheetCtx).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const Divider(height: 24),
+                SwitchListTile(
+                  title: const Text('Letters'),
+                  subtitle: const Text('Show letter names on notes (A, B, C…)'),
+                  value: provider.showLetter,
+                  onChanged: (v) => provider.setShowLetter(v),
+                ),
+                SwitchListTile(
+                  title: const Text('Solfège'),
+                  subtitle: const Text('Show solfège names on notes (Do, Re, Mi…)'),
+                  value: provider.showSolfege,
+                  onChanged: (v) => provider.setShowSolfege(v),
+                ),
+                SwitchListTile(
+                  title: const Text('Labels Below Notes'),
+                  subtitle: const Text('Show labels under notes instead of inside'),
+                  value: provider.labelsBelow,
+                  onChanged: (v) => provider.setLabelsBelow(v),
+                ),
+                SwitchListTile(
+                  title: const Text('Colored Labels'),
+                  subtitle: const Text('Match label color to note color'),
+                  value: provider.coloredLabels,
+                  onChanged: (v) => provider.setColoredLabels(v),
+                ),
+                const Divider(height: 24),
+                ListTile(
+                  title: const Text('Instrument'),
+                  subtitle: Text(provider.activeScheme.name),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ColorSchemesScreen()),
+                    );
+                  },
+                ),
+                const Divider(height: 24),
+                ListTile(
+                  title: const Text('Theme'),
+                  trailing: DropdownButton<ThemeMode>(
+                    value: provider.themeMode,
+                    underline: const SizedBox.shrink(),
+                    items: const [
+                      DropdownMenuItem(value: ThemeMode.system, child: Text('System')),
+                      DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
+                      DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark')),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) provider.setThemeMode(v);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final current = _currentNote;
@@ -164,106 +261,92 @@ class _PracticeScreenState extends State<PracticeScreen>
         ? 0.0
         : (_currentNoteIndex / _notes.length).clamp(0.0, 1.0);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Practice: ${widget.song.title}'),
-        actions: [
-          // Note label toggle
-          Consumer<ColorSchemeProvider>(
-            builder: (context, provider, _) => IconButton(
-              icon: Icon(provider.showNoteLabels ? Icons.label : Icons.label_off),
-              tooltip: provider.showNoteLabels ? 'Labels on' : 'Labels off',
-              onPressed: () =>
-                  provider.setShowNoteLabels(!provider.showNoteLabels),
+    return Consumer<ColorSchemeProvider>(
+      builder: (context, provider, _) => Scaffold(
+        appBar: AppBar(
+          title: Text('Practice: ${widget.song.title}'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.settings),
+              tooltip: 'Settings',
+              onPressed: _openSettings,
             ),
-          ),
-          // Solfège / letter toggle
-          IconButton(
-            icon: Icon(_showSolfege ? Icons.music_note : Icons.abc),
-            tooltip: _showSolfege ? 'Show letters' : 'Show solfège',
-            onPressed: () => setState(() => _showSolfege = !_showSolfege),
-          ),
-          // Color scheme shortcut
-          IconButton(
-            icon: const Icon(Icons.palette_outlined),
-            tooltip: 'Instrument colors',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ColorSchemesScreen()),
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Progress bar
-          LinearProgressIndicator(value: progress, minHeight: 6),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Progress bar
+            LinearProgressIndicator(value: progress, minHeight: 6),
 
-          // Status / detected note
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            color: _micActive
-                ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
-                : Colors.transparent,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: Row(
-              children: [
-                Icon(
-                  _micActive ? Icons.mic : Icons.mic_off,
-                  color: _micActive ? Colors.green : Colors.grey,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _statusMessage ??
-                        (_micActive
-                            ? (_detectedNote.isNotEmpty
-                                ? 'Hearing: $_detectedNote'
-                                : 'Listening…')
-                            : 'Tap 🎙 to start practice'),
-                    style: const TextStyle(fontSize: 14),
+            // Status / detected note
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              color: _micActive
+                  ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
+                  : Colors.transparent,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              child: Row(
+                children: [
+                  Icon(
+                    _micActive ? Icons.mic : Icons.mic_off,
+                    color: _micActive ? Colors.green : Colors.grey,
                   ),
-                ),
-                Text(
-                  '${_currentNoteIndex + 1} / ${_notes.length}',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 13,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _statusMessage ??
+                          (_micActive
+                              ? (_detectedNote.isNotEmpty
+                                  ? 'Hearing: $_detectedNote'
+                                  : 'Listening…')
+                              : 'Tap 🎙 to start practice'),
+                      style: const TextStyle(fontSize: 14),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          // Current note highlight
-          if (current != null)
-            _CurrentNoteCard(
-              note: current,
-              showSolfege: _showSolfege,
-              noteIndex: _currentNoteIndex,
-              total: _notes.length,
+                  Text(
+                    '${_currentNoteIndex + 1} / ${_notes.length}',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
             ),
 
-          const Divider(height: 1),
+            // Current note highlight
+            if (current != null)
+              _CurrentNoteCard(
+                note: current,
+                showSolfege: provider.showSolfege,
+                noteIndex: _currentNoteIndex,
+                total: _notes.length,
+              ),
 
-          // Sheet music (scrollable)
-          Expanded(
-            child: SheetMusicWidget(
-              song: widget.song,
-              activeNoteIndex: _currentNoteIndex,
-              showSolfege: _showSolfege,
-              showLetter: true,
+            const Divider(height: 1),
+
+            // Sheet music (scrollable)
+            Expanded(
+              child: SheetMusicWidget(
+                song: widget.song,
+                activeNoteIndex: _currentNoteIndex,
+                showSolfege: provider.showSolfege,
+                showLetter: provider.showLetter,
+                labelsBelow: provider.labelsBelow,
+                coloredLabels: provider.coloredLabels,
+                measuresPerRow: provider.measuresPerRow,
+              ),
             ),
-          ),
 
-          // Navigation controls
-          _NavigationBar(
-            onPrevious: _currentNoteIndex > 0 ? _previous : null,
-            onNext: _currentNoteIndex < _notes.length - 1 ? _advance : null,
-            onMicToggle: _toggleMic,
-            micActive: _micActive,
-          ),
-        ],
+            // Navigation controls
+            _NavigationBar(
+              onPrevious: _currentNoteIndex > 0 ? _previous : null,
+              onNext: _currentNoteIndex < _notes.length - 1 ? _advance : null,
+              onMicToggle: _toggleMic,
+              micActive: _micActive,
+            ),
+          ],
+        ),
       ),
     );
   }
