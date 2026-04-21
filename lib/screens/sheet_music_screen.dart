@@ -359,13 +359,22 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
     final provider = context.read<ColorSchemeProvider>();
     final song = widget.song;
 
-    // Load a font that supports music symbols
+    // Load fonts that support Unicode and symbols
+    final font = await PdfGoogleFonts.notoSansRegular();
+    final boldFont = await PdfGoogleFonts.notoSansBold();
     final musicFont = await PdfGoogleFonts.notoMusicRegular();
+    final emojiFont = await PdfGoogleFonts.notoColorEmojiRegular();
 
     await Printing.layoutPdf(
       name: song.title,
       onLayout: (PdfPageFormat format) async {
-        final doc = pw.Document();
+        final doc = pw.Document(
+          theme: pw.ThemeData.withFont(
+            base: font,
+            bold: boldFont,
+            fontFallback: [emojiFont, musicFont],
+          ),
+        );
 
         if (song.measures.isEmpty) {
           doc.addPage(
@@ -441,6 +450,19 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
                           song.composer,
                           style: const pw.TextStyle(fontSize: 12),
                         ),
+                      pw.Row(
+                        children: [
+                          pw.Text(
+                            'Instrument: ${provider.activeScheme.name} ',
+                            style: const pw.TextStyle(fontSize: 12),
+                          ),
+                          if (provider.activeScheme.emoji != null)
+                            pw.Text(
+                              provider.activeScheme.emoji!,
+                              style: const pw.TextStyle(fontSize: 12),
+                            ),
+                        ],
+                      ),
                       pw.SizedBox(height: 12),
                       pw.Divider(),
                       pw.SizedBox(height: 8),
@@ -456,22 +478,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
                         child: pw.Column(
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
-                            pw.Row(
-                              children: [
-                                pw.Text(
-                                  'Instrument: ${provider.activeScheme.name} ',
-                                  style: pw.TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: pw.FontWeight.bold),
-                                ),
-                                if (provider.activeScheme.emoji != null)
-                                  pw.Text(
-                                    provider.activeScheme.emoji!,
-                                    style: const pw.TextStyle(fontSize: 10),
-                                  ),
-                              ],
-                            ),
-                            pw.SizedBox(height: 4),
                             _buildStaffRow(
                               rowMeasures,
                               provider,
