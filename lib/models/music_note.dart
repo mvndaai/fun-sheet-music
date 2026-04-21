@@ -10,6 +10,7 @@ class MusicNote {
   final bool isRest;
   final bool isChordContinuation; // part of a chord (not the first note)
   final bool isDotted;
+  final String? beam; // 'begin', 'continue', 'end' or null
 
   const MusicNote({
     required this.step,
@@ -20,6 +21,7 @@ class MusicNote {
     this.isRest = false,
     this.isChordContinuation = false,
     this.isDotted = false,
+    this.beam,
   });
 
   /// Returns the note name in letter notation (e.g. "C#5")

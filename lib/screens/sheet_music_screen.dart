@@ -630,6 +630,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
             isFirstRow,
             isLastRow,
             totalSongDuration,
+            musicFont,
           ),
         ],
       ),
@@ -649,6 +650,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
     bool isFirstRow,
     bool isLastRow,
     double totalSongDuration,
+    pw.Font musicFont,
   ) {
     final widgets = <pw.Widget>[];
     double x = clefWidth + (isFirstRow ? timeSigWidth : 0);
@@ -699,6 +701,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
             staffHeight,
             ls,
             provider,
+            musicFont,
           ));
         }
         cumulativeDuration += note.duration;
@@ -756,6 +759,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
     double staffHeight,
     double ls,
     ColorSchemeProvider provider,
+    pw.Font musicFont,
   ) {
     final widgets = <pw.Widget>[];
 
@@ -870,6 +874,38 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
           ),
         ),
       );
+
+      // Flags for shorter notes (eighth, 16th, etc.)
+      final flagCount = switch (note.type) {
+        'eighth' => 1,
+        '16th' => 2,
+        '32nd' => 3,
+        _ => 0,
+      };
+
+      if (flagCount > 0) {
+        for (int i = 0; i < flagCount; i++) {
+          final flagShift = stemUp ? i * ls * 0.75 : -i * ls * 0.75;
+          final tipY = stemUp ? y - stemLength : y + stemLength;
+          final flagY = tipY + flagShift;
+          final flagX = stemUp ? x + noteHeadWidth / 2 - 0.6 : x - noteHeadWidth / 2 - 0.6;
+
+          widgets.add(
+            pw.Positioned(
+              left: flagX,
+              top: flagY - (stemUp ? 0 : ls * 1.5),
+              child: pw.Text(
+                stemUp ? '\u{E240}' : '\u{E241}', 
+                style: pw.TextStyle(
+                  font: musicFont,
+                  fontSize: ls * 3,
+                  color: pdfColor,
+                ),
+              ),
+            ),
+          );
+        }
+      }
     }
 
     // Note label - positioned below when _labelsBelow is true

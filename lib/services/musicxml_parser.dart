@@ -139,6 +139,9 @@ class MusicXmlParser {
     final typeText =
         noteEl.findElements('type').firstOrNull?.innerText.trim() ?? 'quarter';
 
+    final beamEl = noteEl.findElements('beam').firstOrNull;
+    final beam = beamEl?.innerText.trim();
+
     return MusicNote(
       step: step,
       octave: octave,
@@ -148,6 +151,7 @@ class MusicXmlParser {
       isRest: isRest,
       isChordContinuation: isChord,
       isDotted: isDotted,
+      beam: beam,
     );
   }
 }

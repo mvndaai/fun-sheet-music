@@ -415,7 +415,89 @@ class _StaffPainter extends CustomPainter {
         final globalIdx = noteOffset + playableIdx;
         final isActive = globalIdx == activeNoteIndex;
         final isPast = activeNoteIndex >= 0 && globalIdx < activeNoteIndex;
-        _drawNote(canvas, note, noteX, isActive, isPast, clefColor);
+
+        // Beam logic
+        bool isBeamed = false;
+        if (note.beam != null) {
+          if (note.beam == 'begin' || note.beam == 'continue') {
+            // Look for the end of this beam
+            int nextNi = ni + 1;
+            MusicNote? nextNote;
+            while (nextNi < displayNotes.length) {
+              final candidate = displayNotes[nextNi];
+              if (!candidate.isRest) {
+                nextNote = candidate;
+                break;
+              }
+              nextNi++;
+            }
+
+            if (nextNote != null && (nextNote.beam == 'continue' || nextNote.beam == 'end')) {
+              isBeamed = true;
+              final nextX = startX + leftPadding + ((cumulativeDuration + note.duration + nextNote.duration / 2) / totalDuration) * contentWidth;
+              
+              final pos = _staffPos(note.step, note.octave);
+              final nextPos = _staffPos(nextNote.step, nextNote.octave);
+              
+              // Decide beam direction (simplified: based on first note)
+              final stemUp = pos < 5;
+              final y = _posToY(pos);
+              final nextY = _posToY(nextPos);
+              
+              final stemTipY = y + (stemUp ? -_kStem : _kStem);
+              final nextStemTipY = nextY + (stemUp ? -_kStem : _kStem);
+
+              _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
+                forcedStemUp: stemUp, 
+                noFlags: true, 
+                stemTipY: stemTipY
+              );
+
+              // Draw beam
+              final beamPaint = Paint()
+                ..color = clefColor.withValues(alpha: isPast ? 0.3 : 0.7)
+                ..strokeWidth = 3.5;
+              
+              final beamStartX = noteX + (stemUp ? _kNRx : -_kNRx);
+              final beamEndX = nextX + (stemUp ? _kNRx : -_kNRx);
+              
+              canvas.drawLine(Offset(beamStartX, stemTipY), Offset(beamEndX, nextStemTipY), beamPaint);
+              
+              // If it's a 16th or 32nd note, we'd need more beams, but this handles the basic eighth note connection.
+            }
+          } else if (note.beam == 'end' || note.beam == 'continue') {
+            // Already handled by the 'begin' or previous 'continue' note drawing the beam forward.
+            // Just need to draw the note itself with the correct stem.
+            
+            // Find the start of this beam to determine stem direction
+            int prevNi = ni - 1;
+            MusicNote? startNote;
+            while (prevNi >= 0) {
+              final candidate = displayNotes[prevNi];
+              if (!candidate.isRest && candidate.beam == 'begin') {
+                startNote = candidate;
+                break;
+              }
+              prevNi--;
+            }
+            
+            final stemUp = startNote != null ? _staffPos(startNote.step, startNote.octave) < 5 : _staffPos(note.step, note.octave) < 5;
+            final y = _posToY(_staffPos(note.step, note.octave));
+            final stemTipY = y + (stemUp ? -_kStem : _kStem);
+            
+            _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
+              forcedStemUp: stemUp, 
+              noFlags: true, 
+              stemTipY: stemTipY
+            );
+            isBeamed = true;
+          }
+        }
+
+        if (!isBeamed) {
+          _drawNote(canvas, note, noteX, isActive, isPast, clefColor);
+        }
+
         playableIdx++;
       }
       
@@ -431,8 +513,11 @@ class _StaffPainter extends CustomPainter {
     double x,
     bool isActive,
     bool isPast,
-    Color clefColor,
-  ) {
+    Color clefColor, {
+    bool? forcedStemUp,
+    bool noFlags = false,
+    double? stemTipY,
+  }) {
     final pos = _staffPos(note.step, note.octave);
     final y = _posToY(pos);
     final color = colorProvider.colorForNote(
@@ -446,7 +531,19 @@ class _StaffPainter extends CustomPainter {
     _drawLedgerLines(canvas, x, pos, alpha, clefColor);
     _drawAccidental(canvas, note.alter, x, y, alpha, clefColor);
     _drawNoteHead(canvas, note.type, x, y, color, alpha, isActive);
-    _drawStem(canvas, note.type, x, y, pos, alpha, color, clefColor);
+    _drawStem(
+      canvas,
+      note.type,
+      x,
+      y,
+      pos,
+      alpha,
+      color,
+      clefColor,
+      forcedStemUp: forcedStemUp,
+      noFlags: noFlags,
+      stemTipY: stemTipY,
+    );
     if (note.isDotted) _drawDot(canvas, x, y, alpha, clefColor);
     _drawNoteLabel(canvas, note, x, y, pos, color, alpha, clefColor);
   }
@@ -548,29 +645,34 @@ class _StaffPainter extends CustomPainter {
     int pos,
     double alpha,
     Color color,
-    Color clefColor,
-  ) {
+    Color clefColor, {
+    bool? forcedStemUp,
+    bool noFlags = false,
+    double? stemTipY,
+  }) {
     if (type == 'whole') return;
 
     // Stem goes up for notes below the middle space (B4 = pos 4).
-    final stemUp = pos < 5;
+    final stemUp = forcedStemUp ?? (pos < 5);
     final p = Paint()
       ..color = color.withValues(alpha: alpha)
       ..strokeWidth = 1.4;
 
+    final sy = stemTipY ?? (stemUp ? y - _kStem : y + _kStem);
+
     if (stemUp) {
       // Stem up: attach to right side of note head
       final sx = x + _kNRx;
-      canvas.drawLine(Offset(sx, y), Offset(sx, y - _kStem), p);
-      if (type != 'half') {
-        _drawFlags(canvas, Offset(sx, y - _kStem), true, type, alpha, clefColor);
+      canvas.drawLine(Offset(sx, y), Offset(sx, sy), p);
+      if (type != 'half' && !noFlags) {
+        _drawFlags(canvas, Offset(sx, sy), true, type, alpha, color, clefColor);
       }
     } else {
       // Stem down: attach to left side of note head
       final sx = x - _kNRx;
-      canvas.drawLine(Offset(sx, y), Offset(sx, y + _kStem), p);
-      if (type != 'half') {
-        _drawFlags(canvas, Offset(sx, y + _kStem), false, type, alpha, clefColor);
+      canvas.drawLine(Offset(sx, y), Offset(sx, sy), p);
+      if (type != 'half' && !noFlags) {
+        _drawFlags(canvas, Offset(sx, sy), false, type, alpha, color, clefColor);
       }
     }
   }
@@ -583,6 +685,7 @@ class _StaffPainter extends CustomPainter {
     bool stemUp,
     String type,
     double alpha,
+    Color color,
     Color clefColor,
   ) {
     final count = switch (type) {
@@ -594,7 +697,7 @@ class _StaffPainter extends CustomPainter {
     if (count == 0) return;
 
     final p = Paint()
-      ..color = clefColor.withValues(alpha: alpha)
+      ..color = color.withValues(alpha: alpha)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
