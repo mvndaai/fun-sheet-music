@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -539,7 +540,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
             left: 2,
             top: topMargin - ls * 1.35, // Corrected offset to match screen
             child: pw.Text(
-              '𝄞',
+              '\u{1D11E}',
               style: pw.TextStyle(
                 font: musicFont,
                 fontSize: ls * 3.2,
@@ -776,7 +777,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
           left: x - 18,
           top: y - 8,
           child: pw.Text(
-            note.alter > 0 ? '♯' : '♭',
+            note.alter > 0 ? '\u{266F}' : '\u{266D}',
             style: const pw.TextStyle(
               fontSize: 16,
               color: PdfColors.black,
@@ -893,59 +894,69 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
   @override
   Widget build(BuildContext context) {
     return Consumer<ColorSchemeProvider>(
-      builder: (context, provider, _) => Scaffold(
-        appBar: AppBar(
-          title: Text(widget.song.title),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.piano_outlined),
-              tooltip: 'Instruments',
+      builder: (context, provider, _) => CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.keyP, control: true):
+              _printSong,
+          const SingleActivator(LogicalKeyboardKey.keyP, meta: true): _printSong,
+        },
+        child: Focus(
+          autofocus: true,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(widget.song.title),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.piano_outlined),
+                  tooltip: 'Instruments',
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ColorSchemesScreen()),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                  tooltip: _isPlaying ? 'Pause' : 'Play',
+                  onPressed: _togglePlayback,
+                ),
+                IconButton(
+                  icon: Icon(
+                    _tonePlayer.isMetronomeRunning
+                      ? Icons.stop
+                      : Icons.av_timer,
+                  ),
+                  tooltip: _tonePlayer.isMetronomeRunning
+                    ? 'Stop Metronome'
+                    : 'Start Metronome',
+                  onPressed: _toggleMetronome,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  tooltip: 'Settings',
+                  onPressed: _openSettings,
+                ),
+              ],
+            ),
+            body: SheetMusicWidget(
+              song: widget.song,
+              showSolfege: provider.showSolfege,
+              showLetter: provider.showLetter,
+              labelsBelow: provider.labelsBelow,
+              coloredLabels: provider.coloredLabels,
+              activeNoteIndex: _activeNoteIndex,
+              measuresPerRow: provider.measuresPerRow,
+            ),
+            floatingActionButton: FloatingActionButton.extended(
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ColorSchemesScreen()),
+                MaterialPageRoute(
+                  builder: (_) => PracticeScreen(song: widget.song),
+                ),
               ),
-            ),
-            IconButton(
-              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-              tooltip: _isPlaying ? 'Pause' : 'Play',
-              onPressed: _togglePlayback,
-            ),
-            IconButton(
-              icon: Icon(
-                _tonePlayer.isMetronomeRunning
-                  ? Icons.stop
-                  : Icons.av_timer,
-              ),
-              tooltip: _tonePlayer.isMetronomeRunning
-                ? 'Stop Metronome'
-                : 'Start Metronome',
-              onPressed: _toggleMetronome,
-            ),
-            IconButton(
-              icon: const Icon(Icons.settings),
-              tooltip: 'Settings',
-              onPressed: _openSettings,
-            ),
-          ],
-        ),
-        body: SheetMusicWidget(
-          song: widget.song,
-          showSolfege: provider.showSolfege,
-          showLetter: provider.showLetter,
-          labelsBelow: provider.labelsBelow,
-          coloredLabels: provider.coloredLabels,
-          activeNoteIndex: _activeNoteIndex,
-          measuresPerRow: provider.measuresPerRow,
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PracticeScreen(song: widget.song),
+              icon: const Icon(Icons.mic),
+              label: const Text('Practice'),
             ),
           ),
-          icon: const Icon(Icons.mic),
-          label: const Text('Practice'),
         ),
       ),
     );
