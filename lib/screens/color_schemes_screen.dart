@@ -520,6 +520,54 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
     });
   }
 
+  Widget _buildChromaticRow(int index, InstrumentColorScheme currentScheme) {
+    final note = kNoteKeys[index];
+    final color = _colors[note] ?? currentScheme.colorForNote(note, 0, context: context);
+    final textColor = color.computeLuminance() > 0.35
+        ? Colors.black87
+        : Colors.white;
+
+    return ListTile(
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            note,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ),
+      title: Text(note),
+      subtitle: Text(
+        '#${color.toARGB32().toRadixString(16).toUpperCase().padLeft(8, '0').substring(2)}',
+        style: const TextStyle(fontSize: 12),
+      ),
+      trailing: const Icon(Icons.color_lens_outlined),
+      onTap: () async {
+        final picked = await showNoteColorPicker(
+          context,
+          current: color,
+          label: note,
+        );
+        if (picked != null) {
+          setState(() {
+            _colors[note] = picked;
+            _dirty = true;
+          });
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentScheme = widget.scheme.copyWith(
@@ -529,14 +577,16 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
       octaveOverrides: _octaveOverrides,
     );
     final overrideKeys = _octaveOverrides.keys.toList()..sort();
-    // Total items: 12 chromatic notes + optional section header + overrides + add-button row
     final hasOverrides = overrideKeys.isNotEmpty;
+    final n = overrideKeys.length;
+
     // Item layout:
-    //   0 .. 11            → chromatic note rows
-    //   12                 → "Octave overrides" header
-    //   13 .. 13+n-1       → override rows
-    //   13+n               → "Add override" row
-    final totalItems = 12 + 1 + overrideKeys.length + 1;
+    // 0: "My Keys" header
+    // 1..n: Overrides
+    // n+1: "Add Key" button
+    // n+2: "Default Colors" header + first chromatic row
+    // n+3..n+13: remaining chromatic rows
+    final totalItems = 1 + n + 1 + 12;
 
     return Scaffold(
       appBar: AppBar(
@@ -559,65 +609,15 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
         padding: const EdgeInsets.all(12),
         itemCount: totalItems,
         separatorBuilder: (_, i) {
-          // No divider before/after the section header row.
-          if (i == 11 || i == 12) return const SizedBox.shrink();
+          // No divider after headers or the Add button
+          if (i == 0 || i == n + 1) return const SizedBox.shrink();
           return const Divider(height: 1);
         },
         itemBuilder: (context, index) {
-          // ── Chromatic note rows ────────────────────────────────────────
-          if (index < 12) {
-            final note = kNoteKeys[index];
-            final color = currentScheme.colorForNote(note, 0, context: context);
-            final textColor = color.computeLuminance() > 0.35
-                ? Colors.black87
-                : Colors.white;
-            return ListTile(
-              leading: Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    note,
-                    style: TextStyle(
-                      color: textColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ),
-              title: Text(note),
-              subtitle: Text(
-                '#${color.toARGB32().toRadixString(16).toUpperCase().padLeft(8, '0').substring(2)}',
-                style: const TextStyle(fontSize: 12),
-              ),
-              trailing: const Icon(Icons.color_lens_outlined),
-              onTap: () async {
-                // Use the stored color or fall back to theme-aware default (black/white)
-                final storedColor = _colors[note] ?? currentScheme.colorForNote(note, 0, context: context);
-                final picked = await showNoteColorPicker(
-                  context,
-                  current: storedColor,
-                  label: note,
-                );
-                if (picked != null) {
-                  setState(() {
-                    _colors[note] = picked;
-                    _dirty = true;
-                  });
-                }
-              },
-            );
-          }
-
-          // ── Keys section header ────────────────────────────────────────
-          if (index == 12) {
+          // ── 1. My Keys section header ──────────────────────────────────
+          if (index == 0) {
             return Padding(
-              padding: const EdgeInsets.fromLTRB(4, 16, 4, 4),
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
               child: Row(
                 children: [
                   const Icon(Icons.piano_outlined, size: 18),
@@ -639,10 +639,9 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
             );
           }
 
-          // ── Override rows ──────────────────────────────────────────────
-          final overrideIndex = index - 13;
-          if (overrideIndex >= 0 && overrideIndex < overrideKeys.length) {
-            final key = overrideKeys[overrideIndex];
+          // ── 2. Override rows ───────────────────────────────────────────
+          if (index > 0 && index <= n) {
+            final key = overrideKeys[index - 1];
             final color = _octaveOverrides[key]!;
             final textColor = color.computeLuminance() > 0.35
                 ? Colors.black87
@@ -703,18 +702,40 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
             );
           }
 
-          // ── Add key button ─────────────────────────────────────────────
-          return ListTile(
-            leading: const CircleAvatar(
-              child: Icon(Icons.add),
-            ),
-            title: const Text('Add Key…'),
-            subtitle: const Text(
-              'Hit a key on your instrument to detect its note, then choose a color',
-              style: TextStyle(fontSize: 12),
-            ),
-            onTap: _addKeyWizard,
-          );
+          // ── 3. Add key button ──────────────────────────────────────────
+          if (index == n + 1) {
+            return ListTile(
+              leading: const CircleAvatar(
+                child: Icon(Icons.add),
+              ),
+              title: const Text('Add Key…'),
+              subtitle: const Text(
+                'Hit a key on your instrument to detect its note, then choose a color',
+                style: TextStyle(fontSize: 12),
+              ),
+              onTap: _addKeyWizard,
+            );
+          }
+
+          // ── 4. Chromatic note rows ─────────────────────────────────────
+          final chromaticIndex = index - (n + 2);
+          if (chromaticIndex == 0) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(height: 32),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+                  child: Text(
+                    'Default Colors',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ),
+                _buildChromaticRow(chromaticIndex, currentScheme),
+              ],
+            );
+          }
+          return _buildChromaticRow(chromaticIndex, currentScheme);
         },
       ),
       floatingActionButton: _dirty
