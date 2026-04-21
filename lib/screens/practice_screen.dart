@@ -91,27 +91,36 @@ class _PracticeScreenState extends State<PracticeScreen>
 
     // Resolve target note name with enharmonic and octave-fallback support
     String resolveTarget() {
-      // 1. Exact match
+      // 1. Exact match (e.g. "C5")
       if (activeScheme.tuningOverrides.containsKey(specificNote)) {
         return activeScheme.tuningOverrides[specificNote]!;
       }
 
-      // 2. Enharmonic match
-      final enharmonic = specificNote
-          .replaceAll('Db', 'C#')
-          .replaceAll('Eb', 'D#')
-          .replaceAll('Gb', 'F#')
-          .replaceAll('Ab', 'G#')
-          .replaceAll('Bb', 'A#');
-      if (activeScheme.tuningOverrides.containsKey(enharmonic)) {
-        return activeScheme.tuningOverrides[enharmonic]!;
+      // 2. Exact match on base step (e.g. "C")
+      if (activeScheme.tuningOverrides.containsKey(current.step)) {
+        return activeScheme.tuningOverrides[current.step]!;
       }
 
-      // 3. Fallback to octave 4 mapping if available (common for simple instruments)
-      final base = current.alter == 1
+      // 3. Enharmonic match (e.g. Db -> C#)
+      final enharmonicStep = current.alter == 1
           ? '${current.step}#'
           : (current.alter == -1 ? '${current.step}b' : current.step);
-      final base4 = '${base}4';
+
+      final mappingKeys = [
+        enharmonicStep,
+        enharmonicStep.replaceAll('Db', 'C#').replaceAll('Eb', 'D#').replaceAll('Gb', 'F#').replaceAll('Ab', 'G#').replaceAll('Bb', 'A#'),
+        '$enharmonicStep${current.octave}',
+        '$enharmonicStep${current.octave}'.replaceAll('Db', 'C#').replaceAll('Eb', 'D#').replaceAll('Gb', 'F#').replaceAll('Ab', 'G#').replaceAll('Bb', 'A#'),
+      ];
+
+      for (final key in mappingKeys) {
+        if (activeScheme.tuningOverrides.containsKey(key)) {
+          return activeScheme.tuningOverrides[key]!;
+        }
+      }
+
+      // 4. Fallback to octave 4 mapping if available (common for simple instruments)
+      final base4 = '${current.step}4';
       final enhBase4 = base4
           .replaceAll('Db', 'C#')
           .replaceAll('Eb', 'D#')
@@ -125,8 +134,10 @@ class _PracticeScreenState extends State<PracticeScreen>
         // Apply the same interval shift to the current note's octave
         final originalMidi4 = MusicConstants.noteNameToMidi(enhBase4);
         final mappedMidi4 = MusicConstants.noteNameToMidi(mapped4);
-        final shift = mappedMidi4 - originalMidi4;
-        return MusicConstants.midiToNoteName(current.midiNumber + shift);
+        if (originalMidi4 > 0 && mappedMidi4 > 0) {
+          final shift = mappedMidi4 - originalMidi4;
+          return MusicConstants.midiToNoteName(current.midiNumber + shift);
+        }
       }
 
       return specificNote;
