@@ -283,26 +283,48 @@ class _ColorSwatchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // List of note names that have explicit colors or overrides
+    final coloredNotes = kNoteKeys.where((n) => scheme.colors.containsKey(n));
+    final overrideKeys = scheme.octaveOverrides.keys.toList()..sort();
+
     return Wrap(
       spacing: 4,
-      children: kNoteKeys.map((note) {
-        final color = scheme.colorForNote(note, 0, context: context);
-        return Tooltip(
-          message: note,
-          child: Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Theme.of(context).dividerColor,
-                width: 1,
-              ),
-            ),
+      runSpacing: 4,
+      children: [
+        ...coloredNotes.map((note) {
+          final color = scheme.colors[note]!;
+          return _SwatchCircle(label: note, color: color);
+        }),
+        ...overrideKeys.map((key) {
+          final color = scheme.octaveOverrides[key]!;
+          return _SwatchCircle(label: key, color: color);
+        }),
+      ],
+    );
+  }
+}
+
+class _SwatchCircle extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _SwatchCircle({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: label,
+      child: Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Theme.of(context).dividerColor,
+            width: 1,
           ),
-        );
-      }).toList(),
+        ),
+      ),
     );
   }
 }
