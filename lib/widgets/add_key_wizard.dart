@@ -241,7 +241,7 @@ class _AddKeyWizardScreenState extends State<_AddKeyWizardScreen> {
             duration: const Duration(milliseconds: 150),
             child: hasNote
                 ? Column(
-                    key: ValueKey(_liveNote),
+                    key: ValueKey('detected-$_liveNote'),
                     children: [
                       Text(
                         'Detected:',

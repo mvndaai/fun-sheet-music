@@ -522,6 +522,12 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentScheme = widget.scheme.copyWith(
+      name: _name,
+      icon: _icon,
+      colors: _colors,
+      octaveOverrides: _octaveOverrides,
+    );
     final overrideKeys = _octaveOverrides.keys.toList()..sort();
     // Total items: 12 chromatic notes + optional section header + overrides + add-button row
     final hasOverrides = overrideKeys.isNotEmpty;
@@ -561,7 +567,7 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
           // ── Chromatic note rows ────────────────────────────────────────
           if (index < 12) {
             final note = kNoteKeys[index];
-            final color = widget.scheme.colorForNote(note, 0, context: context);
+            final color = currentScheme.colorForNote(note, 0, context: context);
             final textColor = color.computeLuminance() > 0.35
                 ? Colors.black87
                 : Colors.white;
@@ -591,9 +597,8 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
               ),
               trailing: const Icon(Icons.color_lens_outlined),
               onTap: () async {
-                // If it's pure black or white, it might be the default "theme-aware" color.
-                // We pass the actual stored color (or black as default) to the picker.
-                final storedColor = _colors[note] ?? Colors.black;
+                // Use the stored color or fall back to theme-aware default (black/white)
+                final storedColor = _colors[note] ?? currentScheme.colorForNote(note, 0, context: context);
                 final picked = await showNoteColorPicker(
                   context,
                   current: storedColor,
