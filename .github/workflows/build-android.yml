@@ -112,32 +112,28 @@ jobs:
           path: dist/flutter-music-${{ steps.version.outputs.artifact_tag }}.aab
           retention-days: 90
 
-      # ── 10. Publish to GitHub Releases (latest tag) ──────────────────────
-      # This attaches the stable-named APK to a rolling "latest" pre-release
-      # so that AppLinks.androidApkUrl
+      # ── 10. Publish to GitHub Releases ─────────────────────────────────────
+      # For version tags (e.g. v1.2.3): creates a proper versioned release.
+      # For main branch pushes: creates a release tagged with the commit SHA
+      # and marks it as the latest release, so that AppLinks.androidApkUrl
       #   https://github.com/mvndaai/flutter-music/releases/latest/download/flutter-music.apk
       # always resolves to the most-recent main-branch build.
       #
-      # On a real version tag (e.g. v1.2.3) a proper versioned release is
-      # created instead, making the download permanent.
-
-      # Delete the existing "latest" release if present so we can create a
-      # fresh one. Repositories with immutable releases cannot upload new
-      # assets to a published release, so the old release must be removed.
-      - name: Delete existing "latest" release (if any)
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+      # We use commit-SHA based tags for main branch builds instead of a
+      # rolling "latest" tag to avoid conflicts with immutable release
+      # restrictions that may be enabled on the repository.
 
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          # For version tags use the tag name; for main branch use commit SHA
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('build-{0}', steps.version.outputs.short_sha) }}
           name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('Latest build ({0})', steps.version.outputs.artifact_tag) }}
-          prerelease: true
+          # Main branch builds are pre-releases but marked as latest for download URL
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
           draft: false
+          # Mark as latest so /releases/latest/download/ URL works
+          make_latest: true
           body: |
             ### Flutter Music – Android build
 
