@@ -555,8 +555,17 @@ class _ColorSwatchRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // List of note names that have explicit colors or overrides
-    final coloredNotes = kNoteKeys.where((n) => scheme.colors.containsKey(n));
-    final overrideKeys = scheme.octaveOverrides.keys.toList()..sort();
+    final coloredNotes = kNoteKeys.where((n) => 
+      scheme.colors.containsKey(n) && !scheme.disabledKeys.contains(n)
+    );
+    
+    // For overrides, we also check if the base chromatic note is disabled.
+    final overrideKeys = scheme.octaveOverrides.keys.where((key) {
+      final match = RegExp(r'^([A-G][#b]?)').firstMatch(key);
+      if (match == null) return true;
+      final baseNote = match.group(1)!;
+      return !scheme.disabledKeys.contains(baseNote);
+    }).toList()..sort();
 
     return Wrap(
       spacing: 4,
@@ -618,7 +627,6 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
   late String _name;
   late String? _icon;
   late String? _emoji;
-  bool _dirty = false;
 
   @override
   void initState() {
@@ -644,12 +652,6 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
       tuningOverrides: _tuningOverrides,
     );
     await context.read<ColorSchemeProvider>().updateCustom(updated);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saved')),
-      );
-      setState(() => _dirty = false);
-    }
   }
 
   Future<void> _editInfo() async {
@@ -669,8 +671,8 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
         _name = name.trim();
         _icon = icon.isNotEmpty ? icon.trim() : null;
         _emoji = emoji.isNotEmpty ? emoji.trim() : null;
-        _dirty = true;
       });
+      _save();
     }
   }
 
@@ -679,8 +681,8 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
     if (result == null) return;
     setState(() {
       _octaveOverrides[result.noteKey] = result.color;
-      _dirty = true;
     });
+    _save();
   }
 
   Future<void> _tuneInstrument() async {
@@ -739,8 +741,8 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
     if (result != null) {
       setState(() {
         _tuningOverrides = result.tuningOverrides;
-        _dirty = true;
       });
+      _save();
     }
   }
 
@@ -814,8 +816,8 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
                   } else {
                     _disabledKeys.add(note);
                   }
-                  _dirty = true;
                 });
+                _save();
               },
             ),
             const Icon(Icons.color_lens_outlined),
@@ -832,8 +834,8 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
                 if (picked != null) {
                   setState(() {
                     _colors[note] = picked;
-                    _dirty = true;
                   });
+                  _save();
                 }
               },
       ),
@@ -881,12 +883,6 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
             tooltip: 'Edit name and icon',
             onPressed: _editInfo,
           ),
-          if (_dirty)
-            IconButton(
-              icon: const Icon(Icons.save),
-              tooltip: 'Save',
-              onPressed: _save,
-            ),
         ],
       ),
       body: ListView.separated(
@@ -983,8 +979,8 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
                     onPressed: () {
                       setState(() {
                         _octaveOverrides.remove(key);
-                        _dirty = true;
                       });
+                      _save();
                     },
                   ),
                 ],
@@ -998,8 +994,8 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
                 if (picked != null) {
                   setState(() {
                     _octaveOverrides[key] = picked;
-                    _dirty = true;
                   });
+                  _save();
                 }
               },
             );
@@ -1041,13 +1037,6 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
           return _buildChromaticRow(chromaticIndex, currentScheme);
         },
       ),
-      floatingActionButton: _dirty
-          ? FloatingActionButton.extended(
-              onPressed: _save,
-              icon: const Icon(Icons.save),
-              label: const Text('Save'),
-            )
-          : null,
     );
   }
 }
