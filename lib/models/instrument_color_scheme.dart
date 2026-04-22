@@ -119,6 +119,10 @@ class InstrumentColorScheme {
     bool? isBuiltIn,
     bool? isImported,
   }) {
+    // Determine which icon/emoji to use based on which one is provided.
+    // If both are provided, we should probably prefer emoji or follow the caller.
+    // To support clearing, we can check if they are explicitly passed.
+    // For now, we'll stick to the existing pattern but be mindful in the caller.
     return InstrumentColorScheme(
       id: id ?? this.id,
       name: name ?? this.name,
@@ -130,6 +134,22 @@ class InstrumentColorScheme {
       octaveOverrides: octaveOverrides ?? Map.from(this.octaveOverrides),
       disabledKeys: disabledKeys ?? Set.from(this.disabledKeys),
       tuningOverrides: tuningOverrides ?? Map.from(this.tuningOverrides),
+    );
+  }
+
+  /// Returns a copy of this scheme with the icon/emoji cleared so only one is set.
+  InstrumentColorScheme withIconOnly({String? icon, String? emoji}) {
+    return InstrumentColorScheme(
+      id: id,
+      name: name,
+      icon: icon,
+      emoji: emoji,
+      colors: colors,
+      isBuiltIn: isBuiltIn,
+      isImported: isImported,
+      octaveOverrides: octaveOverrides,
+      disabledKeys: disabledKeys,
+      tuningOverrides: tuningOverrides,
     );
   }
 

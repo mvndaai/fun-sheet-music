@@ -99,15 +99,15 @@ class ColorSchemesScreen extends StatelessWidget {
 
   Future<void> _createNew(BuildContext context) async {
     final provider = context.read<ColorSchemeProvider>();
-    final result = await _promptNameIconEmoji(context, initialName: '', initialIcon: '', initialEmoji: '🎹');
+    final result = await _promptNameIconEmoji(context, initialName: '', initialIcon: null, initialEmoji: null);
     if (result == null) return;
     final name = result['name'] ?? '';
     final icon = result['icon'] ?? '';
     final emoji = result['emoji'] ?? '';
     final scheme = await provider.createCustom(
       name: name.trim(),
-      icon: icon.trim(),
-      emoji: emoji.trim(),
+      icon: icon.isNotEmpty ? icon.trim() : null,
+      emoji: emoji.isNotEmpty ? emoji.trim() : null,
     );
     if (context.mounted) {
       await _openEditor(context, scheme, provider);
@@ -156,8 +156,8 @@ class ColorSchemesScreen extends StatelessWidget {
   Future<Map<String, String>?> _promptNameIconEmoji(
     BuildContext context, {
     required String initialName,
-    required String initialIcon,
-    required String initialEmoji,
+    required String? initialIcon,
+    required String? initialEmoji,
   }) {
     return showDialog<Map<String, String>>(
       context: context,
@@ -250,9 +250,12 @@ class _InstrumentIcon extends StatelessWidget {
         width: size,
         height: size,
         child: Center(
-          child: Text(
-            scheme.emoji!,
-            style: TextStyle(fontSize: size * 0.8),
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: Text(
+              scheme.emoji!,
+              style: TextStyle(fontSize: size),
+            ),
           ),
         ),
       );
@@ -273,6 +276,8 @@ class _InstrumentIcon extends StatelessWidget {
 
 // ── Name, Icon & Emoji dialog ───────────────────────────────────────────
 
+enum _IconType { emoji, character, url }
+
 class _NameIconEmojiDialog extends StatefulWidget {
   final String initialName;
   final String? initialIcon;
@@ -292,12 +297,34 @@ class _NameIconEmojiDialogState extends State<_NameIconEmojiDialog> {
       TextEditingController(text: widget.initialName);
   late final TextEditingController _iconController =
       TextEditingController(text: widget.initialIcon);
-  late String _selectedEmoji = widget.initialEmoji ?? '🎹';
+  late final TextEditingController _characterController =
+      TextEditingController(text: widget.initialEmoji);
+  late String _selectedEmoji = MusicConstants.instrumentEmojis.contains(widget.initialEmoji)
+      ? widget.initialEmoji!
+      : '🎹';
+  late _IconType _iconType;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialIcon != null && widget.initialIcon!.isNotEmpty) {
+      _iconType = _IconType.url;
+    } else if (widget.initialEmoji != null && widget.initialEmoji!.isNotEmpty) {
+      if (MusicConstants.instrumentEmojis.contains(widget.initialEmoji)) {
+        _iconType = _IconType.emoji;
+      } else {
+        _iconType = _IconType.character;
+      }
+    } else {
+      _iconType = _IconType.emoji;
+    }
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _iconController.dispose();
+    _characterController.dispose();
     super.dispose();
   }
 
@@ -306,77 +333,105 @@ class _NameIconEmojiDialogState extends State<_NameIconEmojiDialog> {
     return AlertDialog(
       title: const Text('Instrument info'),
       content: SizedBox(
-        width: 320, // Explicit width for the dialog content
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'e.g. My Blue Xylophone',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text('Choose an Emoji:',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Container(
-              height: 190, // Approx 3.5 rows
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Scrollbar(
-                thumbVisibility: true,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(8),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: MusicConstants.instrumentEmojis.map((emoji) {
-                      final isSelected = _selectedEmoji == emoji;
-                      return GestureDetector(
-                        onTap: () => setState(() => _selectedEmoji = emoji),
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.primaryContainer
-                                : null,
-                            border: Border.all(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.transparent,
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: Text(emoji,
-                                style: const TextStyle(fontSize: 24)),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+        width: 320,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  hintText: 'e.g. My Blue Xylophone',
+                  border: OutlineInputBorder(),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _iconController,
-              decoration: const InputDecoration(
-                labelText: 'Icon URL (fallback)',
-                hintText: 'https://...',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<_IconType>(
+                value: _iconType,
+                decoration: const InputDecoration(
+                  labelText: 'Icon Type',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: _IconType.emoji, child: Text('Select Emoji')),
+                  DropdownMenuItem(value: _IconType.character, child: Text('Input Character')),
+                  DropdownMenuItem(value: _IconType.url, child: Text('Image URL')),
+                ],
+                onChanged: (v) => setState(() => _iconType = v!),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              if (_iconType == _IconType.emoji) ...[
+                const Text('Choose an Emoji:',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Container(
+                  height: 190,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Scrollbar(
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(8),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: MusicConstants.instrumentEmojis.map((emoji) {
+                          final isSelected = _selectedEmoji == emoji;
+                          return GestureDetector(
+                            onTap: () => setState(() => _selectedEmoji = emoji),
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primaryContainer
+                                    : null,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Center(
+                                child: Text(emoji,
+                                    style: const TextStyle(fontSize: 24)),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ] else if (_iconType == _IconType.character) ...[
+                TextField(
+                  controller: _characterController,
+                  decoration: const InputDecoration(
+                    labelText: 'Character',
+                    hintText: 'A, B, C...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLength: 2,
+                ),
+              ] else if (_iconType == _IconType.url) ...[
+                TextField(
+                  controller: _iconController,
+                  decoration: const InputDecoration(
+                    labelText: 'Icon URL',
+                    hintText: 'https://...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
       actions: [
@@ -385,11 +440,22 @@ class _NameIconEmojiDialogState extends State<_NameIconEmojiDialog> {
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: () => Navigator.pop(context, {
-            'name': _nameController.text,
-            'icon': _iconController.text,
-            'emoji': _selectedEmoji,
-          }),
+          onPressed: () {
+            String emoji = '';
+            String icon = '';
+            if (_iconType == _IconType.emoji) {
+              emoji = _selectedEmoji;
+            } else if (_iconType == _IconType.character) {
+              emoji = _characterController.text;
+            } else if (_iconType == _IconType.url) {
+              icon = _iconController.text;
+            }
+            Navigator.pop(context, {
+              'name': _nameController.text,
+              'icon': icon,
+              'emoji': emoji,
+            });
+          },
           child: const Text('OK'),
         ),
       ],
@@ -567,10 +633,11 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
   }
 
   Future<void> _save() async {
-    final updated = widget.scheme.copyWith(
-      name: _name,
+    final updated = widget.scheme.withIconOnly(
       icon: _icon,
       emoji: _emoji,
+    ).copyWith(
+      name: _name,
       colors: _colors,
       octaveOverrides: _octaveOverrides,
       disabledKeys: _disabledKeys,
@@ -590,8 +657,8 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
       context: context,
       builder: (_) => _NameIconEmojiDialog(
         initialName: _name,
-        initialIcon: _icon ?? '',
-        initialEmoji: _emoji ?? '🎹',
+        initialIcon: _icon,
+        initialEmoji: _emoji,
       ),
     );
     if (result != null) {
@@ -600,8 +667,8 @@ class _SchemeEditorScreenState extends State<_SchemeEditorScreen> {
       final emoji = result['emoji'] ?? '';
       setState(() {
         _name = name.trim();
-        _icon = icon.trim();
-        _emoji = emoji.trim();
+        _icon = icon.isNotEmpty ? icon.trim() : null;
+        _emoji = emoji.isNotEmpty ? emoji.trim() : null;
         _dirty = true;
       });
     }
