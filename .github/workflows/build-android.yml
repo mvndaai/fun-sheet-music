@@ -132,8 +132,9 @@ jobs:
           # Main branch builds are pre-releases but marked as latest for download URL
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
           draft: false
-          # Mark as latest so /releases/latest/download/ URL works
-          make_latest: true
+          # Mark main branch builds as latest so /releases/latest/download/ URL works
+          # Version tags (e.g. v1.2.3) are not automatically marked as latest
+          make_latest: ${{ !startsWith(github.ref, 'refs/tags/') }}
           body: |
             ### Flutter Music – Android build
 
