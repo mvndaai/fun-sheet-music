@@ -59,6 +59,7 @@ class SongProvider extends ChangeNotifier {
       'assets/sample_songs/twinkle_twinkle.xml',
       'assets/sample_songs/mary_had_a_little_lamb.xml',
       'assets/sample_songs/row_row_row_your_boat.xml',
+      'assets/sample_songs/concerning_hobbits.xml',
       'assets/sample_songs/formatting.xml',
     ];
 
