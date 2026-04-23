@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 import 'package:fftea/fftea.dart';
-import '../utils/music_constants.dart';
+import '../music_kit/utils/music_constants.dart';
 
 /// Listens to the microphone and emits detected note names in real time.
 class AudioService {

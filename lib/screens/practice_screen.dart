@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/song.dart';
-import '../models/music_note.dart';
+import '../music_kit/models/song.dart';
+import '../music_kit/models/music_note.dart';
 import '../providers/color_scheme_provider.dart';
 import '../services/audio_service.dart';
-import '../utils/music_constants.dart';
+import '../music_kit/utils/music_constants.dart';
 import '../widgets/sheet_music_widget.dart';
 import 'color_schemes_screen.dart';
 

@@ -1,7 +1,7 @@
 import 'package:xml/xml.dart';
-import '../models/music_note.dart';
-import '../models/measure.dart';
-import '../models/song.dart';
+import '../music_kit/models/music_note.dart';
+import '../music_kit/models/measure.dart';
+import '../music_kit/models/song.dart';
 
 /// Parses a MusicXML string into a [Song].
 class MusicXmlParser {

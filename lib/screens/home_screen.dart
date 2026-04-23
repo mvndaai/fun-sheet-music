@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/song_provider.dart';
-import '../models/song.dart';
+import '../music_kit/models/song.dart';
 import '../widgets/tag_chip.dart';
 import 'sheet_music_screen.dart';
 import 'upload_screen.dart';

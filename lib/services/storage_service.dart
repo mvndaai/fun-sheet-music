@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/song.dart';
+import '../music_kit/models/song.dart';
 
 /// Manages local persistence of song metadata and tags.
 ///

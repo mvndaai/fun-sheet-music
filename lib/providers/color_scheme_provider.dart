@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import '../models/instrument_color_scheme.dart';
+import '../music_kit/models/instrument_color_scheme.dart';
 
 /// Manages the active instrument color scheme and the global note-label setting.
 class ColorSchemeProvider extends ChangeNotifier {

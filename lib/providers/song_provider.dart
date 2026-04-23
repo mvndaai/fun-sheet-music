@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
-import '../models/song.dart';
+import '../music_kit/models/song.dart';
 import '../services/musicxml_parser.dart';
 import '../services/storage_service.dart';
 import '../services/cloud_service.dart';
