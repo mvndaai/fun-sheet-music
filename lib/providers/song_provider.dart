@@ -57,11 +57,11 @@ class SongProvider extends ChangeNotifier {
   /// Metadata for bundled songs available in the app.
   static const Map<String, List<Map<String, dynamic>>> bundledSongs = {
     'Flutter Music': [
-      {'title': 'Twinkle Twinkle Little Star', 'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'tags': []},
-      {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': []},
-      {'title': 'Row Row Row Your Boat', 'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'tags': []},
-      {'title': 'Concerning Hobbits', 'asset': 'assets/sample_songs/concerning_hobbits.xml', 'tags': ['Movie']},
-      {'title': 'Formatting', 'asset': 'assets/sample_songs/formatting.xml', 'tags': ['Testing']},
+      {'title': 'Twinkle Twinkle Little Star', 'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'tags': [], 'isDefault': true},
+      {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': [], 'isDefault': true},
+      {'title': 'Row Row Row Your Boat', 'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'tags': [], 'isDefault': true},
+      {'title': 'Concerning Hobbits', 'asset': 'assets/sample_songs/concerning_hobbits.xml', 'tags': ['Movie'], 'isDefault': false},
+      {'title': 'Formatting', 'asset': 'assets/sample_songs/formatting.xml', 'tags': ['Testing'], 'isDefault': false},
     ],
   };
 
@@ -73,7 +73,7 @@ class SongProvider extends ChangeNotifier {
       _songs = await _storage.getAllSongs();
       // Load sample songs on first run (empty library)
       if (_songs.isEmpty) {
-        await _loadSampleSongs();
+        await _loadSampleSongs(onlyDefaults: true);
       }
     } catch (e) {
       _error = e.toString();
@@ -84,10 +84,12 @@ class SongProvider extends ChangeNotifier {
   }
 
   /// Loads sample songs from the assets folder into the library.
-  Future<void> _loadSampleSongs() async {
+  Future<void> _loadSampleSongs({bool onlyDefaults = false}) async {
     for (final entry in bundledSongs.entries) {
       final libraryName = entry.key;
       for (final songData in entry.value) {
+        if (onlyDefaults && songData['isDefault'] != true) continue;
+
         try {
           final assetPath = songData['asset'] as String;
           final xmlContent = await rootBundle.loadString(assetPath);
