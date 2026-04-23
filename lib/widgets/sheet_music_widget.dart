@@ -412,21 +412,18 @@ class _StaffPainter extends CustomPainter {
     const rightPadding = 20.0;
     final contentWidth = (measureWidth - leftPadding - rightPadding).clamp(0.0, measureWidth);
     
-    int playableIdx = 0;
-    double cumulativeDuration = 0.0;
-
     for (int ni = 0; ni < displayNotes.length; ni++) {
       final note = displayNotes[ni];
+      final globalIdx = noteOffset + ni;
+      final isActive = globalIdx == activeNoteIndex;
+      final isPast = activeNoteIndex >= 0 && globalIdx < activeNoteIndex;
       
       // Position note in the center of its duration slot within the measure
       final noteX = startX + leftPadding + ((cumulativeDuration + note.duration / 2) / totalDuration) * contentWidth;
 
       if (note.isRest) {
-        _drawRest(canvas, noteX, note.type, clefColor);
+        _drawRest(canvas, noteX, note.type, clefColor, isActive: isActive, isPast: isPast);
       } else {
-        final globalIdx = noteOffset + playableIdx;
-        final isActive = globalIdx == activeNoteIndex;
-        final isPast = activeNoteIndex >= 0 && globalIdx < activeNoteIndex;
 
         // Beam logic
         bool isBeamed = false;
@@ -517,8 +514,6 @@ class _StaffPainter extends CustomPainter {
         if (!isBeamed) {
           _drawNote(canvas, note, noteX, isActive, isPast, clefColor);
         }
-
-        playableIdx++;
       }
       
       cumulativeDuration += note.duration;
@@ -776,14 +771,17 @@ class _StaffPainter extends CustomPainter {
 
   // ── Rest symbols ──────────────────────────────────────────────────────────
 
-  void _drawRest(Canvas canvas, double x, String type, Color clefColor) {
+  void _drawRest(Canvas canvas, double x, String type, Color clefColor, {bool isActive = false, bool isPast = false}) {
+    final alpha = isPast ? 0.3 : 0.7;
+    final color = isActive ? Colors.orange : clefColor.withValues(alpha: alpha);
+
     switch (type) {
       case 'whole':
         // Whole rest: filled rectangle hanging below the 4th staff line (D5).
         final ly = _posToY(6); // 4th line from bottom
         canvas.drawRect(
           Rect.fromLTWH(x - _kLS * 0.75, ly, _kLS * 1.5, _kLS * 0.55),
-          Paint()..color = clefColor.withValues(alpha: 0.7),
+          Paint()..color = color,
         );
         return;
       case 'half':
@@ -791,7 +789,7 @@ class _StaffPainter extends CustomPainter {
         final ly = _posToY(4) - _kLS * 0.55;
         canvas.drawRect(
           Rect.fromLTWH(x - _kLS * 0.75, ly, _kLS * 1.5, _kLS * 0.55),
-          Paint()..color = clefColor.withValues(alpha: 0.7),
+          Paint()..color = color,
         );
         return;
       default:
@@ -811,7 +809,7 @@ class _StaffPainter extends CustomPainter {
       sym,
       Offset(x - _kLS * 0.7, _posToY(5) - _kLS * 1.0),
       fontSize: _kLS * 2.1,
-      color: clefColor.withValues(alpha: 0.7),
+      color: color,
     );
   }
 

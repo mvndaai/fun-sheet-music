@@ -15,5 +15,5 @@ class Measure {
   });
 
   List<MusicNote> get playableNotes =>
-      notes.where((n) => !n.isRest && !n.isChordContinuation).toList();
+      notes.where((n) => !n.isChordContinuation).toList();
 }
