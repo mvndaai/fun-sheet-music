@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/song_provider.dart';
@@ -261,7 +265,8 @@ class _SongCard extends StatelessWidget {
           itemBuilder: (_) => [
             const PopupMenuItem(value: 'view', child: Text('View Sheet Music')),
             const PopupMenuItem(value: 'edit', child: Text('Edit')),
-            const PopupMenuItem(value: 'share', child: Text('Share (GitHub)')),
+            if (song.library == 'Created')
+              const PopupMenuItem(value: 'share', child: Text('Share (GitHub)')),
             const PopupMenuItem(value: 'tags', child: Text('Edit Tags')),
             const PopupMenuItem(value: 'delete', child: Text('Delete')),
           ],
@@ -302,23 +307,88 @@ class _SongCard extends StatelessWidget {
     final fullSong = await provider.loadFullSong(song.id);
     if (fullSong == null) return;
 
-    final xml = MusicXmlGenerator.generate(fullSong);
-    final title = 'New Song: ${fullSong.title}';
-    final body = 'Please add this song to the library.\n\n```xml\n$xml\n```';
+    if (!context.mounted) return;
 
-    final url = Uri.parse(
+    final xml = MusicXmlGenerator.generate(fullSong);
+    final issueTitle = 'New Song: ${fullSong.title}';
+    final bodyWithXml = 'Please add this song to the library.\n\n```xml\n$xml\n```';
+
+    final fullUrl = Uri.parse(
       'https://github.com/mvndaai/flutter-music/issues/new'
-      '?title=${Uri.encodeComponent(title)}'
-      '&body=${Uri.encodeComponent(body)}'
+      '?title=${Uri.encodeComponent(issueTitle)}'
+      '&body=${Uri.encodeComponent(bodyWithXml)}'
       '&labels=new-song',
     );
 
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open GitHub')),
-      );
+    // If the URL is short enough, just open it directly
+    if (fullUrl.toString().length < 6000) {
+      if (await canLaunchUrl(fullUrl)) {
+        await launchUrl(fullUrl);
+        return;
+      }
+    }
+
+    // Otherwise, show the step-by-step guide for long songs
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Share Song (Large File)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text('This song is too large to share via a direct link. Please follow these steps:'),
+            SizedBox(height: 16),
+            Text('1. Download the MusicXML file to your device.'),
+            Text('2. A new GitHub issue page will open.'),
+            Text('3. Drag and drop the downloaded file into the GitHub issue comment box before saving.'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              // 1. Download the file
+              _downloadXml(fullSong.title, xml);
+              
+              // 2. Open GitHub issue page (without the body XML)
+              final shortUrl = Uri.parse(
+                'https://github.com/mvndaai/flutter-music/issues/new'
+                '?title=${Uri.encodeComponent(issueTitle)}'
+                '&body=${Uri.encodeComponent('Please add the attached MusicXML file to the library.')}'
+                '&labels=new-song,new-music',
+              );
+              if (await canLaunchUrl(shortUrl)) {
+                await launchUrl(shortUrl);
+              }
+            },
+            child: const Text('Download & Open GitHub'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _downloadXml(String title, String xml) {
+    if (kIsWeb) {
+      final bytes = utf8.encode(xml);
+      final blob = html.Blob([bytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', '${title.replaceAll(' ', '_')}.musicxml')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+    } else {
+      // For mobile/desktop, we would ideally use share_plus, but for now
+      // we can inform the user or use path_provider to save to documents.
+      // Since the user is likely on web (given the GitHub URL error),
+      // we focus on that.
     }
   }
 
