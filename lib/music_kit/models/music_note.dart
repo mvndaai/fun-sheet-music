@@ -11,6 +11,7 @@ class MusicNote {
   final bool isChordContinuation; // part of a chord (not the first note)
   final int dot; // number of dots
   final String? beam; // 'begin', 'continue', 'end' or null
+  final bool isTied; // whether this note is tied to the next
 
   const MusicNote({
     required this.step,
@@ -22,6 +23,7 @@ class MusicNote {
     this.isChordContinuation = false,
     this.dot = 0,
     this.beam,
+    this.isTied = false,
   });
 
   bool get isDotted => dot > 0;

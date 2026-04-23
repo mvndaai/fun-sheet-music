@@ -8,9 +8,15 @@ import '../services/cloud_service.dart';
 
 /// Manages the list of songs and loading/saving operations.
 class SongProvider extends ChangeNotifier {
-  final StorageService _storage = StorageService();
-  final CloudService _cloud = CloudService();
+  final StorageService _storage;
+  final CloudService _cloud;
   final Uuid _uuid = const Uuid();
+
+  SongProvider({
+    StorageService? storage,
+    CloudService? cloud,
+  })  : _storage = storage ?? StorageService(),
+        _cloud = cloud ?? CloudService();
 
   List<Song> _songs = [];
   bool _loading = false;
@@ -18,6 +24,8 @@ class SongProvider extends ChangeNotifier {
   String _searchQuery = '';
   Set<String> _selectedTags = {};
   Set<String> _selectedLibraries = {'Flutter Music'};
+
+  List<Song>? _filteredSongsCache;
 
   List<Song> get songs => _songs;
   bool get loading => _loading;
@@ -27,13 +35,21 @@ class SongProvider extends ChangeNotifier {
   Set<String> get selectedLibraries => _selectedLibraries;
 
   List<Song> get filteredSongs {
-    return _songs.where((s) {
+    if (_filteredSongsCache != null) return _filteredSongsCache!;
+
+    _filteredSongsCache = _songs.where((s) {
       final matchesTag = _selectedTags.isEmpty || s.tags.any((t) => _selectedTags.contains(t));
       final matchesSearch = _searchQuery.isEmpty ||
           s.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           s.composer.toLowerCase().contains(_searchQuery.toLowerCase());
       return matchesTag && matchesSearch;
     }).toList();
+
+    return _filteredSongsCache!;
+  }
+
+  void _invalidateCache() {
+    _filteredSongsCache = null;
   }
 
   List<String> get allTags {
@@ -73,6 +89,7 @@ class SongProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _songs = await _storage.getAllSongs();
+      _invalidateCache();
       // Load sample songs on first run (empty library)
       if (_songs.isEmpty) {
         await _loadSampleSongs(onlyDefaults: true);
@@ -113,16 +130,19 @@ class SongProvider extends ChangeNotifier {
     } else {
       _selectedTags.add(tag);
     }
+    _invalidateCache();
     notifyListeners();
   }
 
   void clearTags() {
     _selectedTags.clear();
+    _invalidateCache();
     notifyListeners();
   }
 
   void setSearchQuery(String query) {
     _searchQuery = query;
+    _invalidateCache();
     notifyListeners();
   }
 
@@ -147,13 +167,15 @@ class SongProvider extends ChangeNotifier {
   }) async {
     try {
       final songId = id ?? _uuid.v7();
-      final song = MusicXmlParser.parse(
-        xmlContent,
-        id: songId,
-        tags: tags,
-        library: library,
-        sourceUrl: sourceUrl,
-      );
+      // Offload parsing to a separate isolate to keep UI smooth.
+      final song = await compute(_parseSongInIsolate, {
+        'content': xmlContent,
+        'id': songId,
+        'tags': tags,
+        'library': library,
+        'sourceUrl': sourceUrl,
+      });
+
       await _storage.saveSong(song, xmlContent: xmlContent);
       
       final index = _songs.indexWhere((s) => s.id == songId);
@@ -162,7 +184,7 @@ class SongProvider extends ChangeNotifier {
       } else {
         _songs.add(song);
       }
-      
+      _invalidateCache();
       notifyListeners();
       return song;
     } catch (e) {
@@ -220,15 +242,19 @@ class SongProvider extends ChangeNotifier {
     if (xmlContent == null) return meta;
 
     try {
-      return MusicXmlParser.parse(
-        xmlContent,
-        id: meta.id,
-        tags: meta.tags,
-        library: meta.library,
-        localPath: meta.localPath,
-        sourceUrl: meta.sourceUrl,
-        createdAt: meta.createdAt,
-      );
+      final xmlContent = await _storage.getXmlContent(songId);
+      if (xmlContent == null) return meta;
+
+      // Offload parsing to a separate isolate.
+      return await compute(_parseSongInIsolate, {
+        'content': xmlContent,
+        'id': meta.id,
+        'tags': meta.tags,
+        'library': meta.library,
+        'localPath': meta.localPath,
+        'sourceUrl': meta.sourceUrl,
+        'createdAt': meta.createdAt,
+      });
     } catch (e) {
       _error = 'Failed to load song: $e';
       notifyListeners();
@@ -241,6 +267,7 @@ class SongProvider extends ChangeNotifier {
     final index = _songs.indexWhere((s) => s.id == songId);
     if (index >= 0) {
       _songs[index] = _songs[index].copyWith(tags: tags);
+      _invalidateCache();
       notifyListeners();
     }
   }
@@ -248,6 +275,20 @@ class SongProvider extends ChangeNotifier {
   Future<void> deleteSong(String songId) async {
     await _storage.deleteSong(songId);
     _songs.removeWhere((s) => s.id == songId);
+    _invalidateCache();
     notifyListeners();
   }
+}
+
+/// Helper for running MusicXmlParser in an isolate.
+Song _parseSongInIsolate(Map<String, dynamic> params) {
+  return MusicXmlParser.parse(
+    params['content'] as String,
+    id: params['id'] as String,
+    tags: params['tags'] as List<String>,
+    library: params['library'] as String,
+    localPath: params['localPath'] as String?,
+    sourceUrl: params['sourceUrl'] as String?,
+    createdAt: params['createdAt'] as DateTime?,
+  );
 }
