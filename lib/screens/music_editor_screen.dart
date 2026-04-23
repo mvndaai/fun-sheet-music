@@ -155,7 +155,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   Future<void> _startListening() async {
     final success = await _audio.startListening();
     if (success) {
-      setState(() => _isListening = true);
+      if (mounted) {
+        setState(() => _isListening = true);
+      }
       _noteSubscription = _audio.noteStream.listen((noteName) {
         if (noteName.isNotEmpty && mounted) {
           _addNoteFromMic(noteName);

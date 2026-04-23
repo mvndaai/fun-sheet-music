@@ -15,18 +15,24 @@ class SongProvider extends ChangeNotifier {
   List<Song> _songs = [];
   bool _loading = false;
   String? _error;
-  String _selectedTag = '';
+  String _searchQuery = '';
+  Set<String> _selectedTags = {};
   Set<String> _selectedLibraries = {'Flutter Music'};
 
   List<Song> get songs => _songs;
   bool get loading => _loading;
   String? get error => _error;
-  String get selectedTag => _selectedTag;
+  Set<String> get selectedTags => _selectedTags;
+  String get searchQuery => _searchQuery;
   Set<String> get selectedLibraries => _selectedLibraries;
 
   List<Song> get filteredSongs {
     return _songs.where((s) {
-      return _selectedTag.isEmpty || s.tags.contains(_selectedTag);
+      final matchesTag = _selectedTags.isEmpty || s.tags.any((t) => _selectedTags.contains(t));
+      final matchesSearch = _searchQuery.isEmpty ||
+          s.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          s.composer.toLowerCase().contains(_searchQuery.toLowerCase());
+      return matchesTag && matchesSearch;
     }).toList();
   }
 
@@ -101,8 +107,22 @@ class SongProvider extends ChangeNotifier {
     }
   }
 
-  void selectTag(String tag) {
-    _selectedTag = tag;
+  void toggleTag(String tag) {
+    if (_selectedTags.contains(tag)) {
+      _selectedTags.remove(tag);
+    } else {
+      _selectedTags.add(tag);
+    }
+    notifyListeners();
+  }
+
+  void clearTags() {
+    _selectedTags.clear();
+    notifyListeners();
+  }
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
     notifyListeners();
   }
 

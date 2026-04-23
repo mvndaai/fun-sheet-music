@@ -19,12 +19,23 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() {
+      context.read<SongProvider>().setSearchQuery(_searchController.text);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SongProvider>().loadSongs();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -77,13 +88,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return Column(
             children: [
-              // Tag filter bar
-              if (provider.allTags.isNotEmpty) _TagFilterBar(provider: provider),
+              // Search and Filter bar
+              _SearchAndFilterBar(
+                provider: provider,
+                searchController: _searchController,
+              ),
               // Song list
               Expanded(
                 child: provider.filteredSongs.isEmpty
                     ? _EmptyState(
-                        hasFilter: provider.selectedTag.isNotEmpty,
+                        hasFilter: provider.selectedTags.isNotEmpty || provider.searchQuery.isNotEmpty,
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.all(12),
@@ -111,35 +125,80 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _TagFilterBar extends StatelessWidget {
+class _SearchAndFilterBar extends StatelessWidget {
   final SongProvider provider;
-  const _TagFilterBar({required this.provider});
+  final TextEditingController searchController;
+
+  const _SearchAndFilterBar({
+    required this.provider,
+    required this.searchController,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 44,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    final allTags = provider.allTags;
+    final selectedTags = provider.selectedTags;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Row(
         children: [
-          TagChip(
-            tag: 'All',
-            selected: provider.selectedTag.isEmpty,
-            onTap: () => provider.selectTag(''),
-          ),
-          const SizedBox(width: 6),
-          ...provider.allTags.map((tag) => Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: TagChip(
-                  tag: tag,
-                  selected: provider.selectedTag == tag,
-                  onTap: () => provider.selectTag(
-                    provider.selectedTag == tag ? '' : tag,
-                  ),
+          Expanded(
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Search songs...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => searchController.clear(),
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              )),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          PopupMenuButton<String>(
+            tooltip: 'Filter by tags',
+            onSelected: (tag) {
+              if (tag == 'clear') {
+                provider.clearTags();
+              } else {
+                provider.toggleTag(tag);
+              }
+            },
+            itemBuilder: (context) {
+              return [
+                PopupMenuItem(
+                  value: 'clear',
+                  enabled: selectedTags.isNotEmpty,
+                  child: const Text('Clear All Filters', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                const PopupMenuDivider(),
+                ...allTags.map((tag) {
+                  final isSelected = selectedTags.contains(tag);
+                  return CheckedPopupMenuItem(
+                    value: tag,
+                    checked: isSelected,
+                    child: Text(tag),
+                  );
+                }),
+              ];
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Badge(
+                label: Text(selectedTags.length.toString()),
+                isLabelVisible: selectedTags.isNotEmpty,
+                child: const Icon(Icons.filter_list),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -174,7 +233,11 @@ class _SongCard extends StatelessWidget {
                 child: Wrap(
                   spacing: 4,
                   children: song.tags
-                      .map((t) => TagChip(tag: t, onTap: () => provider.selectTag(t)))
+                      .map((t) => TagChip(
+                            tag: t,
+                            onTap: () => provider.toggleTag(t),
+                            selected: provider.selectedTags.contains(t),
+                          ))
                       .toList(),
                 ),
               ),
@@ -321,8 +384,11 @@ class _EmptyState extends StatelessWidget {
           if (hasFilter) ...[
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () => context.read<SongProvider>().selectTag(''),
-              child: const Text('Clear filter'),
+              onPressed: () {
+                context.read<SongProvider>().clearTags();
+                context.read<SongProvider>().setSearchQuery('');
+              },
+              child: const Text('Clear filters'),
             ),
           ],
         ],
