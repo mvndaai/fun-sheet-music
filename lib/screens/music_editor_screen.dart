@@ -157,7 +157,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     if (success) {
       setState(() => _isListening = true);
       _noteSubscription = _audio.noteStream.listen((noteName) {
-        if (noteName.isNotEmpty) {
+        if (noteName.isNotEmpty && mounted) {
           _addNoteFromMic(noteName);
         }
       });
@@ -176,6 +176,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   }
 
   void _addNoteFromMic(String noteName) {
+    if (!mounted) return;
     // Apply tuning overrides from active instrument scheme
     final scheme = context.read<ColorSchemeProvider>().activeScheme;
     String actualNoteName = noteName;
