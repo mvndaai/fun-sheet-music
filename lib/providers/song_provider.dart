@@ -146,6 +146,12 @@ class SongProvider extends ChangeNotifier {
       } else {
         _songs.add(song);
       }
+      
+      // Ensure the "Created" library is visible if we just added to it
+      if (library == 'Created' && !_selectedLibraries.contains('Created')) {
+        _selectedLibraries.add('Created');
+      }
+
       notifyListeners();
       return song;
     } catch (e) {

@@ -6,6 +6,7 @@ class Song {
   final String id;
   final String title;
   final String composer;
+  final String arranger;
   final List<Measure> measures;
   final List<String> tags;
   final String library;
@@ -18,6 +19,7 @@ class Song {
     required this.title,
     required this.measures,
     this.composer = '',
+    this.arranger = '',
     this.tags = const [],
     this.library = 'Default',
     this.localPath,
@@ -29,6 +31,7 @@ class Song {
     String? id,
     String? title,
     String? composer,
+    String? arranger,
     List<Measure>? measures,
     List<String>? tags,
     String? library,
@@ -40,6 +43,7 @@ class Song {
       id: id ?? this.id,
       title: title ?? this.title,
       composer: composer ?? this.composer,
+      arranger: arranger ?? this.arranger,
       measures: measures ?? this.measures,
       tags: tags ?? this.tags,
       library: library ?? this.library,
@@ -58,6 +62,7 @@ class Song {
         'id': id,
         'title': title,
         'composer': composer,
+        'arranger': arranger,
         'tags': tags,
         'library': library,
         'localPath': localPath,
@@ -69,6 +74,7 @@ class Song {
         id: json['id'] as String,
         title: json['title'] as String,
         composer: (json['composer'] as String?) ?? '',
+        arranger: (json['arranger'] as String?) ?? '',
         measures: const [], // measures are re-parsed from file
         tags: (json['tags'] as List<dynamic>?)
                 ?.map((e) => e.toString())

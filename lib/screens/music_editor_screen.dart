@@ -5,9 +5,13 @@ import 'dart:async';
 import '../music_kit/models/song.dart';
 import '../music_kit/models/measure.dart';
 import '../music_kit/models/music_note.dart';
+import '../music_kit/models/instrument_color_scheme.dart';
 import '../music_kit/utils/music_xml_generator.dart';
+import '../services/musicxml_parser.dart';
 import '../providers/song_provider.dart';
 import '../providers/color_scheme_provider.dart';
+import 'color_schemes_screen.dart';
+import 'color_schemes_screen.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../services/audio_service.dart';
 import '../services/tone_player.dart';
@@ -19,6 +23,42 @@ class MusicEditorScreen extends StatefulWidget {
 
   @override
   State<MusicEditorScreen> createState() => _MusicEditorScreenState();
+}
+
+class _InstrumentIcon extends StatelessWidget {
+  final InstrumentColorScheme scheme;
+  final double size;
+  const _InstrumentIcon({required this.scheme, this.size = 32});
+
+  @override
+  Widget build(BuildContext context) {
+    if (scheme.emoji != null && scheme.emoji!.isNotEmpty) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: Text(
+              scheme.emoji!,
+              style: TextStyle(fontSize: size),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (scheme.icon != null && scheme.icon!.isNotEmpty) {
+      return Image.network(
+        scheme.icon!,
+        width: size,
+        height: size,
+        errorBuilder: (_, __, ___) => Icon(Icons.music_note, size: size),
+      );
+    }
+
+    return Icon(Icons.music_note, size: size);
+  }
 }
 
 class _MusicEditorScreenState extends State<MusicEditorScreen> {
@@ -126,12 +166,29 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
   Future<void> _stopListening() async {
     await _noteSubscription?.cancel();
+    _noteSubscription = null;
     await _audio.stopListening();
-    setState(() => _isListening = false);
+    if (mounted) {
+      setState(() => _isListening = false);
+    } else {
+      _isListening = false;
+    }
   }
 
   void _addNoteFromMic(String noteName) {
-    final match = RegExp(r'^([A-G])([#b])?(-?\d+)$').firstMatch(noteName);
+    // Apply tuning overrides from active instrument scheme
+    final scheme = context.read<ColorSchemeProvider>().activeScheme;
+    String actualNoteName = noteName;
+    if (scheme.tuningOverrides.isNotEmpty) {
+      // Find if this heard note is a result of a transposed note in the scheme
+      final entry = scheme.tuningOverrides.entries.firstWhere(
+        (e) => e.value == noteName,
+        orElse: () => MapEntry(noteName, noteName),
+      );
+      actualNoteName = entry.key;
+    }
+
+    final match = RegExp(r'^([A-G])([#b])?(-?\d+)$').firstMatch(actualNoteName);
     if (match == null) return;
 
     final step = match.group(1)!;
@@ -214,15 +271,22 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
   void _stopPlayback() {
     _playbackTimer?.cancel();
-    setState(() {
+    _playbackTimer = null;
+    if (mounted) {
+      setState(() {
+        _isPlaying = false;
+        _playbackMeasureIndex = -1;
+        _playbackNoteIndex = -1;
+      });
+    } else {
       _isPlaying = false;
       _playbackMeasureIndex = -1;
       _playbackNoteIndex = -1;
-    });
+    }
   }
 
   void _scheduleNextNote() {
-    if (!_isPlaying) return;
+    if (!_isPlaying || !mounted) return;
     
     final m = _song.measures[_playbackMeasureIndex];
     if (_playbackNoteIndex >= m.notes.length) {
@@ -328,12 +392,115 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   Future<void> _save() async {
     final xml = MusicXmlGenerator.generate(_song);
     final provider = context.read<SongProvider>();
-    if (_song.id.isEmpty) {
-      await provider.addSongFromXml(xml, library: 'Created');
+    String id = _song.id;
+    if (id.isEmpty) {
+      final newSong = await provider.addSongFromXml(xml, library: 'Created');
+      if (newSong != null) {
+        id = newSong.id;
+        // The parser returns a new Song object, update local state
+        setState(() {
+          _song = newSong;
+        });
+      }
     } else {
-      await provider.updateSongXml(_song.id, xml);
+      await provider.updateSongXml(id, xml);
     }
-    if (mounted) Navigator.pop(context);
+    
+    // SongProvider automatically notifies listeners on add/update
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Song saved successfully')),
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  void _showMetadataEditor() {
+    final titleController = TextEditingController(text: _song.title);
+    final composerController = TextEditingController(text: _song.composer);
+    final arrangerController = TextEditingController(text: _song.arranger);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Song Info'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            TextField(
+              controller: composerController,
+              decoration: const InputDecoration(labelText: 'Composer'),
+            ),
+            TextField(
+              controller: arrangerController,
+              decoration: const InputDecoration(labelText: 'Arranger'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _song = _song.copyWith(
+                  title: titleController.text,
+                  composer: composerController.text,
+                  arranger: arrangerController.text,
+                );
+                _saveToHistory();
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showXmlEditor() {
+    final controller = TextEditingController(text: MusicXmlGenerator.generate(_song));
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit MusicXML'),
+        content: SizedBox(
+          width: 600,
+          child: TextField(
+            controller: controller,
+            maxLines: 20,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              hintText: 'Paste MusicXML here...',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              try {
+                final newSong = MusicXmlParser.parse(controller.text, id: _song.id);
+                setState(() {
+                  _song = newSong;
+                  _saveToHistory();
+                });
+                Navigator.pop(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error parsing XML: $e')));
+              }
+            },
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -359,10 +526,34 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_song.id.isEmpty ? 'Make My Own' : 'Edit Song'),
+          title: InkWell(
+            onTap: _showMetadataEditor,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_song.id.isEmpty ? 'Make My Own' : _song.title, style: const TextStyle(fontSize: 16)),
+                if (_song.composer.isNotEmpty)
+                  Text(_song.composer, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.normal)),
+              ],
+            ),
+          ),
           actions: [
+            IconButton(
+              icon: Consumer<ColorSchemeProvider>(
+                builder: (context, cp, _) {
+                  final s = cp.activeScheme;
+                  return _InstrumentIcon(scheme: s, size: 24);
+                },
+              ),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ColorSchemesScreen()),
+              ),
+            ),
             IconButton(icon: const Icon(Icons.undo), onPressed: _historyIndex > 0 ? _undo : null),
             IconButton(icon: const Icon(Icons.redo), onPressed: _historyIndex < _history.length - 1 ? _redo : null),
+            IconButton(icon: const Icon(Icons.code), onPressed: _showXmlEditor),
             IconButton(icon: const Icon(Icons.save), onPressed: _save),
           ],
         ),

@@ -17,9 +17,14 @@ class MusicXmlGenerator {
     buffer.writeln('    <work-title>${_escape(song.title)}</work-title>');
     buffer.writeln('  </work>');
     
-    // Identification / Composer
+    // Identification / Composer & Arranger
     buffer.writeln('  <identification>');
-    buffer.writeln('    <creator type="composer">${_escape(song.composer)}</creator>');
+    if (song.composer.isNotEmpty) {
+      buffer.writeln('    <creator type="composer">${_escape(song.composer)}</creator>');
+    }
+    if (song.arranger.isNotEmpty) {
+      buffer.writeln('    <creator type="arranger">${_escape(song.arranger)}</creator>');
+    }
     buffer.writeln('    <encoding>');
     buffer.writeln('      <software>Flutter Music Editor</software>');
     buffer.writeln('      <encoding-date>${DateTime.now().toIso8601String().split('T')[0]}</encoding-date>');
