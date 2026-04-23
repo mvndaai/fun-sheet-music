@@ -6,6 +6,7 @@ import '../models/instrument_color_scheme.dart';
 import '../sheet_music_constants.dart';
 import '../utils/note_colors.dart';
 import '../utils/music_constants.dart';
+import '../utils/staff_layout_helper.dart';
 
 class StaffRowData {
   final List<Measure> measures;
@@ -175,21 +176,6 @@ class StaffPainter extends CustomPainter {
   }) {
     final displayNotes = m.notes.where((n) => !n.isChordContinuation).toList();
     
-    final double tsReserved = hasTimeSig ? 32.0 : 0.0;
-    final double usableW = (measureWidth - tsReserved).clamp(0.0, measureWidth);
-    
-    // In MusicXML duration 1.0 is typically one quarter note.
-    // We want to map these to the "beats" of the measure.
-    // In 4/4, 1.0 duration = 1 beat. In 6/8, 1.0 duration = 2 beats.
-    final double durationToBeats = m.beatType / 4.0;
-    
-    // To prevent escaping, we calculate the effective number of beats this measure contains.
-    final double beatsInMeasure = m.beats > 0 ? m.beats.toDouble() : 1.0;
-    final double totalNoteDurationBeats = displayNotes.fold(0.0, (sum, n) => sum + n.duration) * durationToBeats;
-    final double effectiveBeats = (totalNoteDurationBeats > beatsInMeasure) ? totalNoteDurationBeats : beatsInMeasure;
-    
-    final double beatW = usableW / effectiveBeats;
-    
     double cumulativeDuration = 0.0;
     for (int ni = 0; ni < displayNotes.length; ni++) {
       final note = displayNotes[ni];
@@ -197,8 +183,14 @@ class StaffPainter extends CustomPainter {
       final isActive = globalIdx == activeNoteIndex;
       final isPast = activeNoteIndex >= 0 && globalIdx < activeNoteIndex;
       
-      final double beatIndex = cumulativeDuration * durationToBeats;
-      final noteX = startX + tsReserved + (beatIndex + 0.5) * beatW;
+      final noteX = StaffLayoutHelper.getNoteX(
+        measure: m,
+        startX: startX,
+        measureWidth: measureWidth,
+        hasTimeSig: hasTimeSig,
+        cumulativeDuration: cumulativeDuration,
+        displayNotes: displayNotes,
+      );
 
       if (note.isRest) {
         _drawRest(canvas, noteX, note.type, clefColor, isActive: isActive, isPast: isPast);
@@ -221,8 +213,15 @@ class StaffPainter extends CustomPainter {
 
             if (nextNote != null && (nextNote.beam == 'continue' || nextNote.beam == 'end')) {
               isBeamed = true;
-              final double nextBeatIndex = (cumulativeDuration + nextNoteOffset) * durationToBeats;
-              final nextX = startX + tsReserved + (nextBeatIndex + 0.5) * beatW;
+              final nextX = StaffLayoutHelper.getBeamEndX(
+                measure: m,
+                startX: startX,
+                measureWidth: measureWidth,
+                hasTimeSig: hasTimeSig,
+                cumulativeDuration: cumulativeDuration,
+                nextNoteOffset: nextNoteOffset,
+                displayNotes: displayNotes,
+              );
               final pos = staffPos(note.step, note.octave);
               final stemUp = pos < 5;
               final y = posToY(pos);

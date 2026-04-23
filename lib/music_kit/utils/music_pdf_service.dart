@@ -7,6 +7,7 @@ import '../models/music_note.dart';
 import '../models/measure.dart';
 import '../models/instrument_color_scheme.dart';
 import '../sheet_music_constants.dart';
+import 'staff_layout_helper.dart';
 import 'music_constants.dart';
 
 class MusicPdfService {
@@ -346,22 +347,19 @@ class MusicPdfService {
           measure.beats != currentPrevMeasure.beats || 
           measure.beatType != currentPrevMeasure.beatType);
 
-      final double tsReserved = hasTimeSig ? 24.0 : 0.0;
-      final double contentWidth = (measureWidth - tsReserved - 10.0).clamp(0.0, measureWidth);
-      
-      final double durationToBeats = measure.beatType / 4.0;
-      final double beatsInMeasure = measure.beats > 0 ? measure.beats.toDouble() : 1.0;
-      final double totalNoteDurationBeats = displayNotes.fold(0.0, (sum, n) => sum + n.duration) * durationToBeats;
-      final double effectiveBeats = (totalNoteDurationBeats > beatsInMeasure) ? totalNoteDurationBeats : beatsInMeasure;
-      final double beatW = contentWidth / effectiveBeats;
-
       final noteHeadWidth = ls * 1.56; // Matching kNRx * 2 / kLS ratio
 
       double cumulativeDuration = 0.0;
       for (int ni = 0; ni < displayNotes.length; ni++) {
         final note = displayNotes[ni];
-        final double beatIndex = cumulativeDuration * durationToBeats;
-        final noteX = x + tsReserved + (beatIndex + 0.5) * beatW + 5.0;
+        final noteX = StaffLayoutHelper.getNoteX(
+          measure: measure,
+          startX: x,
+          measureWidth: measureWidth,
+          hasTimeSig: hasTimeSig,
+          cumulativeDuration: cumulativeDuration,
+          displayNotes: displayNotes,
+        );
 
         if (!note.isRest) {
           bool isBeamed = false;
@@ -382,8 +380,15 @@ class MusicPdfService {
 
               if (nextNote != null && (nextNote.beam == 'continue' || nextNote.beam == 'end')) {
                 isBeamed = true;
-                final double nextBeatIndex = (cumulativeDuration + nextNoteOffset) * durationToBeats;
-                final nextX = x + tsReserved + (nextBeatIndex + 0.5) * beatW + 5.0;
+                final nextX = StaffLayoutHelper.getBeamEndX(
+                  measure: measure,
+                  startX: x,
+                  measureWidth: measureWidth,
+                  hasTimeSig: hasTimeSig,
+                  cumulativeDuration: cumulativeDuration,
+                  nextNoteOffset: nextNoteOffset,
+                  displayNotes: displayNotes,
+                );
 
                 final pos = staffPos(note.step, note.octave);
                 final nextPos = staffPos(nextNote.step, nextNote.octave);
