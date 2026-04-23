@@ -10,7 +10,6 @@ import '../widgets/sheet_music_widget.dart';
 import '../widgets/note_settings_sheet.dart';
 import 'practice_screen.dart';
 import 'color_schemes_screen.dart';
-import 'music_editor_screen.dart';
 import '../providers/song_provider.dart';
 
 /// Displays the full sheet music for a song with color-coded notes.
@@ -165,19 +164,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
     );
   }
 
-  Future<void> _openEditor(BuildContext context) async {
-    final provider = context.read<SongProvider>();
-    final fullSong = await provider.loadFullSong(widget.song.id);
-    if (fullSong != null && context.mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MusicEditorScreen(initialSong: fullSong),
-        ),
-      );
-    }
-  }
-
   Future<void> _printSong() async {
     final provider = context.read<ColorSchemeProvider>();
     await MusicPdfService.printSong(
@@ -234,11 +220,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
                   icon: const Icon(Icons.settings),
                   tooltip: 'Settings',
                   onPressed: _openSettings,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  tooltip: 'Edit Song',
-                  onPressed: () => _openEditor(context),
                 ),
               ],
             ),
