@@ -1,85 +1,61 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../music_kit/models/song.dart';
+import 'database.dart';
+import 'package:drift/drift.dart';
 
-/// Manages local persistence of song metadata and tags.
-///
-/// Song metadata (title, composer, tags, paths) is stored in SharedPreferences.
-/// The actual MusicXML content is stored as a separate preference entry.
+/// Manages local persistence of song metadata and tags using Drift (SQLite).
 class StorageService {
-  static const String _songsKey = 'songs_metadata';
-  static const String _xmlPrefix = 'song_xml_';
+  final AppDatabase _db;
 
-  late SharedPreferences _prefs;
-  bool _initialized = false;
+  StorageService({required AppDatabase db}) : _db = db;
 
-  Future<void> _ensureInitialized() async {
-    if (!_initialized) {
-      _prefs = await SharedPreferences.getInstance();
-      _initialized = true;
-    }
-  }
-
-  /// Returns all stored songs (metadata only; measures are empty until re-parsed).
+  /// Returns all stored songs (metadata only).
   Future<List<Song>> getAllSongs() async {
-    await _ensureInitialized();
-    final raw = _prefs.getString(_songsKey);
-    if (raw == null) return [];
-    final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
-    return decoded
-        .map((e) => Song.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final rows = await _db.getAllSongs();
+    return rows.map((row) => _mapToSong(row)).toList();
   }
 
-  /// Saves a song's metadata and optionally its XML content.
+  /// Saves a song's metadata and XML content.
   Future<void> saveSong(Song song, {String? xmlContent}) async {
-    await _ensureInitialized();
-    final songs = await getAllSongs();
-    final index = songs.indexWhere((s) => s.id == song.id);
-    if (index >= 0) {
-      songs[index] = song;
-    } else {
-      songs.add(song);
-    }
-    await _prefs.setString(_songsKey, jsonEncode(songs.map((s) => s.toJson()).toList()));
-    if (xmlContent != null) {
-      await _prefs.setString('$_xmlPrefix${song.id}', xmlContent);
-    }
+    await _db.insertSong(SongDbEntity(
+      id: song.id,
+      title: song.title,
+      composer: song.composer,
+      tags: song.tags,
+      library: song.library,
+      localPath: song.localPath,
+      sourceUrl: song.sourceUrl,
+      createdAt: song.createdAt,
+      xmlContent: xmlContent ?? '',
+    ));
   }
 
   /// Deletes a song by ID.
   Future<void> deleteSong(String id) async {
-    await _ensureInitialized();
-    final songs = await getAllSongs();
-    songs.removeWhere((s) => s.id == id);
-    await _prefs.setString(_songsKey, jsonEncode(songs.map((s) => s.toJson()).toList()));
-    await _prefs.remove('$_xmlPrefix$id');
+    await _db.deleteSong(id);
   }
 
   /// Returns the stored MusicXML content for a song, or null if not stored.
   Future<String?> getXmlContent(String id) async {
-    await _ensureInitialized();
-    return _prefs.getString('$_xmlPrefix$id');
-  }
-
-  /// Returns all unique tags currently in use across all songs.
-  Future<List<String>> getAllTags() async {
-    final songs = await getAllSongs();
-    final tags = <String>{};
-    for (final song in songs) {
-      tags.addAll(song.tags);
-    }
-    final sorted = tags.toList()..sort();
-    return sorted;
+    final row = await _db.getSongById(id);
+    return row?.xmlContent;
   }
 
   /// Updates the tags for a specific song.
   Future<void> updateTags(String songId, List<String> tags) async {
-    await _ensureInitialized();
-    final songs = await getAllSongs();
-    final index = songs.indexWhere((s) => s.id == songId);
-    if (index < 0) return;
-    final updated = songs[index].copyWith(tags: tags);
-    await saveSong(updated);
+    await _db.updateSongTags(songId, tags);
+  }
+
+  Song _mapToSong(SongDbEntity row) {
+    return Song(
+      id: row.id,
+      title: row.title,
+      composer: row.composer,
+      measures: [], // Measures are re-parsed from XML when needed
+      tags: row.tags,
+      library: row.library,
+      localPath: row.localPath,
+      sourceUrl: row.sourceUrl,
+      createdAt: row.createdAt,
+    );
   }
 }

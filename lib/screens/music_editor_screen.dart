@@ -138,8 +138,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
   @override
   void dispose() {
-    _stopListening();
-    _stopPlayback();
+    _noteSubscription?.cancel();
+    _audio.stopListening();
+    _playbackTimer?.cancel();
     _tonePlayer.dispose();
     super.dispose();
   }
@@ -172,8 +173,6 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     await _audio.stopListening();
     if (mounted) {
       setState(() => _isListening = false);
-    } else {
-      _isListening = false;
     }
   }
 

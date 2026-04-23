@@ -5,6 +5,7 @@ import '../music_kit/models/song.dart';
 import '../services/musicxml_parser.dart';
 import '../services/storage_service.dart';
 import '../services/cloud_service.dart';
+import '../services/database.dart' hide Song;
 
 /// Manages the list of songs and loading/saving operations.
 class SongProvider extends ChangeNotifier {
@@ -13,9 +14,9 @@ class SongProvider extends ChangeNotifier {
   final Uuid _uuid = const Uuid();
 
   SongProvider({
-    StorageService? storage,
+    required StorageService storage,
     CloudService? cloud,
-  })  : _storage = storage ?? StorageService(),
+  })  : _storage = storage,
         _cloud = cloud ?? CloudService();
 
   List<Song> _songs = [];
