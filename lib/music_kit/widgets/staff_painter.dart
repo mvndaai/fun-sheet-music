@@ -84,14 +84,16 @@ class StaffPainter extends CustomPainter {
     for (int mi = 0; mi < row.measures.length; mi++) {
       final m = row.measures[mi];
 
-      if (currentPrevMeasure == null || 
+      final bool hasTimeSig = (currentPrevMeasure == null || 
           m.beats != currentPrevMeasure.beats || 
-          m.beatType != currentPrevMeasure.beatType) {
+          m.beatType != currentPrevMeasure.beatType);
+
+      if (hasTimeSig) {
         _drawTimeSig(canvas, m.beats, m.beatType, x, clefColor);
       }
 
       _drawMeasureNumber(canvas, m.number, x);
-      _drawMeasureNotes(canvas, m, x, measureW, noteOffset, clefColor);
+      _drawMeasureNotes(canvas, m, x, measureW, noteOffset, clefColor, hasTimeSig: hasTimeSig);
       noteOffset += m.playableNotes.length;
       x += measureW;
       currentPrevMeasure = m;
@@ -168,14 +170,25 @@ class StaffPainter extends CustomPainter {
     double startX,
     double measureWidth,
     int noteOffset,
-    Color clefColor,
-  ) {
+    Color clefColor, {
+    bool hasTimeSig = false,
+  }) {
     final displayNotes = m.notes.where((n) => !n.isChordContinuation).toList();
-    final totalDuration = displayNotes.isEmpty ? 1.0 : displayNotes.fold(0.0, (sum, n) => sum + n.duration);
     
-    const leftPadding = 20.0;
-    const rightPadding = 20.0;
-    final contentWidth = (measureWidth - leftPadding - rightPadding).clamp(0.0, measureWidth);
+    final double tsReserved = hasTimeSig ? 32.0 : 0.0;
+    final double usableW = (measureWidth - tsReserved).clamp(0.0, measureWidth);
+    
+    // In MusicXML duration 1.0 is typically one quarter note.
+    // We want to map these to the "beats" of the measure.
+    // In 4/4, 1.0 duration = 1 beat. In 6/8, 1.0 duration = 2 beats.
+    final double durationToBeats = m.beatType / 4.0;
+    
+    // To prevent escaping, we calculate the effective number of beats this measure contains.
+    final double beatsInMeasure = m.beats > 0 ? m.beats.toDouble() : 1.0;
+    final double totalNoteDurationBeats = displayNotes.fold(0.0, (sum, n) => sum + n.duration) * durationToBeats;
+    final double effectiveBeats = (totalNoteDurationBeats > beatsInMeasure) ? totalNoteDurationBeats : beatsInMeasure;
+    
+    final double beatW = usableW / effectiveBeats;
     
     double cumulativeDuration = 0.0;
     for (int ni = 0; ni < displayNotes.length; ni++) {
@@ -184,7 +197,8 @@ class StaffPainter extends CustomPainter {
       final isActive = globalIdx == activeNoteIndex;
       final isPast = activeNoteIndex >= 0 && globalIdx < activeNoteIndex;
       
-      final noteX = startX + leftPadding + ((cumulativeDuration + note.duration / 2) / totalDuration) * contentWidth;
+      final double beatIndex = cumulativeDuration * durationToBeats;
+      final noteX = startX + tsReserved + (beatIndex + 0.5) * beatW;
 
       if (note.isRest) {
         _drawRest(canvas, noteX, note.type, clefColor, isActive: isActive, isPast: isPast);
@@ -194,18 +208,21 @@ class StaffPainter extends CustomPainter {
           if (note.beam == 'begin' || note.beam == 'continue') {
             int nextNi = ni + 1;
             MusicNote? nextNote;
+            double nextNoteOffset = note.duration;
             while (nextNi < displayNotes.length) {
               final candidate = displayNotes[nextNi];
               if (!candidate.isRest) {
                 nextNote = candidate;
                 break;
               }
+              nextNoteOffset += candidate.duration;
               nextNi++;
             }
 
             if (nextNote != null && (nextNote.beam == 'continue' || nextNote.beam == 'end')) {
               isBeamed = true;
-              final nextX = startX + leftPadding + ((cumulativeDuration + note.duration + nextNote.duration / 2) / totalDuration) * contentWidth;
+              final double nextBeatIndex = (cumulativeDuration + nextNoteOffset) * durationToBeats;
+              final nextX = startX + tsReserved + (nextBeatIndex + 0.5) * beatW;
               final pos = staffPos(note.step, note.octave);
               final stemUp = pos < 5;
               final y = posToY(pos);
