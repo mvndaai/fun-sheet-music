@@ -61,6 +61,20 @@ class SongProvider extends ChangeNotifier {
       'assets/sample_songs/row_row_row_your_boat.xml',
       'assets/sample_songs/concerning_hobbits.xml',
       'assets/sample_songs/formatting.xml',
+      'assets/sample_songs/color_pattern_1.xml',
+      'assets/sample_songs/number_pattern_1.xml',
+      'assets/sample_songs/color_pattern_2.xml',
+      'assets/sample_songs/number_pattern_2.xml',
+      'assets/sample_songs/color_letters_pattern_1.xml',
+      'assets/sample_songs/color_letters_pattern_2.xml',
+      'assets/sample_songs/color_letters_pattern_3.xml',
+      'assets/sample_songs/color_letters_pattern_4.xml',
+      'assets/sample_songs/color_letters_pattern_5.xml',
+      'assets/sample_songs/gerudo_valley.xml',
+      'assets/sample_songs/under_the_sea.xml',
+      'assets/sample_songs/frere_jacques.xml',
+      'assets/sample_songs/top_gun_theme.xml',
+      'assets/sample_songs/spirit_temple.xml',
     ];
 
     for (final assetPath in sampleSongs) {
