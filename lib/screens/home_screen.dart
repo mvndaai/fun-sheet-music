@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🎵 Music Library'),
+        title: const Text('🎵 My Songs'),
         actions: [
           IconButton(
             icon: const Icon(Icons.ios_share),
@@ -48,14 +48,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
               }
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Add song',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const UploadScreen()),
-            ),
           ),
         ],
       ),
