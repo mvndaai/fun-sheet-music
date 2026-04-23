@@ -26,18 +26,14 @@ class SongProvider extends ChangeNotifier {
 
   List<Song> get filteredSongs {
     return _songs.where((s) {
-      final matchesTag = _selectedTag.isEmpty || s.tags.contains(_selectedTag);
-      final matchesLibrary = _selectedLibraries.contains(s.library);
-      return matchesTag && matchesLibrary;
+      return _selectedTag.isEmpty || s.tags.contains(_selectedTag);
     }).toList();
   }
 
   List<String> get allTags {
     final tags = <String>{};
     for (final song in _songs) {
-      if (_selectedLibraries.contains(song.library)) {
-        tags.addAll(song.tags);
-      }
+      tags.addAll(song.tags);
     }
     return tags.toList()..sort();
   }
@@ -147,11 +143,6 @@ class SongProvider extends ChangeNotifier {
         _songs.add(song);
       }
       
-      // Ensure the "Created" library is visible if we just added to it
-      if (library == 'Created' && !_selectedLibraries.contains('Created')) {
-        _selectedLibraries.add('Created');
-      }
-
       notifyListeners();
       return song;
     } catch (e) {
