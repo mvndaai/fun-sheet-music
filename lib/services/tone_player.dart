@@ -1,8 +1,5 @@
 import 'dart:async';
-// Conditional imports for web vs mobile
-import 'tone_player_stub.dart'
-    if (dart.library.html) 'tone_player_web.dart'
-    if (dart.library.io) 'tone_player_mobile.dart' as platform;
+import '../platform/platform.dart' as platform;
 
 /// Service for playing musical tones and metronome clicks.
 class TonePlayer {

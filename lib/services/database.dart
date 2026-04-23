@@ -1,7 +1,5 @@
 import 'package:drift/drift.dart';
-import 'database/connection.dart'
-    if (dart.library.html) 'database/web.dart'
-    if (dart.library.io) 'database/native.dart' as impl;
+import '../platform/platform.dart' as platform;
 
 part 'database.g.dart';
 
@@ -39,7 +37,7 @@ class StringListConverter extends TypeConverter<List<String>, String> {
 
 @DriftDatabase(tables: [Songs])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(impl.openConnection());
+  AppDatabase() : super(platform.openDatabaseConnection());
 
   @override
   int get schemaVersion => 1;
