@@ -9,7 +9,7 @@ class MusicNote {
   final String type; // whole, half, quarter, eighth, 16th, etc.
   final bool isRest;
   final bool isChordContinuation; // part of a chord (not the first note)
-  final bool isDotted;
+  final int dot; // number of dots
   final String? beam; // 'begin', 'continue', 'end' or null
 
   const MusicNote({
@@ -20,9 +20,11 @@ class MusicNote {
     this.alter = 0,
     this.isRest = false,
     this.isChordContinuation = false,
-    this.isDotted = false,
+    this.dot = 0,
     this.beam,
   });
+
+  bool get isDotted => dot > 0;
 
   /// Returns the note name in letter notation (e.g. "C#5")
   String get letterName {

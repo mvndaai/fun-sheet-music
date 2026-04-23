@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import '../providers/song_provider.dart';
 import '../widgets/tag_chip.dart';
+import 'music_editor_screen.dart';
 
 /// Upload screen: lets the user pick a local MusicXML file or enter a URL.
 class UploadScreen extends StatefulWidget {
@@ -28,7 +29,7 @@ class _UploadScreenState extends State<UploadScreen>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 3, vsync: this);
+    _tab = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -129,6 +130,7 @@ class _UploadScreenState extends State<UploadScreen>
         bottom: TabBar(
           controller: _tab,
           tabs: const [
+            Tab(icon: Icon(Icons.edit), text: 'Create'),
             Tab(icon: Icon(Icons.upload_file), text: 'Upload File'),
             Tab(icon: Icon(Icons.cloud_download), text: 'From URL'),
             Tab(icon: Icon(Icons.library_music), text: 'Libraries'),
@@ -140,6 +142,7 @@ class _UploadScreenState extends State<UploadScreen>
           : TabBarView(
               controller: _tab,
               children: [
+                const _CreateTab(),
                 _FileUploadTab(
                   pickedFileName: _pickedFileName,
                   onPickFile: _pickFile,
@@ -148,7 +151,7 @@ class _UploadScreenState extends State<UploadScreen>
                   availableTags: provider.allTags,
                   onAddTag: _addTag,
                   onRemoveTag: (t) => setState(() => _tags.remove(t)),
-                  error: _tab.index == 0 ? _error : null,
+                  error: _tab.index == 1 ? _error : null,
                 ),
                 _UrlTab(
                   controller: _urlController,
@@ -157,13 +160,53 @@ class _UploadScreenState extends State<UploadScreen>
                   availableTags: provider.allTags,
                   onAddTag: _addTag,
                   onRemoveTag: (t) => setState(() => _tags.remove(t)),
-                  error: _tab.index == 1 ? _error : null,
+                  error: _tab.index == 2 ? _error : null,
                 ),
                 _LibraryTab(
                   onSongAdded: (title) => _showSuccess(title),
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _CreateTab extends StatelessWidget {
+  const _CreateTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.music_note, size: 64, color: Colors.blue),
+            const SizedBox(height: 16),
+            const Text(
+              'Compose your own music from scratch.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MusicEditorScreen()),
+                );
+              },
+              icon: const Icon(Icons.edit),
+              label: const Text('Make My Own'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

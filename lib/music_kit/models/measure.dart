@@ -16,4 +16,18 @@ class Measure {
 
   List<MusicNote> get playableNotes =>
       notes.where((n) => !n.isChordContinuation).toList();
+
+  Measure copyWith({
+    int? number,
+    List<MusicNote>? notes,
+    int? beats,
+    int? beatType,
+  }) {
+    return Measure(
+      number: number ?? this.number,
+      notes: notes ?? this.notes,
+      beats: beats ?? this.beats,
+      beatType: beatType ?? this.beatType,
+    );
+  }
 }

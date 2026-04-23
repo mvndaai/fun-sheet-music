@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/color_scheme_provider.dart';
 import '../music_kit/widgets/sheet_music_renderer.dart';
 import '../music_kit/models/song.dart';
+import '../music_kit/models/music_note.dart';
 import '../music_kit/models/instrument_color_scheme.dart';
 import '../music_kit/utils/music_constants.dart';
 
@@ -10,6 +11,8 @@ import '../music_kit/utils/music_constants.dart';
 class SheetMusicWidget extends StatelessWidget {
   final Song song;
   final int activeNoteIndex;
+  final int? ghostNoteIndex;
+  final MusicNote? ghostNote;
   final bool showSolfege;
   final bool showLetter;
   final bool labelsBelow;
@@ -20,6 +23,8 @@ class SheetMusicWidget extends StatelessWidget {
     super.key,
     required this.song,
     this.activeNoteIndex = -1,
+    this.ghostNoteIndex,
+    this.ghostNote,
     this.showSolfege = false,
     this.showLetter = true,
     this.labelsBelow = true,
@@ -35,6 +40,8 @@ class SheetMusicWidget extends StatelessWidget {
       song: song,
       colorScheme: cp.activeScheme,
       activeNoteIndex: activeNoteIndex,
+      ghostNoteIndex: ghostNoteIndex,
+      ghostNote: ghostNote,
       showSolfege: showSolfege,
       showLetter: showLetter,
       labelsBelow: labelsBelow,

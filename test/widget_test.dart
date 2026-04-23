@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_music/models/music_note.dart';
-import 'package:flutter_music/models/measure.dart';
-import 'package:flutter_music/models/song.dart';
-import 'package:flutter_music/models/instrument_color_scheme.dart';
+import 'package:flutter_music/music_kit/models/music_note.dart';
+import 'package:flutter_music/music_kit/models/measure.dart';
+import 'package:flutter_music/music_kit/models/song.dart';
+import 'package:flutter_music/music_kit/models/instrument_color_scheme.dart';
 import 'package:flutter_music/services/musicxml_parser.dart';
 import 'package:flutter_music/providers/color_scheme_provider.dart';
-import 'package:flutter_music/utils/music_constants.dart';
-import 'package:flutter_music/utils/note_colors.dart';
+import 'package:flutter_music/music_kit/utils/music_constants.dart';
+import 'package:flutter_music/music_kit/utils/note_colors.dart';
 import 'package:flutter/material.dart';
 
 void main() {

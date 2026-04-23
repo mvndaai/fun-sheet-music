@@ -122,7 +122,7 @@ class MusicXmlParser {
   static MusicNote _parseNote(XmlElement noteEl, int divisions) {
     final isRest = noteEl.findElements('rest').isNotEmpty;
     final isChord = noteEl.findElements('chord').isNotEmpty;
-    final isDotted = noteEl.findElements('dot').isNotEmpty;
+    final dotCount = noteEl.findElements('dot').length;
 
     final pitchEl = noteEl.findElements('pitch').firstOrNull;
     final step = pitchEl?.findElements('step').firstOrNull?.innerText.trim() ?? 'C';
@@ -152,7 +152,7 @@ class MusicXmlParser {
       type: typeText,
       isRest: isRest,
       isChordContinuation: isChord,
-      isDotted: isDotted,
+      dot: dotCount,
       beam: beam,
     );
   }

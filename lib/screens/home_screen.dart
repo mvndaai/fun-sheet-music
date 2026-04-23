@@ -7,6 +7,8 @@ import '../widgets/tag_chip.dart';
 import 'sheet_music_screen.dart';
 import 'upload_screen.dart';
 import 'share_screen.dart';
+import 'music_editor_screen.dart';
+import '../music_kit/utils/music_xml_generator.dart';
 
 /// Home screen showing the song library with tag-based filtering.
 class HomeScreen extends StatefulWidget {
@@ -183,6 +185,10 @@ class _SongCard extends StatelessWidget {
           onSelected: (value) async {
             if (value == 'view') {
               _openSheet(context, song);
+            } else if (value == 'edit') {
+              _editSong(context, song);
+            } else if (value == 'share') {
+              _shareSong(context, song);
             } else if (value == 'tags') {
               _editTags(context, song);
             } else if (value == 'delete') {
@@ -191,6 +197,8 @@ class _SongCard extends StatelessWidget {
           },
           itemBuilder: (_) => [
             const PopupMenuItem(value: 'view', child: Text('View Sheet Music')),
+            const PopupMenuItem(value: 'edit', child: Text('Edit')),
+            const PopupMenuItem(value: 'share', child: Text('Share (GitHub)')),
             const PopupMenuItem(value: 'tags', child: Text('Edit Tags')),
             const PopupMenuItem(value: 'delete', child: Text('Delete')),
           ],
@@ -209,6 +217,44 @@ class _SongCard extends StatelessWidget {
         MaterialPageRoute(
           builder: (_) => SheetMusicScreen(song: fullSong),
         ),
+      );
+    }
+  }
+
+  Future<void> _editSong(BuildContext context, Song song) async {
+    final provider = context.read<SongProvider>();
+    final fullSong = await provider.loadFullSong(song.id);
+    if (fullSong != null && context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MusicEditorScreen(initialSong: fullSong),
+        ),
+      );
+    }
+  }
+
+  Future<void> _shareSong(BuildContext context, Song song) async {
+    final provider = context.read<SongProvider>();
+    final fullSong = await provider.loadFullSong(song.id);
+    if (fullSong == null) return;
+
+    final xml = MusicXmlGenerator.generate(fullSong);
+    final title = 'New Song: ${fullSong.title}';
+    final body = 'Please add this song to the library.\n\n```xml\n$xml\n```';
+
+    final url = Uri.parse(
+      'https://github.com/mvndaai/flutter-music/issues/new'
+      '?title=${Uri.encodeComponent(title)}'
+      '&body=${Uri.encodeComponent(body)}'
+      '&labels=new-song',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open GitHub')),
       );
     }
   }

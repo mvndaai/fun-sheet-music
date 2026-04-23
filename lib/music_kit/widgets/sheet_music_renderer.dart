@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../models/measure.dart';
+import '../models/music_note.dart';
 import '../models/instrument_color_scheme.dart';
 import '../sheet_music_constants.dart';
 import 'staff_painter.dart';
@@ -9,6 +10,8 @@ import 'staff_painter.dart';
 class SheetMusicRenderer extends StatelessWidget {
   final Song song;
   final int activeNoteIndex;
+  final int? ghostNoteIndex;
+  final MusicNote? ghostNote;
   final bool showSolfege;
   final bool showLetter;
   final bool labelsBelow;
@@ -23,6 +26,8 @@ class SheetMusicRenderer extends StatelessWidget {
     required this.song,
     required this.colorScheme,
     this.activeNoteIndex = -1,
+    this.ghostNoteIndex,
+    this.ghostNote,
     this.showSolfege = false,
     this.showLetter = true,
     this.labelsBelow = true,
@@ -50,6 +55,8 @@ class SheetMusicRenderer extends StatelessWidget {
             (row) => _StaffRow(
               row: row,
               activeNoteIndex: activeNoteIndex,
+              ghostNoteIndex: ghostNoteIndex,
+              ghostNote: ghostNote,
               showSolfege: showSolfege,
               showLetter: showLetter,
               labelsBelow: labelsBelow,
@@ -88,6 +95,8 @@ class SheetMusicRenderer extends StatelessWidget {
 class _StaffRow extends StatelessWidget {
   final StaffRowData row;
   final int activeNoteIndex;
+  final int? ghostNoteIndex;
+  final MusicNote? ghostNote;
   final bool showSolfege;
   final bool showLetter;
   final bool labelsBelow;
@@ -98,6 +107,8 @@ class _StaffRow extends StatelessWidget {
   const _StaffRow({
     required this.row,
     required this.activeNoteIndex,
+    this.ghostNoteIndex,
+    this.ghostNote,
     required this.showSolfege,
     required this.showLetter,
     required this.labelsBelow,
@@ -118,6 +129,8 @@ class _StaffRow extends StatelessWidget {
             painter: StaffPainter(
               row: row,
               activeNoteIndex: activeNoteIndex,
+              ghostNoteIndex: ghostNoteIndex,
+              ghostNote: ghostNote,
               showSolfege: showSolfege,
               showLetter: showLetter,
               labelsBelow: labelsBelow,

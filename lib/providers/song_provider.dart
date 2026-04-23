@@ -127,18 +127,25 @@ class SongProvider extends ChangeNotifier {
     List<String> tags = const [],
     String library = 'Default',
     String? sourceUrl,
+    String? id,
   }) async {
     try {
-      final id = _uuid.v7();
+      final songId = id ?? _uuid.v7();
       final song = MusicXmlParser.parse(
         xmlContent,
-        id: id,
+        id: songId,
         tags: tags,
         library: library,
         sourceUrl: sourceUrl,
       );
       await _storage.saveSong(song, xmlContent: xmlContent);
-      _songs.add(song);
+      
+      final index = _songs.indexWhere((s) => s.id == songId);
+      if (index >= 0) {
+        _songs[index] = song;
+      } else {
+        _songs.add(song);
+      }
       notifyListeners();
       return song;
     } catch (e) {
@@ -146,6 +153,17 @@ class SongProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     }
+  }
+
+  Future<void> updateSongXml(String songId, String xmlContent) async {
+    final meta = _songs.firstWhere((s) => s.id == songId);
+    await addSongFromXml(
+      xmlContent,
+      id: meta.id,
+      tags: meta.tags,
+      library: meta.library,
+      sourceUrl: meta.sourceUrl,
+    );
   }
 
   /// Downloads and adds a song from a URL.

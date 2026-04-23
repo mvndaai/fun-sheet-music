@@ -29,6 +29,8 @@ class StaffRowData {
 class StaffPainter extends CustomPainter {
   final StaffRowData row;
   final int activeNoteIndex;
+  final int? ghostNoteIndex;
+  final MusicNote? ghostNote;
   final bool showSolfege;
   final bool showLetter;
   final bool labelsBelow;
@@ -40,6 +42,8 @@ class StaffPainter extends CustomPainter {
   StaffPainter({
     required this.row,
     required this.activeNoteIndex,
+    this.ghostNoteIndex,
+    this.ghostNote,
     required this.showSolfege,
     required this.showLetter,
     required this.labelsBelow,
@@ -52,6 +56,8 @@ class StaffPainter extends CustomPainter {
   @override
   bool shouldRepaint(StaffPainter old) =>
       old.activeNoteIndex != activeNoteIndex ||
+      old.ghostNoteIndex != ghostNoteIndex ||
+      old.ghostNote != ghostNote ||
       old.showSolfege != showSolfege ||
       old.showLetter != showLetter ||
       old.labelsBelow != labelsBelow ||
@@ -95,6 +101,31 @@ class StaffPainter extends CustomPainter {
 
       _drawMeasureNumber(canvas, m.number, x);
       _drawMeasureNotes(canvas, m, x, measureW, noteOffset, clefColor, hasTimeSig: hasTimeSig);
+      
+      // Draw ghost note if it belongs to this measure
+      if (ghostNoteIndex != null && ghostNote != null) {
+        final localGhostIndex = ghostNoteIndex! - noteOffset;
+        if (localGhostIndex == m.playableNotes.length) {
+          final displayNotes = m.notes.where((n) => !n.isChordContinuation).toList();
+          final cumulativeDuration = displayNotes.fold(0.0, (s, n) => s + n.duration);
+          
+          final ghostX = StaffLayoutHelper.getNoteX(
+            measure: m,
+            startX: x,
+            measureWidth: measureW,
+            hasTimeSig: hasTimeSig,
+            cumulativeDuration: cumulativeDuration,
+            displayNotes: displayNotes,
+          );
+          
+          if (ghostNote!.isRest) {
+            _drawRest(canvas, ghostX, ghostNote!.type, clefColor, note: ghostNote, isActive: true);
+          } else {
+            _drawNote(canvas, ghostNote!, ghostX, false, false, clefColor, opacity: 0.3);
+          }
+        }
+      }
+
       noteOffset += m.playableNotes.length;
       x += measureW;
       currentPrevMeasure = m;
@@ -193,7 +224,7 @@ class StaffPainter extends CustomPainter {
       );
 
       if (note.isRest) {
-        _drawRest(canvas, noteX, note.type, clefColor, isActive: isActive, isPast: isPast);
+        _drawRest(canvas, noteX, note.type, clefColor, isActive: isActive, isPast: isPast, note: note);
       } else {
         bool isBeamed = false;
         if (note.beam != null) {
@@ -292,6 +323,7 @@ class StaffPainter extends CustomPainter {
     bool? forcedStemUp,
     bool noFlags = false,
     double? stemTipY,
+    double opacity = 1.0,
   }) {
     final pos = staffPos(note.step, note.octave);
     final y = posToY(pos);
@@ -301,7 +333,7 @@ class StaffPainter extends CustomPainter {
       octave: note.octave,
       context: context,
     );
-    final alpha = isPast ? 0.30 : 1.0;
+    final alpha = (isPast ? 0.30 : 1.0) * opacity;
 
     _drawLedgerLines(canvas, x, pos, alpha, clefColor);
     _drawAccidental(canvas, note.alter, x, y, alpha, clefColor);
@@ -456,23 +488,41 @@ class StaffPainter extends CustomPainter {
     canvas.drawCircle(Offset(x + kNRx + 4, y - kLS * 0.25), 2.0, Paint()..color = clefColor.withValues(alpha: alpha));
   }
 
-  void _drawRest(Canvas canvas, double x, String type, Color clefColor, {bool isActive = false, bool isPast = false}) {
+  void _drawRest(Canvas canvas, double x, String type, Color clefColor, {bool isActive = false, bool isPast = false, MusicNote? note}) {
     final alpha = isPast ? 0.3 : 0.7;
     final color = isActive ? Colors.orange : clefColor.withValues(alpha: alpha);
+    
+    final hasDot = note != null && note.dot > 0;
+
     switch (type) {
       case 'whole':
         final ly = posToY(6);
         canvas.drawRect(Rect.fromLTWH(x - kLS * 0.75, ly, kLS * 1.5, kLS * 0.55), Paint()..color = color);
+        if (hasDot) _drawDot(canvas, x + kLS * 0.75, ly + kLS * 0.25, alpha, color);
         return;
       case 'half':
         final ly = posToY(4) - kLS * 0.55;
         canvas.drawRect(Rect.fromLTWH(x - kLS * 0.75, ly, kLS * 1.5, kLS * 0.55), Paint()..color = color);
+        if (hasDot) _drawDot(canvas, x + kLS * 0.75, ly + kLS * 0.25, alpha, color);
         return;
       default:
         break;
     }
-    final sym = switch (type) { 'quarter' => '𝄽', 'eighth' => '𝄾', '16th' => '𝄿', _ => '𝄽' };
-    _drawText(canvas, sym, Offset(x - kLS * 0.7, posToY(5) - kLS * 1.0), fontSize: kLS * 2.1, color: color);
+    
+    final sym = switch (type) {
+      'quarter' => '𝄽',
+      'eighth' => '𝄾',
+      '16th' => '𝄿',
+      '32nd' => '𝅀',
+      '64th' => '𝅁',
+      _ => '𝄽'
+    };
+    final y = posToY(5) - kLS * 1.0;
+    _drawText(canvas, sym, Offset(x - kLS * 0.7, y), fontSize: kLS * 2.1, color: color);
+
+    if (hasDot) {
+      _drawDot(canvas, x + kLS * 0.4, y + kLS * 0.8, alpha, color);
+    }
   }
 
   void _drawNoteLabel(Canvas canvas, MusicNote note, double x, double y, int pos, Color color, double alpha, Color clefColor) {
