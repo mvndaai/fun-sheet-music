@@ -664,8 +664,15 @@ class _LibraryTabState extends State<_LibraryTab>
                     final isAdding = _adding.contains(entry.uniqueId);
                     
                     // Check if song is already in local provider
-                    final bool isAlreadyAdded = provider.songs.any((s) => 
-                        s.title == entry.title && s.library == entry.library);
+                    final bool isAlreadyAdded = provider.songs.any((s) {
+                      String normalize(String t) => t
+                          .toLowerCase()
+                          .replaceAll(RegExp(r'[^\w\s]'), '')
+                          .replaceAll(RegExp(r'\s+'), ' ')
+                          .trim();
+                      return normalize(s.title) == normalize(entry.title) &&
+                          s.library == entry.library;
+                    });
 
                     return ListTile(
                       leading: CircleAvatar(
@@ -674,18 +681,28 @@ class _LibraryTabState extends State<_LibraryTab>
                       ),
                       title: Text(entry.title),
                       subtitle: Text(entry.library),
-                      trailing: isAdding
-                          ? const SizedBox(
-                              width: 24, height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : isAlreadyAdded
-                              ? const Icon(Icons.check_circle, color: Colors.green)
-                              : IconButton(
-                                  icon: const Icon(Icons.add_circle_outline),
-                                  onPressed: () => _addSong(entry),
-                                ),
-                      onTap: isAdding || isAlreadyAdded ? null : () => _addSong(entry),
+                      trailing: SizedBox(
+                        width: 48,
+                        child: Center(
+                          child: isAdding
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : isAlreadyAdded
+                                  ? const Icon(Icons.check_circle,
+                                      color: Colors.green)
+                                  : IconButton(
+                                      icon: const Icon(Icons.add_circle_outline),
+                                      onPressed: () => _addSong(entry),
+                                    ),
+                        ),
+                      ),
+                      onTap: isAdding || isAlreadyAdded
+                          ? null
+                          : () => _addSong(entry),
                     );
                   },
                 ),

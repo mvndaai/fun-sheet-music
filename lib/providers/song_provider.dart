@@ -59,7 +59,7 @@ class SongProvider extends ChangeNotifier {
     'Flutter Music': [
       {'title': 'Twinkle Twinkle Little Star', 'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'tags': [], 'isDefault': true},
       {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Row Row Row Your Boat', 'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'tags': [], 'isDefault': true},
+      {'title': 'Row, Row, Row Your Boat', 'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'tags': [], 'isDefault': true},
       {'title': 'Concerning Hobbits', 'asset': 'assets/sample_songs/concerning_hobbits.xml', 'tags': ['Movie'], 'isDefault': false},
       {'title': 'Formatting', 'asset': 'assets/sample_songs/formatting.xml', 'tags': ['Testing'], 'isDefault': false},
     ],
