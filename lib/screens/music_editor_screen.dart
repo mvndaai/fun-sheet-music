@@ -96,13 +96,16 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     if (widget.initialSong != null) {
       _song = widget.initialSong!;
     } else {
+      final view = WidgetsBinding.instance.platformDispatcher.views.first;
+      final isSmallScreen = view.physicalSize.width / view.devicePixelRatio < 600;
       _song = Song(
         id: '',
         title: 'My New Song',
         composer: 'Me',
-        measures: [
-          const Measure(number: 1, notes: [], beats: 4, beatType: 4),
-        ],
+        measures: List.generate(
+          isSmallScreen ? 2 : 1,
+          (i) => Measure(number: i + 1, notes: [], beats: 4, beatType: 4),
+        ),
         createdAt: DateTime.now(),
       );
     }
