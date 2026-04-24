@@ -351,7 +351,7 @@ class StaffPainter extends CustomPainter {
       noFlags: noFlags,
       stemTipY: stemTipY,
     );
-    if (note.isDotted) _drawDot(canvas, x, y, alpha, clefColor);
+    if (note.isDotted) _drawDot(canvas, x, y, alpha, color);
     _drawNoteLabel(canvas, note, x, y, pos, color, alpha, clefColor);
   }
 
@@ -497,8 +497,8 @@ class StaffPainter extends CustomPainter {
     }
   }
 
-  void _drawDot(Canvas canvas, double x, double y, double alpha, Color clefColor) {
-    canvas.drawCircle(Offset(x + kNRx + 4, y - kLS * 0.25), 2.0, Paint()..color = clefColor.withValues(alpha: alpha));
+  void _drawDot(Canvas canvas, double x, double y, double alpha, Color color) {
+    canvas.drawCircle(Offset(x + kNRx + 4, y - kLS * 0.25), 2.0, Paint()..color = color.withValues(alpha: alpha));
   }
 
   void _drawRest(Canvas canvas, double x, String type, Color clefColor, {bool isActive = false, bool isPast = false, MusicNote? note}) {

@@ -12,6 +12,7 @@ import '../providers/song_provider.dart';
 import '../providers/color_scheme_provider.dart';
 import 'color_schemes_screen.dart';
 import 'color_schemes_screen.dart';
+import '../widgets/note_settings_sheet.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../services/audio_service.dart';
 import '../services/tone_player.dart';
@@ -79,6 +80,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   final TonePlayer _tonePlayer = TonePlayer();
   bool _isListening = false;
   StreamSubscription<String>? _noteSubscription;
+  double _tempo = 140.0;
   bool _isPlaying = false;
   Timer? _playbackTimer;
   int _playbackMeasureIndex = -1;
@@ -354,8 +356,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
     setState(() {}); // Highlight current note
 
-    final tempo = 120.0;
-    final quarterNoteDuration = 60000.0 / tempo;
+    final quarterNoteDuration = 60000.0 / _tempo;
     final noteDurationMs = (note.duration * quarterNoteDuration).toInt();
 
     _playbackTimer = Timer(Duration(milliseconds: noteDurationMs), () {
@@ -601,6 +602,15 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const ColorSchemesScreen()),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () => NoteSettingsSheet.show(
+                context,
+                showTempo: true,
+                tempo: _tempo,
+                onTempoChanged: (v) => setState(() => _tempo = v),
               ),
             ),
             IconButton(icon: const Icon(Icons.undo), onPressed: _historyIndex > 0 ? _undo : null),

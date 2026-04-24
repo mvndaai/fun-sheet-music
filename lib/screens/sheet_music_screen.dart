@@ -30,7 +30,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
   int _currentNoteIndexInPlayback = 0;
   
   // Tempo in BPM (beats per minute)
-  double _tempo = 120.0;
+  double _tempo = 140.0;
   
   // Audio player
   final TonePlayer _tonePlayer = TonePlayer();
