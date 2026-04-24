@@ -73,6 +73,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   String _nextType = 'quarter';
   bool _nextIsRest = false;
   bool _nextIsDotted = false;
+  String? _nextBeam;
 
   final AudioService _audio = AudioService();
   final TonePlayer _tonePlayer = TonePlayer();
@@ -205,6 +206,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       duration: MusicConstants.typeToDuration[_nextType]! * (_nextIsDotted ? 1.5 : 1.0),
       type: _nextType,
       dot: _nextIsDotted ? 1 : 0,
+      beam: _nextBeam,
     ));
   }
 
@@ -623,6 +625,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                   type: _nextType,
                   dot: _nextIsDotted ? 1 : 0,
                   isRest: _nextIsRest,
+                  beam: _nextBeam,
                 ),
               ),
             ),
@@ -652,9 +655,25 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
   void _changeDuration(int delta) {
     final types = MusicConstants.typeToDuration.keys.toList();
-    int idx = types.indexOf(_nextType);
-    idx = (idx + delta).clamp(0, types.length - 1);
-    setState(() => _nextType = types[idx]);
+    final List<({String type, bool dotted})> durations = [];
+    for (final type in types) {
+      durations.add((type: type, dotted: false));
+      durations.add((type: type, dotted: true));
+    }
+    durations.sort((a, b) {
+      double durA = MusicConstants.typeToDuration[a.type]! * (a.dotted ? 1.5 : 1.0);
+      double durB = MusicConstants.typeToDuration[b.type]! * (b.dotted ? 1.5 : 1.0);
+      return durA.compareTo(durB);
+    });
+
+    int currentIdx = durations.indexWhere((d) => d.type == _nextType && d.dotted == _nextIsDotted);
+    if (currentIdx == -1) currentIdx = durations.indexWhere((d) => d.type == 'quarter' && !d.dotted);
+
+    int nextIdx = (currentIdx + delta).clamp(0, durations.length - 1);
+    setState(() {
+      _nextType = durations[nextIdx].type;
+      _nextIsDotted = durations[nextIdx].dotted;
+    });
   }
 
   void _addCurrentNote() {
@@ -666,6 +685,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       type: _nextType,
       dot: _nextIsDotted ? 1 : 0,
       isRest: _nextIsRest,
+      beam: _nextBeam,
     ));
   }
 
@@ -746,6 +766,12 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                 items: MusicConstants.typeToDuration.keys.toList(),
                 onChanged: (v) => setState(() => _nextType = v!),
               ),
+              _buildDropdown<String?>(
+                label: 'Beam',
+                value: _nextBeam,
+                items: [null, 'begin', 'continue', 'end'],
+                onChanged: (v) => setState(() => _nextBeam = v),
+              ),
               FilterChip(
                 label: const Text('Dot'),
                 selected: _nextIsDotted,
@@ -771,6 +797,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                     type: _nextType,
                     dot: _nextIsDotted ? 1 : 0,
                     isRest: _nextIsRest,
+                    beam: _nextBeam,
                   )),
                   icon: const Icon(Icons.add),
                   label: const Text('Add Note'),
@@ -841,7 +868,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         DropdownButton<T>(
           value: value,
           isDense: true,
-          items: items.map((i) => DropdownMenuItem<T>(value: i, child: Text(i.toString()))).toList(),
+          items: items.map((i) => DropdownMenuItem<T>(value: i, child: Text(i == null ? 'None' : i.toString()))).toList(),
           onChanged: onChanged,
         ),
       ],
