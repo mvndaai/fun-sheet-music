@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +29,67 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
     context.read<ColorSchemeProvider>().updateKeyboardOverrides(widget.scheme.id, _overrides);
   }
 
+  Future<void> _exportOverrides() async {
+    final jsonStr = jsonEncode(_overrides);
+    await Clipboard.setData(ClipboardData(text: jsonStr));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Keyboard mapping copied to clipboard')),
+      );
+    }
+  }
+
+  Future<void> _importOverrides() async {
+    final controller = TextEditingController();
+    final jsonStr = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Import Keyboard Mapping'),
+        content: TextField(
+          controller: controller,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            hintText: 'Paste JSON here...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+
+    if (jsonStr == null || jsonStr.trim().isEmpty) return;
+
+    try {
+      final decoded = jsonDecode(jsonStr);
+      if (decoded is Map) {
+        setState(() {
+          _overrides = Map<String, String>.from(decoded.cast<String, String>());
+        });
+        _save();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Keyboard mapping imported')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error importing: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Collect all notes to show. 
@@ -50,6 +112,18 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
         title: Text(widget.scheme.isBuiltIn && widget.scheme.id == 'builtin_black'
             ? 'Default Keyboard'
             : 'Keyboard: ${widget.scheme.name}'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.file_upload),
+            tooltip: 'Import Mappings',
+            onPressed: _importOverrides,
+          ),
+          IconButton(
+            icon: const Icon(Icons.file_download),
+            tooltip: 'Export Mappings',
+            onPressed: _exportOverrides,
+          ),
+        ],
       ),
       body: Focus(
         autofocus: true,
