@@ -74,7 +74,7 @@ Future<void> saveFile({required String title, required String content}) async {
   final bytes = utf8.encode(content);
   final fileName = '${title.replaceAll(' ', '_')}.musicxml';
 
-  await FilePicker.platform.saveFile(
+  await FilePicker.saveFile(
     fileName: fileName,
     bytes: bytes,
     type: FileType.custom,
