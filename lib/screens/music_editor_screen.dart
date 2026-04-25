@@ -764,11 +764,34 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   int _getGhostNoteGlobalIndex() {
     final displaySong = _song.copyWith(measures: _fillRests(_song.measures));
     if (_selectedMeasureIndex >= displaySong.measures.length) return 0;
+
+    int targetMeasureIndex = _selectedMeasureIndex;
+
+    // Check if current note would fit in the selected measure
+    final m = _song.measures[targetMeasureIndex];
+    final double actualCapacity = m.beats * (4.0 / m.beatType);
+    final double currentDuration = m.notes.fold(0.0, (sum, n) => sum + n.duration);
+    final double nextNoteDuration = MusicConstants.typeToDuration[_nextType]! * (_nextIsDotted ? 1.5 : 1.0);
+
+    // If it won't fit, it will jump to the next measure on add
+    if (currentDuration + nextNoteDuration > actualCapacity + 0.001) {
+      if (targetMeasureIndex < displaySong.measures.length - 1) {
+        targetMeasureIndex++;
+      }
+    }
+
     int idx = 0;
-    for (int i = 0; i < _selectedMeasureIndex; i++) {
+    for (int i = 0; i < targetMeasureIndex; i++) {
       idx += displaySong.measures[i].notes.length;
     }
-    return idx + displaySong.measures[_selectedMeasureIndex].notes.length;
+
+    if (targetMeasureIndex == _selectedMeasureIndex) {
+      // Position at the end of REAL notes in the current measure
+      return idx + _song.measures[targetMeasureIndex].notes.length;
+    } else {
+      // Position at the start of the next measure
+      return idx;
+    }
   }
 
   Widget _buildEditorControls() {
@@ -886,11 +909,21 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: Text(
-                    measureLabel,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                InkWell(
+                  onTap: () => _showTimeSigDialog(m),
+                  borderRadius: BorderRadius.circular(4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Row(
+                      children: [
+                        Text(
+                          measureLabel,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(Icons.settings, size: 12, color: colorScheme.onSurfaceVariant),
+                      ],
+                    ),
                   ),
                 ),
                 IconButton(
@@ -914,19 +947,33 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   }
 
   Widget _buildTimeSigDisplay(Measure m) {
-    return InkWell(
-      onTap: () => _showTimeSigDialog(m),
-      borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('${m.beats}', style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
-            const Text(' / '),
-            Text('${m.beatType}', style: const TextStyle(fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
-            const Icon(Icons.arrow_drop_down, size: 16),
-          ],
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.3)),
+      ),
+      child: InkWell(
+        onTap: () => _showTimeSigDialog(m),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${m.beats}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, height: 1)),
+                  Container(width: 12, height: 1, color: colorScheme.onSurface, margin: const EdgeInsets.symmetric(vertical: 1)),
+                  Text('${m.beatType}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, height: 1)),
+                ],
+              ),
+              const SizedBox(width: 4),
+              const Icon(Icons.arrow_drop_down, size: 18),
+            ],
+          ),
         ),
       ),
     );

@@ -121,16 +121,25 @@ class StaffPainter extends CustomPainter {
       // Draw ghost note if it belongs to this measure
       if (ghostNoteIndex != null && ghostNote != null) {
         final localGhostIndex = ghostNoteIndex! - noteOffset;
-        if (localGhostIndex == m.notes.length) {
+        final bool isLastMeasureInSong = row.isLastRow && mi == row.measures.length - 1;
+        
+        // Draw if it's inside the measure, or at the very end of the song
+        if (localGhostIndex >= 0 && (localGhostIndex < m.notes.length || (isLastMeasureInSong && localGhostIndex == m.notes.length))) {
           final displayNotes = m.notes.where((n) => !n.isChordContinuation).toList();
-          final cumulativeDuration = displayNotes.fold(0.0, (s, n) => s + n.duration);
+          
+          double cumulativeDurationBeforeGhost = 0;
+          for (int i = 0; i < localGhostIndex; i++) {
+            if (!m.notes[i].isChordContinuation) {
+              cumulativeDurationBeforeGhost += m.notes[i].duration;
+            }
+          }
           
           final ghostX = StaffLayoutHelper.getNoteX(
             measure: m,
             startX: x,
             measureWidth: currentMeasureW,
             hasTimeSig: hasTimeSig,
-            cumulativeDuration: cumulativeDuration,
+            cumulativeDuration: cumulativeDurationBeforeGhost,
             displayNotes: displayNotes,
           );
           
