@@ -17,6 +17,7 @@ class ColorSchemeProvider extends ChangeNotifier {
   static const String _measuresPerRowKey = 'settings_measures_per_row';
   static const String _themeModeKey = 'app_theme_mode';
   static const String _metronomeSoundKey = 'settings_metronome_sound';
+  static const String _builtInKeyboardOverridesKey = 'color_scheme_builtin_keyboard';
 
   final Uuid _uuid = const Uuid();
 
@@ -103,6 +104,20 @@ class ColorSchemeProvider extends ChangeNotifier {
       // Ensure "Standard" is always there if missing from JSON
       if (!_builtInSchemes.any((s) => s.id == InstrumentColorScheme.black.id)) {
         _builtInSchemes.insert(0, InstrumentColorScheme.black);
+      }
+
+      // Apply persisted overrides for built-in schemes
+      final prefs = await SharedPreferences.getInstance();
+      final overridesRaw = prefs.getString(_builtInKeyboardOverridesKey);
+      if (overridesRaw != null) {
+        final Map<String, dynamic> allOverrides = jsonDecode(overridesRaw);
+        for (var i = 0; i < _builtInSchemes.length; i++) {
+          final id = _builtInSchemes[i].id;
+          if (allOverrides.containsKey(id)) {
+            final overrides = Map<String, String>.from(allOverrides[id] as Map);
+            _builtInSchemes[i] = _builtInSchemes[i].copyWith(keyboardOverrides: overrides);
+          }
+        }
       }
     } catch (e) {
       debugPrint('Error loading defaults: $e');
@@ -241,6 +256,32 @@ class ColorSchemeProvider extends ChangeNotifier {
     _customSchemes[idx] = updated;
     await _persistCustom();
     notifyListeners();
+  }
+
+  Future<void> updateKeyboardOverrides(String schemeId, Map<String, String> overrides) async {
+    final customIdx = _customSchemes.indexWhere((s) => s.id == schemeId);
+    if (customIdx >= 0) {
+      _customSchemes[customIdx] = _customSchemes[customIdx].copyWith(keyboardOverrides: overrides);
+      await _persistCustom();
+      notifyListeners();
+      return;
+    }
+
+    final builtInIdx = _builtInSchemes.indexWhere((s) => s.id == schemeId);
+    if (builtInIdx >= 0) {
+      _builtInSchemes[builtInIdx] = _builtInSchemes[builtInIdx].copyWith(keyboardOverrides: overrides);
+      final prefs = await SharedPreferences.getInstance();
+      final existingRaw = prefs.getString(_builtInKeyboardOverridesKey);
+      Map<String, dynamic> allOverrides = {};
+      if (existingRaw != null) {
+        try {
+          allOverrides = jsonDecode(existingRaw);
+        } catch (_) {}
+      }
+      allOverrides[schemeId] = overrides;
+      await prefs.setString(_builtInKeyboardOverridesKey, jsonEncode(allOverrides));
+      notifyListeners();
+    }
   }
 
   Future<void> deleteCustom(String id) async {
