@@ -161,6 +161,15 @@ class InstrumentProfile {
     );
   }
 
+  /// Returns a merged map of keyboard overrides, falling back to the standard profile.
+  Map<String, String> get effectiveKeyboardOverrides {
+    if (id == black.id) return keyboardOverrides;
+    return {
+      ...black.keyboardOverrides,
+      ...keyboardOverrides,
+    };
+  }
+
   Map<String, dynamic> toJson() => {
         'name': name,
         if (icon != null) 'icon': icon,

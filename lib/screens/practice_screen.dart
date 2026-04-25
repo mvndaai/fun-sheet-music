@@ -7,12 +7,12 @@ import '../music_kit/models/music_note.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
 import '../services/pitch_detection_service.dart';
+import '../services/tone_player.dart';
 import '../music_kit/utils/music_constants.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../music_kit/utils/note_resolver.dart';
 import '../widgets/note_settings_sheet.dart';
 import 'instruments_screen.dart';
-import '../music_kit/models/instrument_profile.dart';
 
 /// Practice screen: displays sheet music and listens to the microphone.
 /// When the microphone hears the current note, the app advances to the next.
@@ -28,6 +28,7 @@ class PracticeScreen extends StatefulWidget {
 class _PracticeScreenState extends State<PracticeScreen>
     with SingleTickerProviderStateMixin {
   final PitchDetectionService _audio = PitchDetectionService();
+  final TonePlayer _tonePlayer = TonePlayer();
 
   int _currentNoteIndex = 0;
   bool _micActive = false;
@@ -47,6 +48,7 @@ class _PracticeScreenState extends State<PracticeScreen>
     _noteSubscription?.cancel();
     _clearNoteTimer?.cancel();
     _audio.dispose();
+    _tonePlayer.dispose();
     super.dispose();
   }
 
@@ -202,9 +204,7 @@ class _PracticeScreenState extends State<PracticeScreen>
           if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
           final activeScheme = provider.activeScheme;
-          final overrides = activeScheme.keyboardOverrides.isNotEmpty
-              ? activeScheme.keyboardOverrides
-              : InstrumentProfile.black.keyboardOverrides;
+          final overrides = activeScheme.effectiveKeyboardOverrides;
 
           final physicalKeyName =
               event.physicalKey.debugName?.replaceAll(' ', '') ?? '';
@@ -231,6 +231,10 @@ class _PracticeScreenState extends State<PracticeScreen>
           noteName ??= findNote(physicalKeyName);
 
           if (noteName != null) {
+            final midi = MusicConstants.noteNameToMidi(noteName);
+            if (midi >= 0) {
+              _tonePlayer.playNote(MusicConstants.midiToFrequency(midi));
+            }
             _onNoteDetected(noteName, fromKeyboard: true);
             return KeyEventResult.handled;
           }
@@ -303,9 +307,7 @@ class _PracticeScreenState extends State<PracticeScreen>
                   note: current,
                   activeScheme: provider.activeScheme,
                 ),
-                keyboardOverrides: provider.activeScheme.keyboardOverrides.isNotEmpty
-                    ? provider.activeScheme.keyboardOverrides
-                    : InstrumentProfile.black.keyboardOverrides,
+                keyboardOverrides: provider.activeScheme.effectiveKeyboardOverrides,
               ),
 
             const Divider(height: 1),

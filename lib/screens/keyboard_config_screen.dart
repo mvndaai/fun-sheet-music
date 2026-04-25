@@ -107,12 +107,28 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
       ..sort((a, b) => MusicConstants.noteNameToMidi(a)
           .compareTo(MusicConstants.noteNameToMidi(b)));
 
+    final isStandard = widget.scheme.id == InstrumentProfile.black.id;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.scheme.isBuiltIn && widget.scheme.id == 'builtin_black'
+        title: Text(isStandard
             ? 'Default Keyboard'
             : 'Keyboard: ${widget.scheme.name}'),
         actions: [
+          IconButton(
+            icon: Icon(isStandard ? Icons.restore : Icons.delete_sweep),
+            tooltip: isStandard ? 'Reset to Default' : 'Clear All Overrides',
+            onPressed: () {
+              setState(() {
+                if (isStandard) {
+                  _overrides = Map.from(InstrumentProfile.black.keyboardOverrides);
+                } else {
+                  _overrides = {};
+                }
+              });
+              _save();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.file_upload),
             tooltip: 'Import Mappings',
@@ -141,6 +157,29 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
           else if (isAlt) mapping = 'Alt+$physicalKeyName';
 
           setState(() {
+            // Do not let one key be mapped to multiple tones.
+            // If that happens, set the older one to an empty string (not set override).
+            
+            // Check current overrides
+            _overrides.forEach((note, mappingStr) {
+              if (mappingStr == mapping && note != _pendingNote) {
+                _overrides[note] = '';
+              }
+            });
+
+            // Also check default mappings if we're not editing the standard scheme
+            if (widget.scheme.id != InstrumentProfile.black.id) {
+              InstrumentProfile.black.keyboardOverrides.forEach((note, mappingStr) {
+                if (mappingStr == mapping && note != _pendingNote) {
+                  // If the default has this mapping, we must explicitly unset it in our overrides
+                  // if we haven't already mapped this note to something else.
+                  if (_overrides[note] == null || _overrides[note] == mappingStr) {
+                    _overrides[note] = '';
+                  }
+                }
+              });
+            }
+
             _overrides[_pendingNote!] = mapping;
             _pendingNote = null;
           });
@@ -172,26 +211,71 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
                   final mapping = _overrides[note];
                   final isPending = _pendingNote == note;
 
-                  String displayMapping = mapping ?? 'None';
+                  final defaultMapping =
+                      InstrumentProfile.black.keyboardOverrides[note];
+                  final isStandard =
+                      widget.scheme.id == InstrumentProfile.black.id;
+
+                  String displayMapping;
+                  bool isFallback = false;
+                  bool isUnset = mapping == '';
+                  bool hasExplicitMapping = mapping != null && mapping.isNotEmpty;
+
+                  if (hasExplicitMapping) {
+                    displayMapping = mapping;
+                  } else if (isUnset) {
+                    displayMapping = 'Unset';
+                  } else if (!isStandard &&
+                      defaultMapping != null &&
+                      defaultMapping.isNotEmpty) {
+                    displayMapping = defaultMapping;
+                    isFallback = true;
+                  } else {
+                    displayMapping = 'None';
+                  }
+
                   displayMapping = displayMapping
                       .replaceAll('Key', '')
                       .replaceAll('Shift+', '⇧')
                       .replaceAll('Alt+', '⌥');
 
                   return ListTile(
-                    title: Text(note, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(isPending ? 'WAITING FOR KEY...' : displayMapping),
-                    trailing: mapping != null && !isPending
+                    title: Text(note,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(
+                      isPending ? 'WAITING FOR KEY...' : displayMapping,
+                      style: TextStyle(
+                        color: isFallback
+                            ? Colors.grey.shade500
+                            : isUnset
+                                ? Colors.red.shade300
+                                : null,
+                        fontStyle: isFallback ? FontStyle.italic : null,
+                      ),
+                    ),
+                    trailing: (hasExplicitMapping || isUnset) && !isPending
                         ? IconButton(
-                            icon: const Icon(Icons.close, size: 20),
+                            icon: Icon(isUnset ? Icons.refresh : Icons.close,
+                                size: 20),
+                            tooltip: isUnset ? 'Restore default' : 'Unset',
                             onPressed: () {
-                              setState(() => _overrides.remove(note));
+                              setState(() {
+                                if (isUnset) {
+                                  _overrides.remove(note);
+                                } else {
+                                  _overrides[note] = '';
+                                }
+                              });
                               _save();
                             },
                           )
-                        : const Icon(Icons.keyboard, size: 20, color: Colors.grey),
+                        : const Icon(Icons.keyboard,
+                            size: 20, color: Colors.grey),
                     selected: isPending,
-                    selectedTileColor: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.1),
+                    selectedTileColor: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer
+                        .withValues(alpha: 0.1),
                     onTap: () {
                       setState(() {
                         _pendingNote = isPending ? null : note;

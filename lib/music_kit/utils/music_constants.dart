@@ -77,7 +77,14 @@ class MusicConstants {
     return 12 * (octave + 1) + base + alter;
   }
 
+  /// Returns the frequency (Hz) for a given MIDI number.
+  static double midiToFrequency(int midi) {
+    if (midi < 0) return 0;
+    return 440.0 * math.pow(2.0, (midi - 69) / 12.0).toDouble();
+  }
+
   /// List of instrument emojis.
+
   static const List<String> instrumentEmojis = [
     '🎹', '🎸', '🎻', '🎷', '🎺', '🪕', '🥁', '🪘', '🪗', '🪈', '📯', '🔔', '🎵', '🎶', '🎼', '🎤', '🎧', '📻', '🎙️', '🎚️', '🎛️', '🔊', '🔉', '🔈', '🔇', '📣', '📢', '🔕', '🌈', '✨', '⭐', '🌟'
   ];
