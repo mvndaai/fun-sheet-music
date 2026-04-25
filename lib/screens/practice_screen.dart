@@ -235,14 +235,6 @@ class _PracticeScreenState extends State<PracticeScreen>
             _onNoteDetected(noteName, fromKeyboard: true);
             return KeyEventResult.handled;
           }
-              String keyDisplay = physicalKeyName;
-              if (isShift) keyDisplay = '⇧$keyDisplay';
-              if (isAlt) keyDisplay = '⌥$keyDisplay';
-              _lastPhysicalKey = keyDisplay;
-            });
-            _onNoteDetected(noteName, fromKeyboard: true);
-            return KeyEventResult.handled;
-          }
 
           if (event.logicalKey == LogicalKeyboardKey.space) {
             _toggleMic();
@@ -253,16 +245,16 @@ class _PracticeScreenState extends State<PracticeScreen>
         },
         child: Scaffold(
           appBar: AppBar(
-          title: Text('Practice: ${widget.song.title}'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings),
-              tooltip: 'Settings',
-              onPressed: _openSettings,
-            ),
-          ],
-        ),
-        body: Column(
+            title: Text('Practice: ${widget.song.title}'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                tooltip: 'Settings',
+                onPressed: _openSettings,
+              ),
+            ],
+          ),
+          body: Column(
           children: [
             // Progress bar
             LinearProgressIndicator(value: progress, minHeight: 6),
