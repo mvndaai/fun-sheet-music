@@ -9,6 +9,7 @@ import '../providers/instrument_provider.dart';
 import '../services/pitch_detection_service.dart';
 import '../services/tone_player.dart';
 import '../music_kit/utils/music_constants.dart';
+import '../music_kit/utils/keyboard_utils.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../music_kit/utils/note_resolver.dart';
 import '../widgets/note_settings_sheet.dart';
@@ -205,14 +206,8 @@ class _PracticeScreenState extends State<PracticeScreen>
         onKeyEvent: (node, event) {
           if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-          final activeScheme = provider.activeScheme;
-          final overrides = activeScheme.effectiveKeyboardOverrides;
-
-          final physicalKeyName =
-              event.physicalKey.debugName?.replaceAll(' ', '') ?? '';
-
-          final isShift = HardwareKeyboard.instance.isShiftPressed;
-          final isAlt = HardwareKeyboard.instance.isAltPressed;
+          final mapping = KeyboardUtils.getMappingName(event);
+          final overrides = provider.activeScheme.effectiveKeyboardOverrides;
 
           // Helper to find note by exact mapping string
           String? findNote(String mapping) {
@@ -222,15 +217,12 @@ class _PracticeScreenState extends State<PracticeScreen>
             return null;
           }
 
-          String? noteName;
-          if (isShift) {
-            noteName = findNote('Shift+$physicalKeyName');
-          } else if (isAlt) {
-            noteName = findNote('Alt+$physicalKeyName');
+          // Try exact mapping first (e.g. Shift+KeyA), then fallback to plain key (KeyA)
+          // only if no specific modifier mapping was found.
+          String? noteName = findNote(mapping);
+          if (noteName == null && mapping.contains('+')) {
+            noteName = findNote(KeyboardUtils.getEventKeyName(event));
           }
-
-          // Fallback to plain key if no modifier mapping found or no modifier active
-          noteName ??= findNote(physicalKeyName);
 
           if (noteName != null) {
             final midi = MusicConstants.noteNameToMidi(noteName);
@@ -238,6 +230,11 @@ class _PracticeScreenState extends State<PracticeScreen>
               _tonePlayer.playNote(MusicConstants.midiToFrequency(midi));
             }
             setState(() {
+              _lastPhysicalKey = KeyboardUtils.formatForDisplay(mapping);
+            });
+            _onNoteDetected(noteName, fromKeyboard: true);
+            return KeyEventResult.handled;
+          }
               String keyDisplay = physicalKeyName;
               if (isShift) keyDisplay = '⇧$keyDisplay';
               if (isAlt) keyDisplay = '⌥$keyDisplay';
@@ -383,10 +380,7 @@ class _CurrentNoteCard extends StatelessWidget {
 
     final solfege = MusicConstants.stepToSolfege[note.step] ?? note.step;
     final keyboardHint = keyboardOverrides[targetNoteName];
-    final cleanHint = keyboardHint
-        ?.replaceAll('Key', '')
-        .replaceAll('Shift+', '⇧')
-        .replaceAll('Alt+', '⌥');
+    final cleanHint = KeyboardUtils.formatForDisplay(keyboardHint);
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -466,7 +460,7 @@ class _CurrentNoteCard extends StatelessWidget {
                 children: [
                   Text(
                     isKeyboardInput
-                        ? 'Key: ${lastPhysicalKey.replaceAll('Key', '')}'
+                        ? 'Key: $lastPhysicalKey'
                         : 'Hearing',
                     style: TextStyle(
                       fontSize: 10,

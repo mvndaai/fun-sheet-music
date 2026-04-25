@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
 import '../music_kit/utils/music_constants.dart';
+import '../music_kit/utils/keyboard_utils.dart';
 
 /// Screen for configuring keyboard-to-note mappings for an instrument.
 class KeyboardConfigScreen extends StatefulWidget {
@@ -147,21 +148,13 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
         onKeyEvent: (node, event) {
           if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-          final isShift = HardwareKeyboard.instance.isShiftPressed;
-          final isAlt = HardwareKeyboard.instance.isAltPressed;
-          final physicalKeyName = event.physicalKey.debugName?.replaceAll(' ', '') ?? '';
+          final mapping = KeyboardUtils.getMappingName(event);
           
           setState(() {
-            _lastKey = physicalKeyName;
-            if (isShift) _lastKey = '⇧$physicalKeyName';
-            if (isAlt) _lastKey = '⌥$physicalKeyName';
+            _lastKey = KeyboardUtils.formatForDisplay(mapping);
           });
 
           if (_pendingNote == null) return KeyEventResult.ignored;
-
-          String mapping = physicalKeyName;
-          if (isShift) mapping = 'Shift+$physicalKeyName';
-          else if (isAlt) mapping = 'Alt+$physicalKeyName';
 
           setState(() {
             // Do not let one key be mapped to multiple tones.
@@ -216,7 +209,7 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        'Last key pressed: ${_lastKey!.replaceAll('Key', '')}',
+                        'Last key pressed: $_lastKey',
                         style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                       ),
                     ),
@@ -244,25 +237,20 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
                   bool hasExplicitMapping = mapping != null && mapping.isNotEmpty;
 
                   if (hasExplicitMapping) {
-                    displayMapping = mapping;
+                    displayMapping = KeyboardUtils.formatForDisplay(mapping);
                   } else if (isUnset) {
                     displayMapping =
                         defaultMapping != null && defaultMapping.isNotEmpty
-                            ? 'Unset (Default: $defaultMapping)'
+                            ? 'Unset (Default: ${KeyboardUtils.formatForDisplay(defaultMapping)})'
                             : 'Unset';
                   } else if (!isStandard &&
                       defaultMapping != null &&
                       defaultMapping.isNotEmpty) {
-                    displayMapping = defaultMapping;
+                    displayMapping = KeyboardUtils.formatForDisplay(defaultMapping);
                     isFallback = true;
                   } else {
                     displayMapping = 'None';
                   }
-
-                  displayMapping = displayMapping
-                      .replaceAll('Key', '')
-                      .replaceAll('Shift+', '⇧')
-                      .replaceAll('Alt+', '⌥');
 
                   return ListTile(
                     title: Text(note,
