@@ -7,7 +7,7 @@ import '../sheet_music_constants.dart';
 import 'staff_painter.dart';
 
 /// A decoupled widget that renders full sheet music.
-class SheetMusicRenderer extends StatelessWidget {
+class SheetMusicRenderer extends StatefulWidget {
   final Song song;
   final int activeNoteIndex;
   final int? ghostNoteIndex;
@@ -40,33 +40,127 @@ class SheetMusicRenderer extends StatelessWidget {
   });
 
   @override
+  State<SheetMusicRenderer> createState() => _SheetMusicRendererState();
+}
+
+class _SheetMusicRendererState extends State<SheetMusicRenderer> {
+  final ScrollController _scrollController = ScrollController();
+  final List<GlobalKey> _rowKeys = [];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final int targetIndex = widget.activeNoteIndex >= 0 ? widget.activeNoteIndex : (widget.ghostNoteIndex ?? -1);
+      if (targetIndex >= 0) {
+        _scrollToIndex(targetIndex);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(SheetMusicRenderer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final int targetIndex = widget.activeNoteIndex >= 0 ? widget.activeNoteIndex : (widget.ghostNoteIndex ?? -1);
+    final int oldTargetIndex = oldWidget.activeNoteIndex >= 0 ? oldWidget.activeNoteIndex : (oldWidget.ghostNoteIndex ?? -1);
+
+    // Scroll if the target note moves, or if the song structure changes (e.g. new measures)
+    if (targetIndex != oldTargetIndex || widget.song.measures.length != oldWidget.song.measures.length) {
+      if (targetIndex >= 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _scrollToIndex(targetIndex);
+        });
+      }
+    }
+  }
+
+  void _scrollToIndex(int noteIndex) {
+    if (!mounted) return;
+    final rows = _buildRows();
+    
+    // Ensure we have enough keys for all rows before calculating scroll
+    while (_rowKeys.length < rows.length) {
+      _rowKeys.add(GlobalKey());
+    }
+
+    int rowIndex = -1;
+    for (int i = 0; i < rows.length; i++) {
+      final row = rows[i];
+      final int rowNoteCount = row.measures.fold(0, (s, m) => s + m.notes.length);
+      
+      // If noteIndex is within this row's range
+      if (noteIndex >= row.firstNoteIndex && noteIndex < row.firstNoteIndex + rowNoteCount) {
+        rowIndex = i;
+        break;
+      }
+      // Handle the insertion point at the start of a new row
+      if (noteIndex == row.firstNoteIndex) {
+        rowIndex = i;
+        break;
+      }
+      // Handle the insertion point at the very end of the song
+      if (noteIndex == row.firstNoteIndex + rowNoteCount && row.isLastRow) {
+        rowIndex = i;
+      }
+    }
+
+    if (rowIndex >= 0 && rowIndex < _rowKeys.length) {
+      final key = _rowKeys[rowIndex];
+      final context = key.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.5,
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (song.measures.isEmpty) {
+    if (widget.song.measures.isEmpty) {
       return const Center(child: Text('No notes found in this song.'));
     }
 
     final rows = _buildRows();
+    
+    // Ensure we have enough keys for all rows
+    while (_rowKeys.length < rows.length) {
+      _rowKeys.add(GlobalKey());
+    }
 
     return SingleChildScrollView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (header != null) header!,
-          ...rows.map(
-            (row) => _StaffRow(
+          if (widget.header != null) widget.header!,
+          ...List.generate(rows.length, (i) {
+            final row = rows[i];
+            return _StaffRow(
+              key: _rowKeys[i],
               row: row,
-              activeNoteIndex: activeNoteIndex,
-              ghostNoteIndex: ghostNoteIndex,
-              ghostNote: ghostNote,
-              showSolfege: showSolfege,
-              showLetter: showLetter,
-              labelsBelow: labelsBelow,
-              coloredLabels: coloredLabels,
-              colorScheme: colorScheme,
-              showNoteLabels: showNoteLabels,
-            ),
-          ),
+              activeNoteIndex: widget.activeNoteIndex,
+              ghostNoteIndex: widget.ghostNoteIndex,
+              ghostNote: widget.ghostNote,
+              showSolfege: widget.showSolfege,
+              showLetter: widget.showLetter,
+              labelsBelow: widget.labelsBelow,
+              coloredLabels: widget.coloredLabels,
+              colorScheme: widget.colorScheme,
+              showNoteLabels: widget.showNoteLabels,
+            );
+          }),
         ],
       ),
     );
@@ -78,21 +172,21 @@ class SheetMusicRenderer extends StatelessWidget {
     Measure? prevMeasure;
 
     int i = 0;
-    while (i < song.measures.length) {
-      int count = measuresPerRow;
+    while (i < widget.song.measures.length) {
+      int count = widget.measuresPerRow;
       // If this is the first row and we have a pickup, and the option is enabled,
       // we add one to the count so the pickup is "extra".
-      if (i == 0 && includePickupInFirstRow && song.measures.isNotEmpty && song.measures[0].isPickup) {
+      if (i == 0 && widget.includePickupInFirstRow && widget.song.measures.isNotEmpty && widget.song.measures[0].isPickup) {
         count++;
       }
 
-      final end = (i + count).clamp(0, song.measures.length);
-      final batch = song.measures.sublist(i, end);
+      final end = (i + count).clamp(0, widget.song.measures.length);
+      final batch = widget.song.measures.sublist(i, end);
       rows.add(StaffRowData(
         measures: batch,
         firstNoteIndex: noteOffset,
         isFirstRow: i == 0,
-        isLastRow: end == song.measures.length,
+        isLastRow: end == widget.song.measures.length,
         measuresPerRow: count, // use the actual count for this row
         previousMeasure: prevMeasure,
       ));
@@ -117,6 +211,7 @@ class _StaffRow extends StatelessWidget {
   final bool showNoteLabels;
 
   const _StaffRow({
+    super.key,
     required this.row,
     required this.activeNoteIndex,
     this.ghostNoteIndex,
