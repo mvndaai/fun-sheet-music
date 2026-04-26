@@ -28,7 +28,6 @@ class MusicXmlParser {
 
     final title = _getTitle(root);
     final composer = _getComposer(root);
-    final tempo = _getTempo(root);
     final measures = _parseMeasures(root);
 
     return Song(
@@ -42,24 +41,6 @@ class MusicXmlParser {
       sourceUrl: sourceUrl,
       createdAt: createdAt ?? DateTime.now(),
     );
-  }
-
-  static double _getTempo(XmlElement root) {
-    final metronome = root.findAllElements('metronome').firstOrNull;
-    if (metronome != null) {
-      final beatUnit = metronome.findElements('beat-unit').firstOrNull?.innerText ?? 'quarter';
-      final perMinute = double.tryParse(metronome.findElements('per-minute').firstOrNull?.innerText ?? '120') ?? 120.0;
-      // Simple conversion for now: assuming 4/4 and metronome is usually quarter note.
-      return perMinute;
-    }
-    final sound = root.findAllElements('sound').firstOrNull;
-    if (sound != null) {
-      final tempoAttr = sound.getAttribute('tempo');
-      if (tempoAttr != null) {
-        return double.tryParse(tempoAttr) ?? 120.0;
-      }
-    }
-    return 120.0;
   }
 
   static String _getTitle(XmlElement root) {

@@ -6,7 +6,6 @@ import 'dart:async';
 import '../music_kit/models/song.dart';
 import '../music_kit/models/measure.dart';
 import '../music_kit/models/music_note.dart';
-import '../music_kit/models/instrument_profile.dart';
 import '../music_kit/utils/music_xml_generator.dart';
 import '../services/musicxml_parser.dart';
 import '../providers/song_provider.dart';
@@ -24,42 +23,6 @@ class MusicEditorScreen extends StatefulWidget {
 
   @override
   State<MusicEditorScreen> createState() => _MusicEditorScreenState();
-}
-
-class _InstrumentIcon extends StatelessWidget {
-  final InstrumentProfile scheme;
-  final double size;
-  const _InstrumentIcon({required this.scheme, this.size = 32});
-
-  @override
-  Widget build(BuildContext context) {
-    if (scheme.emoji != null && scheme.emoji!.isNotEmpty) {
-      return SizedBox(
-        width: size,
-        height: size,
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: Text(
-              scheme.emoji!,
-              style: TextStyle(fontSize: size),
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (scheme.icon != null && scheme.icon!.isNotEmpty) {
-      return Image.network(
-        scheme.icon!,
-        width: size,
-        height: size,
-        errorBuilder: (_, __, ___) => Icon(Icons.music_note, size: size),
-      );
-    }
-
-    return Icon(Icons.music_note, size: size);
-  }
 }
 
 class _MusicEditorScreenState extends State<MusicEditorScreen> {

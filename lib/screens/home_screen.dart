@@ -341,10 +341,10 @@ class _SongCard extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Share Song (Large File)'),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text('This song is too large to share via a direct link. Please follow these steps:'),
             SizedBox(height: 16),
             Text('1. Download the MusicXML file to your device.'),

@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../music_kit/models/song.dart';
 import '../music_kit/models/music_note.dart';
-import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
 import '../services/pitch_detection_service.dart';
 import '../services/tone_player.dart';
@@ -13,7 +12,6 @@ import '../music_kit/utils/keyboard_utils.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../music_kit/utils/note_resolver.dart';
 import '../widgets/note_settings_sheet.dart';
-import 'instruments_screen.dart';
 
 /// Practice screen: displays sheet music and listens to the microphone.
 /// When the microphone hears the current note, the app advances to the next.
@@ -120,7 +118,6 @@ class _PracticeScreenState extends State<PracticeScreen>
     // Apply tuning override: if this instrument has a mapping for the expected note,
     // listen for the mapped note instead.
     final activeScheme = context.read<InstrumentProvider>().activeScheme;
-    final specificNote = current.letterName; // e.g. "C5"
 
     // Resolve target note name with enharmonic and octave-fallback support
     final targetNoteName = NoteResolver.resolveTargetNote(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
-import '../music_kit/utils/music_constants.dart';
 import '../widgets/note_color_picker.dart';
 import '../widgets/instrument_setup/add_key_wizard.dart';
 import 'instrument_setup_screen.dart';

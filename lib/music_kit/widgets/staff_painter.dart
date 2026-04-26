@@ -5,7 +5,6 @@ import '../models/measure.dart';
 import '../models/instrument_profile.dart';
 import '../sheet_music_constants.dart';
 import '../utils/note_colors.dart';
-import '../utils/music_constants.dart';
 import '../utils/staff_layout_helper.dart';
 
 class StaffRowData {

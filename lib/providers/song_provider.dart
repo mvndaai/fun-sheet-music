@@ -22,8 +22,8 @@ class SongProvider extends ChangeNotifier {
   bool _loading = false;
   String? _error;
   String _searchQuery = '';
-  Set<String> _selectedTags = {};
-  Set<String> _selectedLibraries = {'Flutter Music'};
+  final Set<String> _selectedTags = {};
+  final Set<String> _selectedLibraries = {'Flutter Music'};
 
   List<Song>? _filteredSongsCache;
 
