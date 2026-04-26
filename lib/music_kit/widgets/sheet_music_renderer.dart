@@ -21,6 +21,9 @@ class SheetMusicRenderer extends StatefulWidget {
   final bool showNoteLabels;
   final Widget? header;
   final bool includePickupInFirstRow;
+  /// When true, scrolls the current note's row to the start of the viewport
+  /// on every advance and draws measure-level fade overlays for past measures.
+  final bool gameMode;
 
   const SheetMusicRenderer({
     super.key,
@@ -37,6 +40,7 @@ class SheetMusicRenderer extends StatefulWidget {
     this.showNoteLabels = true,
     this.header,
     this.includePickupInFirstRow = true,
+    this.gameMode = false,
   });
 
   @override
@@ -119,7 +123,9 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
           context,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          alignment: 0.5,
+          // In game mode keep the current row at the leading edge of the
+          // viewport so it stays at the "near" (large) end of the highway.
+          alignment: widget.gameMode ? 0.0 : 0.5,
         );
       }
     }
@@ -161,6 +167,7 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
                 coloredLabels: widget.coloredLabels,
                 instrument: widget.instrument,
                 showNoteLabels: widget.showNoteLabels,
+                gameMode: widget.gameMode,
               );
             }),
           ],
@@ -212,6 +219,7 @@ class _StaffRow extends StatelessWidget {
   final bool coloredLabels;
   final InstrumentProfile instrument;
   final bool showNoteLabels;
+  final bool gameMode;
 
   const _StaffRow({
     super.key,
@@ -225,6 +233,7 @@ class _StaffRow extends StatelessWidget {
     required this.coloredLabels,
     required this.instrument,
     required this.showNoteLabels,
+    this.gameMode = false,
   });
 
   @override
@@ -248,6 +257,7 @@ class _StaffRow extends StatelessWidget {
               instrument: instrument,
               showNoteLabels: showNoteLabels,
               context: context,
+              gameMode: gameMode,
             ),
           ),
         ),

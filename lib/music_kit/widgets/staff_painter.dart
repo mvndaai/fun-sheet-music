@@ -38,6 +38,10 @@ class StaffPainter extends CustomPainter {
   final InstrumentProfile instrument;
   final bool showNoteLabels;
   final BuildContext context;
+  /// When true, draws a semi-transparent background overlay over entirely-past
+  /// measures so that ALL measure content (staff lines, notes, bar lines) is
+  /// dimmed, not just the individual note heads.
+  final bool gameMode;
 
   StaffPainter({
     required this.row,
@@ -51,6 +55,7 @@ class StaffPainter extends CustomPainter {
     required this.instrument,
     required this.showNoteLabels,
     required this.context,
+    this.gameMode = false,
   });
 
   @override
@@ -65,7 +70,8 @@ class StaffPainter extends CustomPainter {
       old.context != context ||
       old.row != row ||
       old.instrument != instrument ||
-      old.showNoteLabels != showNoteLabels;
+      old.showNoteLabels != showNoteLabels ||
+      old.gameMode != gameMode;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -167,6 +173,36 @@ class StaffPainter extends CustomPainter {
           Offset(x, kTopMargin + kStaffH),
           bp,
         );
+      }
+    }
+
+    // In game mode, draw a background-coloured overlay over measures that are
+    // entirely before the current note.  This dims ALL measure content (staff
+    // lines, bar lines, notes, labels) uniformly, rather than only the note
+    // heads, giving a clear "past measure" visual without changing the
+    // underlying draw logic.
+    if (gameMode && activeNoteIndex >= 0) {
+      final bgColor = isDark ? Colors.black : Colors.white;
+      final overlayPaint = Paint()..color = bgColor.withValues(alpha: 0.55);
+      double overlayX = startX;
+      int overlayOffset = row.firstNoteIndex;
+      for (int mi = 0; mi < row.measures.length; mi++) {
+        final m = row.measures[mi];
+        final mW = measureWidths[mi];
+        // Count display notes (excludes chord continuations) to match the
+        // active-note index scheme used by the practice screen.
+        final displayCount =
+            m.notes.where((n) => !n.isChordContinuation).length;
+        final isMeasurePast = overlayOffset + displayCount <= activeNoteIndex;
+        if (isMeasurePast) {
+          // Leave the last ~2 px clear so the bar-line boundary stays crisp.
+          canvas.drawRect(
+            Rect.fromLTWH(overlayX, 0, mW - 2, size.height),
+            overlayPaint,
+          );
+        }
+        overlayOffset += displayCount;
+        overlayX += mW;
       }
     }
   }

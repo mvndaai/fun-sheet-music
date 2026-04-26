@@ -20,6 +20,10 @@ class SheetMusicWidget extends StatelessWidget {
   final int measuresPerRow;
   final bool includePickupInFirstRow;
   final bool showHeader;
+  /// When true, enables game-mode scroll behaviour (aligns current row to the
+  /// start of the viewport on every advance, and draws measure-level fade
+  /// overlays for past measures).
+  final bool gameMode;
 
   const SheetMusicWidget({
     super.key,
@@ -34,6 +38,7 @@ class SheetMusicWidget extends StatelessWidget {
     this.measuresPerRow = 4,
     this.includePickupInFirstRow = true,
     this.showHeader = true,
+    this.gameMode = false,
   });
 
   @override
@@ -54,6 +59,7 @@ class SheetMusicWidget extends StatelessWidget {
       showNoteLabels: ip.showNoteLabels,
       includePickupInFirstRow: includePickupInFirstRow,
       header: showHeader ? _ColorLegend(showSolfege: showSolfege) : null,
+      gameMode: gameMode,
     );
   }
 }
