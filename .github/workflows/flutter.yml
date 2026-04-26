@@ -23,8 +23,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -176,20 +174,10 @@ jobs:
       - name: Build web
         run: flutter build web --release --base-href /${{ github.event.repository.name }}/
 
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: build/web
-
-  # ── 4. Web Deploy ──────────────────────────────────────────────────────────
-  # Only runs after Web Build succeeds.
-  deploy-web:
-    name: "Deploy: Web"
-    needs: build-web
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build/web
+          clean: true
+          # Preserve PR preview subdirectories when deploying the main site
+          clean-exclude: pr/
