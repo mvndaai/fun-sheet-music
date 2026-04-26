@@ -218,6 +218,19 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> {
                   onPressed: _toggleMetronome,
                 ),
                 IconButton(
+                  icon: const Icon(Icons.sports_esports),
+                  tooltip: 'Game Mode',
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PracticeScreen(
+                        song: widget.song,
+                        initialGameMode: true,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
                   icon: const Icon(Icons.settings),
                   tooltip: 'Settings',
                   onPressed: _openSettings,

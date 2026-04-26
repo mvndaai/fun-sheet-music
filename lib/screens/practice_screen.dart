@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -17,8 +18,13 @@ import '../widgets/note_settings_sheet.dart';
 /// When the microphone hears the current note, the app advances to the next.
 class PracticeScreen extends StatefulWidget {
   final Song song;
+  final bool initialGameMode;
 
-  const PracticeScreen({super.key, required this.song});
+  const PracticeScreen({
+    super.key,
+    required this.song,
+    this.initialGameMode = false,
+  });
 
   @override
   State<PracticeScreen> createState() => _PracticeScreenState();
@@ -31,7 +37,7 @@ class _PracticeScreenState extends State<PracticeScreen>
 
   int _currentNoteIndex = 0;
   bool _micActive = false;
-  bool _gameModeEnabled = false;
+  late bool _gameModeEnabled = widget.initialGameMode;
   String _detectedNote = '';
   String? _statusMessage;
   bool _isKeyboardInput = false;
@@ -206,10 +212,12 @@ class _PracticeScreenState extends State<PracticeScreen>
   /// Returns a copy of the song containing only the 2 measures around the
   /// current note, used for the game-mode view.
   Song _gameModeFilteredSong() {
+    if (widget.song.measures.isEmpty) return widget.song;
     final measureIdx = _measureIndexForNoteIndex(_currentNoteIndex);
     final endMeasure = (measureIdx + 2).clamp(0, widget.song.measures.length);
+    final startMeasure = measureIdx.clamp(0, widget.song.measures.length);
     return widget.song.copyWith(
-      measures: widget.song.measures.sublist(measureIdx, endMeasure),
+      measures: widget.song.measures.sublist(startMeasure, endMeasure),
     );
   }
 
@@ -319,7 +327,7 @@ class _PracticeScreenState extends State<PracticeScreen>
             actions: [
               IconButton(
                 icon: Icon(
-                  Icons.rotate_left,
+                  _gameModeEnabled ? Icons.grid_view : Icons.sports_esports,
                   color: _gameModeEnabled
                       ? Theme.of(context).colorScheme.primary
                       : null,
@@ -393,25 +401,51 @@ class _PracticeScreenState extends State<PracticeScreen>
             // Sheet music (scrollable or game mode)
             Expanded(
               child: _gameModeEnabled
-                  ? ClipRect(
-                      child: Transform(
-                        // Perspective: bottom (current notes) appears wider/closer,
-                        // top (upcoming notes) narrower/farther — highway effect.
-                        transform: Matrix4.identity()
-                          ..setEntry(3, 2, 0.003) // perspective depth
-                          ..rotateX(0.4), // tilt top away from viewer
-                        alignment: Alignment.bottomCenter,
-                        child: RotatedBox(
-                          quarterTurns: 3,
-                          child: SheetMusicWidget(
-                            song: _gameModeFilteredSong(),
-                            activeNoteIndex: _gameModeNoteIndex(),
-                            showSolfege: provider.showSolfege,
-                            showLetter: provider.showLetter,
-                            labelsBelow: provider.labelsBelow,
-                            coloredLabels: provider.coloredLabels,
-                            measuresPerRow: 2,
-                            showHeader: false,
+                  ? Container(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
+                      child: ShaderMask(
+                        shaderCallback: (Rect bounds) {
+                          return const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.white,
+                              Colors.white,
+                              Colors.transparent,
+                            ],
+                            stops: [0.0, 0.15, 0.85, 1.0],
+                          ).createShader(bounds);
+                        },
+                        blendMode: BlendMode.dstIn,
+                        child: ClipRect(
+                          child: Transform(
+                            // Perspective: bottom (current notes) appears wider/closer,
+                            // top (upcoming notes) narrower/farther — highway effect.
+                            transform: Matrix4.identity()
+                              ..setEntry(3, 2, 0.003) // perspective depth
+                              ..rotateX(-0.4), // tilt top away from viewer (flipped for correct near/far)
+                            alignment: Alignment.bottomCenter,
+                            child: Transform.scale(
+                              scaleX: 1.4, // Make the highway wider
+                              child: RotatedBox(
+                                quarterTurns: 3,
+                                child: Center(
+                                  child: SheetMusicWidget(
+                                    song: _gameModeFilteredSong(),
+                                    activeNoteIndex: _gameModeNoteIndex(),
+                                    showSolfege: provider.showSolfege,
+                                    showLetter: provider.showLetter,
+                                    labelsBelow: provider.labelsBelow,
+                                    coloredLabels: provider.coloredLabels,
+                                    measuresPerRow: 2,
+                                    showHeader: false,
+                                    scrollable: false,
+                                    labelRotation: math.pi / 2, // Keep text right-way up
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),

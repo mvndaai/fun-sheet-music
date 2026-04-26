@@ -21,6 +21,8 @@ class SheetMusicRenderer extends StatefulWidget {
   final bool showNoteLabels;
   final Widget? header;
   final bool includePickupInFirstRow;
+  final bool scrollable;
+  final double labelRotation;
 
   const SheetMusicRenderer({
     super.key,
@@ -37,6 +39,8 @@ class SheetMusicRenderer extends StatefulWidget {
     this.showNoteLabels = true,
     this.header,
     this.includePickupInFirstRow = true,
+    this.scrollable = true,
+    this.labelRotation = 0,
   });
 
   @override
@@ -82,7 +86,7 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
   }
 
   void _scrollToIndex(int noteIndex) {
-    if (!mounted) return;
+    if (!mounted || !widget.scrollable) return;
     final rows = _buildRows();
     
     // Ensure we have enough keys for all rows before calculating scroll
@@ -136,6 +140,35 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
     // Ensure we have enough keys for all rows
     while (_rowKeys.length < rows.length) {
       _rowKeys.add(GlobalKey());
+    }
+
+    if (!widget.scrollable) {
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.header != null) widget.header!,
+            ...List.generate(rows.length, (i) {
+              final row = rows[i];
+              return _StaffRow(
+                row: row,
+                activeNoteIndex: widget.activeNoteIndex,
+                ghostNoteIndex: widget.ghostNoteIndex,
+                ghostNote: widget.ghostNote,
+                showSolfege: widget.showSolfege,
+                showLetter: widget.showLetter,
+                labelsBelow: widget.labelsBelow,
+                coloredLabels: widget.coloredLabels,
+                instrument: widget.instrument,
+                showNoteLabels: widget.showNoteLabels,
+                labelRotation: widget.labelRotation,
+              );
+            }),
+          ],
+        ),
+      );
     }
 
     return Scrollbar(
@@ -212,6 +245,7 @@ class _StaffRow extends StatelessWidget {
   final bool coloredLabels;
   final InstrumentProfile instrument;
   final bool showNoteLabels;
+  final double labelRotation;
 
   const _StaffRow({
     super.key,
@@ -225,6 +259,7 @@ class _StaffRow extends StatelessWidget {
     required this.coloredLabels,
     required this.instrument,
     required this.showNoteLabels,
+    this.labelRotation = 0,
   });
 
   @override
@@ -248,6 +283,7 @@ class _StaffRow extends StatelessWidget {
               instrument: instrument,
               showNoteLabels: showNoteLabels,
               context: context,
+              labelRotation: labelRotation,
             ),
           ),
         ),

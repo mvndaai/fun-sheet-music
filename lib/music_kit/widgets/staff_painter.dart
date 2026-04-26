@@ -37,6 +37,7 @@ class StaffPainter extends CustomPainter {
   final InstrumentProfile instrument;
   final bool showNoteLabels;
   final BuildContext context;
+  final double labelRotation;
 
   StaffPainter({
     required this.row,
@@ -50,6 +51,7 @@ class StaffPainter extends CustomPainter {
     required this.instrument,
     required this.showNoteLabels,
     required this.context,
+    this.labelRotation = 0,
   });
 
   @override
@@ -64,7 +66,8 @@ class StaffPainter extends CustomPainter {
       old.context != context ||
       old.row != row ||
       old.instrument != instrument ||
-      old.showNoteLabels != showNoteLabels;
+      old.showNoteLabels != showNoteLabels ||
+      old.labelRotation != labelRotation;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -599,26 +602,64 @@ class StaffPainter extends CustomPainter {
 
   void _drawMusicSymbol(Canvas canvas, String symbol, Offset topLeft, {double fontSize = 12, Color color = Colors.black, FontWeight fontWeight = FontWeight.normal}) {
     final tp = TextPainter(text: TextSpan(text: symbol, style: GoogleFonts.notoMusic(fontSize: fontSize, color: color, fontWeight: fontWeight)), textDirection: TextDirection.ltr)..layout();
-    tp.paint(canvas, topLeft);
+    if (labelRotation != 0) {
+      canvas.save();
+      final center = Offset(topLeft.dx + tp.width / 2, topLeft.dy + tp.height / 2);
+      canvas.translate(center.dx, center.dy);
+      canvas.rotate(labelRotation);
+      tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+      canvas.restore();
+    } else {
+      tp.paint(canvas, topLeft);
+    }
   }
 
   void _drawText(Canvas canvas, String text, Offset topLeft, {double fontSize = 12, Color color = Colors.black, FontWeight fontWeight = FontWeight.normal}) {
     final tp = TextPainter(text: TextSpan(text: text, style: TextStyle(fontSize: fontSize, color: color, fontWeight: fontWeight, fontFamily: 'serif')), textDirection: TextDirection.ltr)..layout();
-    tp.paint(canvas, topLeft);
+    if (labelRotation != 0) {
+      canvas.save();
+      final center = Offset(topLeft.dx + tp.width / 2, topLeft.dy + tp.height / 2);
+      canvas.translate(center.dx, center.dy);
+      canvas.rotate(labelRotation);
+      tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+      canvas.restore();
+    } else {
+      tp.paint(canvas, topLeft);
+    }
   }
 
   void _drawTextCentered(Canvas canvas, String text, Offset centre, {double fontSize = 12, Color color = Colors.black, FontWeight fontWeight = FontWeight.normal}) {
     final tp = TextPainter(text: TextSpan(text: text, style: TextStyle(fontSize: fontSize, color: color, fontWeight: fontWeight)), textDirection: TextDirection.ltr)..layout();
-    tp.paint(canvas, Offset(centre.dx - tp.width / 2, centre.dy - tp.height / 2));
+    if (labelRotation != 0) {
+      canvas.save();
+      canvas.translate(centre.dx, centre.dy);
+      canvas.rotate(labelRotation);
+      tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+      canvas.restore();
+    } else {
+      tp.paint(canvas, Offset(centre.dx - tp.width / 2, centre.dy - tp.height / 2));
+    }
   }
 
   void _drawTextWithOutline(Canvas canvas, String text, Offset centre, {double fontSize = 12, Color color = Colors.black, Color outlineColor = Colors.white, double outlineWidth = 1.8, FontWeight fontWeight = FontWeight.normal}) {
     final textSpan = TextSpan(text: text, style: TextStyle(fontSize: fontSize, fontWeight: fontWeight, foreground: Paint()..style = PaintingStyle.stroke..strokeWidth = outlineWidth..color = outlineColor));
     final textSpanFill = TextSpan(text: text, style: TextStyle(fontSize: fontSize, color: color, fontWeight: fontWeight));
     final tpOutline = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
-    final offset = Offset(centre.dx - tpOutline.width / 2, centre.dy - tpOutline.height / 2);
-    tpOutline.paint(canvas, offset);
     final tpFill = TextPainter(text: textSpanFill, textDirection: TextDirection.ltr)..layout();
-    tpFill.paint(canvas, offset);
+    
+    final offsetInside = Offset(-tpOutline.width / 2, -tpOutline.height / 2);
+    final offsetOutside = Offset(centre.dx - tpOutline.width / 2, centre.dy - tpOutline.height / 2);
+
+    if (labelRotation != 0) {
+      canvas.save();
+      canvas.translate(centre.dx, centre.dy);
+      canvas.rotate(labelRotation);
+      tpOutline.paint(canvas, offsetInside);
+      tpFill.paint(canvas, offsetInside);
+      canvas.restore();
+    } else {
+      tpOutline.paint(canvas, offsetOutside);
+      tpFill.paint(canvas, offsetOutside);
+    }
   }
 }
