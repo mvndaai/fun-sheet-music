@@ -9,6 +9,7 @@ import '../platform_stub.dart';
 /// Web implementation using Web Audio API and package:web.
 class WebTonePlayer implements PlatformTonePlayer {
   web.AudioContext? _audioContext;
+  final Map<double, (web.OscillatorNode, web.GainNode)> _activeNotes = {};
 
   web.AudioContext get _context {
     _audioContext ??= web.AudioContext();
@@ -48,8 +49,56 @@ class WebTonePlayer implements PlatformTonePlayer {
   }
 
   @override
+  void startTone(double frequency) {
+    try {
+      final context = _context;
+      final oscillator = context.createOscillator();
+      final gainNode = context.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'triangle';
+
+      final now = context.currentTime;
+      const fadeTime = 0.01;
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.5, now + fadeTime);
+
+      oscillator.start();
+      _activeNotes[frequency] = (oscillator, gainNode);
+    } catch (e) {
+      developer.log('Web audio start error', error: e, name: 'WebTonePlayer');
+    }
+  }
+
+  @override
+  void stopTone(double frequency) {
+    try {
+      final note = _activeNotes.remove(frequency);
+      if (note == null) return;
+
+      final (oscillator, gainNode) = note;
+      final context = _context;
+      final now = context.currentTime;
+      const fadeTime = 0.02;
+
+      gainNode.gain.setValueAtTime(gainNode.gain.value, now);
+      gainNode.gain.linearRampToValueAtTime(0, now + fadeTime);
+      oscillator.stop(now + fadeTime);
+    } catch (e) {
+      developer.log('Web audio stop error', error: e, name: 'WebTonePlayer');
+    }
+  }
+
+  @override
   void dispose() {
     try {
+      for (final note in _activeNotes.values) {
+        note.$1.stop();
+      }
+      _activeNotes.clear();
       _audioContext?.close();
     } catch (e) {
       // Ignore

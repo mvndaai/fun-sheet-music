@@ -19,6 +19,18 @@ class TonePlayer {
     await _platformPlayer.playTone(frequency, 300);
   }
 
+  /// Starts playing a continuous note.
+  void startNote(double frequency) {
+    if (frequency <= 0) return;
+    _platformPlayer.startTone(frequency);
+  }
+
+  /// Stops a continuous note.
+  void stopNote(double frequency) {
+    if (frequency <= 0) return;
+    _platformPlayer.stopTone(frequency);
+  }
+
   /// Starts the metronome at the given tempo (BPM).
   void startMetronome(double bpm, {String sound = 'tick', void Function()? onBeat}) {
     stopMetronome();

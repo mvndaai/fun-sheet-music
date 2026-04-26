@@ -372,6 +372,3 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
     );
   }
 }
-
-  }
-}

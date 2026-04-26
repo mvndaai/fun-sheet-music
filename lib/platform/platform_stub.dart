@@ -6,6 +6,8 @@ import 'package:drift/drift.dart';
 /// Platform interface for a tone player.
 abstract class PlatformTonePlayer {
   Future<void> playTone(double frequency, int durationMs);
+  void startTone(double frequency);
+  void stopTone(double frequency);
   void dispose();
 }
 

@@ -74,6 +74,17 @@ class MobileTonePlayer implements PlatformTonePlayer {
   }
 
   @override
+  void startTone(double frequency) {
+    // For now, play a reasonably long tone on mobile
+    playTone(frequency, 1000);
+  }
+
+  @override
+  void stopTone(double frequency) {
+    _player.stop();
+  }
+
+  @override
   void dispose() => _player.dispose();
 }
 

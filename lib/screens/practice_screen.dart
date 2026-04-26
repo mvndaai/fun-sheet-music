@@ -36,7 +36,7 @@ class _PracticeScreenState extends State<PracticeScreen>
   String _detectedNote = '';
   bool _isKeyboardInput = false;
   String _lastPhysicalKey = '';
-  String? _statusMessage;
+  final Map<LogicalKeyboardKey, String> _keyToNote = {};
   StreamSubscription<String>? _noteSubscription;
   Timer? _clearNoteTimer;
 
@@ -204,7 +204,7 @@ class _PracticeScreenState extends State<PracticeScreen>
       builder: (context, provider, _) => Focus(
         autofocus: true,
         onKeyEvent: (node, event) {
-          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+          if (event is KeyRepeatEvent) return KeyEventResult.handled;
 
           final mapping = KeyboardUtils.getMappingName(event);
           final overrides = provider.activeScheme.effectiveKeyboardOverrides;
@@ -235,6 +235,25 @@ class _PracticeScreenState extends State<PracticeScreen>
             return null;
           }
 
+          // Handle KeyUp to stop notes
+          if (event is KeyUpEvent) {
+            final noteName = _keyToNote.remove(event.logicalKey);
+            if (noteName != null) {
+              final midi = MusicConstants.noteNameToMidi(noteName);
+              if (midi >= 0) {
+                _tonePlayer.stopNote(MusicConstants.midiToFrequency(midi));
+              }
+            }
+            return KeyEventResult.ignored;
+          }
+
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+          // Prevent repeating notes when holding keys
+          if (_keyToNote.containsKey(event.logicalKey)) {
+            return KeyEventResult.handled;
+          }
+
           // Try exact mapping first (e.g. Shift+KeyA), then fallback to plain key (KeyA)
           // only if no specific modifier mapping was found.
           String? noteName = findNote(mapping);
@@ -243,9 +262,10 @@ class _PracticeScreenState extends State<PracticeScreen>
           }
 
           if (noteName != null) {
+            _keyToNote[event.logicalKey] = noteName;
             final midi = MusicConstants.noteNameToMidi(noteName);
             if (midi >= 0) {
-              _tonePlayer.playNote(MusicConstants.midiToFrequency(midi));
+              _tonePlayer.startNote(MusicConstants.midiToFrequency(midi));
             }
             setState(() {
               _lastPhysicalKey = KeyboardUtils.formatForDisplay(mapping);
