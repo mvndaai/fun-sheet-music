@@ -28,3 +28,9 @@ Future<void> saveFile({required String title, required String content}) {
 QueryExecutor openDatabaseConnection() {
   throw UnsupportedError('openDatabaseConnection has not been implemented on this platform.');
 }
+
+/// Gets the directory for storing audio samples.
+/// Returns null on web since file system access is not available.
+Future<String?> getSamplesDirectory(String instrumentId) {
+  throw UnimplementedError('getSamplesDirectory has not been implemented on this platform.');
+}

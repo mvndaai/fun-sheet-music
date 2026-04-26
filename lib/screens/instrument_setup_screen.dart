@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:record/record.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
@@ -12,6 +11,7 @@ import '../music_kit/utils/music_constants.dart';
 import '../music_kit/utils/keyboard_utils.dart';
 import '../services/tone_player.dart';
 import '../services/pitch_detection_service.dart';
+import '../platform/platform.dart' as platform;
 
 enum SetupMode { keyboard, sounds, tuning }
 
@@ -106,11 +106,34 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
       });
       _save();
     } else {
+      if (kIsWeb) {
+        // Audio recording is not supported on web
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Audio recording is not available on web'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+      
       if (await _recorder.hasPermission()) {
-        final appDir = await getApplicationDocumentsDirectory();
-        final folder = Directory(p.join(appDir.path, 'samples', widget.scheme.id));
-        if (!await folder.exists()) await folder.create(recursive: true);
-        final filePath = p.join(folder.path, '$note.m4a');
+        final samplesDir = await platform.getSamplesDirectory(widget.scheme.id);
+        if (samplesDir == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Storage not available on this platform'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+          return;
+        }
+        
+        final filePath = p.join(samplesDir, '$note.m4a');
         await _recorder.start(const RecordConfig(), path: filePath);
         setState(() {
           _pendingNote = note;

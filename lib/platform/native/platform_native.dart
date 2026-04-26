@@ -130,3 +130,13 @@ QueryExecutor openDatabaseConnection() {
     return NativeDatabase(file);
   });
 }
+
+/// Gets the directory for storing audio samples on native platforms.
+Future<String?> getSamplesDirectory(String instrumentId) async {
+  final appDir = await getApplicationDocumentsDirectory();
+  final folder = Directory(p.join(appDir.path, 'samples', instrumentId));
+  if (!await folder.exists()) {
+    await folder.create(recursive: true);
+  }
+  return folder.path;
+}

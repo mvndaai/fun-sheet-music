@@ -155,3 +155,9 @@ Future<void> saveFile({required String title, required String content}) async {
 QueryExecutor openDatabaseConnection() {
   return WebDatabase('app_db', logStatements: false);
 }
+
+/// Web doesn't support file system access for audio samples.
+/// Returns null to indicate that sample recording is not available.
+Future<String?> getSamplesDirectory(String instrumentId) async {
+  return null; // File system not available on web
+}
