@@ -1,0 +1,12 @@
+{
+    "name": "Flutter Music",
+    "short_name": "FlutterMusic",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#1565C0",
+    "theme_color": "#1565C0",
+    "description": "Color-coded sheet music for kids – read MusicXML, practice with microphone",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": []
+}
