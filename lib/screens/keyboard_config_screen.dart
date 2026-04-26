@@ -111,6 +111,32 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
 
     final isStandard = widget.scheme.id == InstrumentProfile.black.id;
 
+    final enabledNotes = <String>[];
+    final disabledNotes = <String>[];
+
+    for (final note in sortedNotes) {
+      final mapping = _overrides[note];
+      final defaultMapping = InstrumentProfile.black.keyboardOverrides[note];
+
+      final isUnset = mapping == '';
+      final hasExplicitMapping = mapping != null && mapping.isNotEmpty;
+      final hasFallback = !isStandard &&
+          defaultMapping != null &&
+          defaultMapping.isNotEmpty;
+
+      if (hasExplicitMapping || (hasFallback && !isUnset)) {
+        enabledNotes.add(note);
+      } else {
+        disabledNotes.add(note);
+      }
+    }
+
+    final displayList = [
+      ...enabledNotes,
+      if (enabledNotes.isNotEmpty && disabledNotes.isNotEmpty) '---DIVIDER---',
+      ...disabledNotes,
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: Text(isStandard
@@ -123,7 +149,8 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
             onPressed: () {
               setState(() {
                 if (isStandard) {
-                  _overrides = Map.from(InstrumentProfile.black.keyboardOverrides);
+                  _overrides =
+                      Map.from(InstrumentProfile.black.keyboardOverrides);
                 } else {
                   _overrides = {};
                 }
@@ -149,7 +176,7 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
           if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
           final mapping = KeyboardUtils.getMappingName(event);
-          
+
           setState(() {
             _lastKey = KeyboardUtils.formatForDisplay(mapping);
           });
@@ -159,7 +186,7 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
           setState(() {
             // Do not let one key be mapped to multiple tones.
             // If that happens, set the older one to an empty string (not set override).
-            
+
             // Check current overrides
             _overrides.forEach((note, mappingStr) {
               if (mappingStr == mapping && note != _pendingNote) {
@@ -169,11 +196,13 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
 
             // Also check default mappings if we're not editing the standard scheme
             if (widget.scheme.id != InstrumentProfile.black.id) {
-              InstrumentProfile.black.keyboardOverrides.forEach((note, mappingStr) {
+              InstrumentProfile.black.keyboardOverrides
+                  .forEach((note, mappingStr) {
                 if (mappingStr == mapping && note != _pendingNote) {
                   // If the default has this mapping, we must explicitly unset it in our overrides
                   // if we haven't already mapped this note to something else.
-                  if (_overrides[note] == null || _overrides[note] == mappingStr) {
+                  if (_overrides[note] == null ||
+                      _overrides[note] == mappingStr) {
                     _overrides[note] = '';
                   }
                 }
@@ -200,8 +229,9 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
                       color: _pendingNote == null
                           ? Colors.grey.shade600
                           : Theme.of(context).colorScheme.primary,
-                      fontWeight:
-                          _pendingNote == null ? FontWeight.normal : FontWeight.bold,
+                      fontWeight: _pendingNote == null
+                          ? FontWeight.normal
+                          : FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -210,7 +240,8 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         'Last key pressed: $_lastKey',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade500),
                       ),
                     ),
                 ],
@@ -220,21 +251,44 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
             Expanded(
               child: ListView.builder(
                 primary: true,
-                itemCount: sortedNotes.length,
+                itemCount: displayList.length,
                 itemBuilder: (context, index) {
-                  final note = sortedNotes[index];
+                  final item = displayList[index];
+
+                  if (item == '---DIVIDER---') {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Divider(thickness: 2, height: 32),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          child: Text(
+                            'UNMAPPED KEYS',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  final note = item;
                   final mapping = _overrides[note];
                   final isPending = _pendingNote == note;
 
                   final defaultMapping =
                       InstrumentProfile.black.keyboardOverrides[note];
-                  final isStandard =
-                      widget.scheme.id == InstrumentProfile.black.id;
 
                   String displayMapping;
                   bool isFallback = false;
                   bool isUnset = mapping == '';
-                  bool hasExplicitMapping = mapping != null && mapping.isNotEmpty;
+                  bool hasExplicitMapping =
+                      mapping != null && mapping.isNotEmpty;
 
                   if (hasExplicitMapping) {
                     displayMapping = KeyboardUtils.formatForDisplay(mapping);
@@ -246,13 +300,15 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
                   } else if (!isStandard &&
                       defaultMapping != null &&
                       defaultMapping.isNotEmpty) {
-                    displayMapping = KeyboardUtils.formatForDisplay(defaultMapping);
+                    displayMapping =
+                        KeyboardUtils.formatForDisplay(defaultMapping);
                     isFallback = true;
                   } else {
                     displayMapping = 'None';
                   }
 
                   return ListTile(
+                    key: ValueKey(note),
                     title: Text(note,
                         style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text(
@@ -302,5 +358,8 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
         ),
       ),
     );
+  }
+}
+
   }
 }
