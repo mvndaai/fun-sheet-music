@@ -8,6 +8,7 @@ import '../music_kit/models/music_note.dart';
 import '../providers/instrument_provider.dart';
 import '../services/pitch_detection_service.dart';
 import '../services/tone_player.dart';
+import '../music_kit/sheet_music_constants.dart';
 import '../music_kit/utils/music_constants.dart';
 import '../music_kit/utils/keyboard_utils.dart';
 import '../widgets/sheet_music_widget.dart';
@@ -45,6 +46,7 @@ class _PracticeScreenState extends State<PracticeScreen>
   final Map<LogicalKeyboardKey, String> _keyToNote = {};
   StreamSubscription<String>? _noteSubscription;
   Timer? _clearNoteTimer;
+  final ScrollController _gameScrollController = ScrollController();
 
   List<MusicNote> get _notes => widget.song.allNotes;
 
@@ -57,6 +59,7 @@ class _PracticeScreenState extends State<PracticeScreen>
     _clearNoteTimer?.cancel();
     _audio.dispose();
     _tonePlayer.dispose();
+    _gameScrollController.dispose();
     super.dispose();
   }
 
@@ -151,7 +154,10 @@ class _PracticeScreenState extends State<PracticeScreen>
 
   void _advance() {
     if (_currentNoteIndex < _notes.length - 1) {
-      setState(() => _currentNoteIndex++);
+      setState(() {
+        _currentNoteIndex++;
+      });
+      _scrollToCurrentNoteSmooth();
     } else {
       _onSongComplete();
     }
@@ -159,13 +165,90 @@ class _PracticeScreenState extends State<PracticeScreen>
 
   void _previous() {
     if (_currentNoteIndex > 0) {
-      setState(() => _currentNoteIndex--);
+      setState(() {
+        _currentNoteIndex--;
+      });
+      _scrollToCurrentNoteSmooth();
     }
+  }
+
+  void _scrollToCurrentNoteSmooth() {
+    if (!_gameModeEnabled || !_gameScrollController.hasClients) return;
+
+    final noteIndex = _currentNoteIndex;
+    int measureIdx = -1;
+    int noteInMeasureIdx = -1;
+    int totalNotesInMeasure = 0;
+    
+    int count = 0;
+    for (int i = 0; i < widget.song.measures.length; i++) {
+      final playable = widget.song.measures[i].playableNotes.length;
+      if (noteIndex < count + playable) {
+        measureIdx = i;
+        noteInMeasureIdx = noteIndex - count;
+        totalNotesInMeasure = playable;
+        break;
+      }
+      count += playable;
+    }
+    
+    if (measureIdx == -1) return;
+
+    // Single row logic:
+    const double measureW = 350.0; // Must match the width in build
+    final double noteProgress = totalNotesInMeasure > 0 
+        ? noteInMeasureIdx / totalNotesInMeasure 
+        : 0;
+        
+    // X position in horizontal staff
+    final double noteX = kClefW + (measureIdx * measureW) + (noteProgress * measureW);
+    
+    // In our RotatedBox(3) + SingleChildScrollView:
+    // The total height of the scrollable content is the totalWidth of the staff.
+    // The top of the scroll view (0) is the END of the song (X=max).
+    // The bottom of the scroll view (maxScroll) is the START of the song (X=0).
+    
+    final maxScroll = _gameScrollController.position.maxScrollExtent;
+    final viewportHeight = _gameScrollController.position.viewportDimension;
+    
+    // The scroll position that puts noteX at the "strike line" (e.g. 80% down the screen)
+    // Strike line Y in viewport = viewportHeight * 0.8
+    // Note Y in content = totalWidth - noteX
+    // ScrollPos = NoteY - StrikeLineY
+    
+    final totalWidth = kClefW + widget.song.measures.length * measureW;
+    final double noteYInContent = totalWidth - noteX;
+    final double strikeLineYInViewport = viewportHeight * 0.75;
+    
+    final double scrollPosition = noteYInContent - strikeLineYInViewport;
+
+    _gameScrollController.animateTo(
+      scrollPosition.clamp(0, maxScroll),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   void _onSongComplete() {
     setState(() => _statusMessage = '🎉 Song complete!');
     _stopMic();
+    
+    // Modern notification
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.stars, color: Colors.white),
+            SizedBox(width: 12),
+            Text('Congratulations! Song Complete!', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        backgroundColor: Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -322,7 +405,7 @@ class _PracticeScreenState extends State<PracticeScreen>
           return KeyEventResult.ignored;
         },
         child: Scaffold(
-          appBar: AppBar(
+          appBar: _gameModeEnabled ? null : AppBar(
             title: Text('Practice: ${widget.song.title}'),
             actions: [
               IconButton(
@@ -345,9 +428,10 @@ class _PracticeScreenState extends State<PracticeScreen>
           body: Column(
           children: [
             // Progress bar
-            LinearProgressIndicator(value: progress, minHeight: 6),
+            if (!_gameModeEnabled) LinearProgressIndicator(value: progress, minHeight: 6),
 
             // Status / detected note
+            if (!_gameModeEnabled)
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               color: _micActive
@@ -380,7 +464,7 @@ class _PracticeScreenState extends State<PracticeScreen>
             ),
 
             // Current note highlight
-            if (current != null)
+            if (current != null && !_gameModeEnabled)
               _CurrentNoteCard(
                 note: current,
                 showSolfege: provider.showSolfege,
@@ -396,59 +480,119 @@ class _PracticeScreenState extends State<PracticeScreen>
                 keyboardOverrides: provider.activeScheme.effectiveKeyboardOverrides,
               ),
 
-            const Divider(height: 1),
+            if (!_gameModeEnabled) const Divider(height: 1),
 
             // Sheet music (scrollable or game mode)
             Expanded(
               child: _gameModeEnabled
-                  ? Container(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
-                      child: ShaderMask(
-                        shaderCallback: (Rect bounds) {
-                          return const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.white,
-                              Colors.white,
-                              Colors.transparent,
-                            ],
-                            stops: [0.0, 0.15, 0.85, 1.0],
-                          ).createShader(bounds);
-                        },
-                        blendMode: BlendMode.dstIn,
-                        child: ClipRect(
-                          child: Transform(
-                            // Perspective: bottom (current notes) appears wider/closer,
-                            // top (upcoming notes) narrower/farther — highway effect.
-                            transform: Matrix4.identity()
-                              ..setEntry(3, 2, 0.003) // perspective depth
-                              ..rotateX(-0.4), // tilt top away from viewer (flipped for correct near/far)
-                            alignment: Alignment.bottomCenter,
-                            child: Transform.scale(
-                              scaleX: 1.4, // Make the highway wider
-                              child: RotatedBox(
-                                quarterTurns: 3,
-                                child: Center(
-                                  child: SheetMusicWidget(
-                                    song: _gameModeFilteredSong(),
-                                    activeNoteIndex: _gameModeNoteIndex(),
-                                    showSolfege: provider.showSolfege,
-                                    showLetter: provider.showLetter,
-                                    labelsBelow: provider.labelsBelow,
-                                    coloredLabels: provider.coloredLabels,
-                                    measuresPerRow: 2,
-                                    showHeader: false,
-                                    scrollable: false,
-                                    labelRotation: math.pi / 2, // Keep text right-way up
+                  ? Stack(
+                      children: [
+                        Container(
+                          color: Theme.of(context).colorScheme.surface,
+                          child: ShaderMask(
+                            shaderCallback: (Rect bounds) {
+                              return const LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.white,
+                                  Colors.white,
+                                  Colors.transparent,
+                                ],
+                                stops: [0.0, 0.15, 0.85, 1.0],
+                              ).createShader(bounds);
+                            },
+                            blendMode: BlendMode.dstIn,
+                            child: ClipRect(
+                              child: Transform(
+                                // Perspective: bottom (current notes) appears wider/closer,
+                                // top (upcoming notes) narrower/farther — highway effect.
+                                transform: Matrix4.identity()
+                                  ..setEntry(3, 2, 0.0008) // subtle perspective depth
+                                  ..rotateX(-0.2), // gentle tilt
+                                alignment: Alignment.bottomCenter,
+                                child: SingleChildScrollView(
+                                  controller: _gameScrollController,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  child: Transform.scale(
+                                    scaleX: 2.2, // Wider highway
+                                    child: RotatedBox(
+                                      quarterTurns: 3,
+                                      child: Center(
+                                        child: SizedBox(
+                                          // Force a single very long row
+                                          width: kClefW + widget.song.measures.length * 350.0,
+                                          child: SheetMusicWidget(
+                                            song: widget.song,
+                                            activeNoteIndex: _currentNoteIndex,
+                                            showSolfege: provider.showSolfege,
+                                            showLetter: provider.showLetter,
+                                            labelsBelow: provider.labelsBelow,
+                                            coloredLabels: provider.coloredLabels,
+                                            measuresPerRow: widget.song.measures.length,
+                                            showHeader: false,
+                                            scrollable: false,
+                                            labelRotation: math.pi / 2, // Keep text right-way up
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
+                        // Overlay Exit button and detected note for game mode
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: SafeArea(
+                            child: IconButton.filledTonal(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => setState(() => _gameModeEnabled = false),
+                            ),
+                          ),
+                        ),
+                        if (_detectedNote.isNotEmpty)
+                          Positioned(
+                            bottom: 120,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(30),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.2),
+                                      blurRadius: 10,
+                                    )
+                                  ],
+                                ),
+                                child: Text(
+                                  _detectedNote,
+                                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ),
+                        // Strike line visual
+                        Positioned(
+                          bottom: MediaQuery.of(context).size.height * 0.25 - 40,
+                          left: 0,
+                          right: 0,
+                          child: IgnorePointer(
+                            child: Container(
+                              height: 2,
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ),
+                      ],
                     )
                   : SheetMusicWidget(
                       song: widget.song,

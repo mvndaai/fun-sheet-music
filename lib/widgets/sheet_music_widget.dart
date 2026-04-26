@@ -22,6 +22,7 @@ class SheetMusicWidget extends StatelessWidget {
   final bool showHeader;
   final bool scrollable;
   final double labelRotation;
+  final ScrollController? scrollController;
 
   const SheetMusicWidget({
     super.key,
@@ -38,6 +39,7 @@ class SheetMusicWidget extends StatelessWidget {
     this.showHeader = true,
     this.scrollable = true,
     this.labelRotation = 0,
+    this.scrollController,
   });
 
   @override
@@ -60,6 +62,7 @@ class SheetMusicWidget extends StatelessWidget {
       header: showHeader ? _ColorLegend(showSolfege: showSolfege) : null,
       scrollable: scrollable,
       labelRotation: labelRotation,
+      scrollController: scrollController,
     );
   }
 }

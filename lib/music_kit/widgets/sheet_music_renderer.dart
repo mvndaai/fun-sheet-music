@@ -23,6 +23,7 @@ class SheetMusicRenderer extends StatefulWidget {
   final bool includePickupInFirstRow;
   final bool scrollable;
   final double labelRotation;
+  final ScrollController? scrollController;
 
   const SheetMusicRenderer({
     super.key,
@@ -41,6 +42,7 @@ class SheetMusicRenderer extends StatefulWidget {
     this.includePickupInFirstRow = true,
     this.scrollable = true,
     this.labelRotation = 0,
+    this.scrollController,
   });
 
   @override
@@ -48,7 +50,7 @@ class SheetMusicRenderer extends StatefulWidget {
 }
 
 class _SheetMusicRendererState extends State<SheetMusicRenderer> {
-  final ScrollController _scrollController = ScrollController();
+  late final ScrollController _scrollController = widget.scrollController ?? ScrollController();
   final List<GlobalKey> _rowKeys = [];
 
   @override
@@ -64,7 +66,9 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    if (widget.scrollController == null) {
+      _scrollController.dispose();
+    }
     super.dispose();
   }
 
