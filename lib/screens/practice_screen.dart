@@ -33,6 +33,7 @@ class _PracticeScreenState extends State<PracticeScreen>
 
   int _currentNoteIndex = 0;
   bool _micActive = false;
+  bool _gameModeEnabled = false;
   String _detectedNote = '';
   String? _statusMessage;
   bool _isKeyboardInput = false;
@@ -194,6 +195,37 @@ class _PracticeScreenState extends State<PracticeScreen>
     NoteSettingsSheet.show(context);
   }
 
+  /// Returns the index of the measure that contains the note at [noteIndex].
+  int _measureIndexForNoteIndex(int noteIndex) {
+    int count = 0;
+    for (int i = 0; i < widget.song.measures.length; i++) {
+      final playable = widget.song.measures[i].playableNotes.length;
+      if (noteIndex < count + playable) return i;
+      count += playable;
+    }
+    return widget.song.measures.length - 1;
+  }
+
+  /// Returns a copy of the song containing only the 2 measures around the
+  /// current note, used for the game-mode view.
+  Song _gameModeFilteredSong() {
+    final measureIdx = _measureIndexForNoteIndex(_currentNoteIndex);
+    final endMeasure = (measureIdx + 2).clamp(0, widget.song.measures.length);
+    return widget.song.copyWith(
+      measures: widget.song.measures.sublist(measureIdx, endMeasure),
+    );
+  }
+
+  /// Returns the active-note index relative to the game-mode filtered song.
+  int _gameModeNoteIndex() {
+    final measureIdx = _measureIndexForNoteIndex(_currentNoteIndex);
+    int offset = 0;
+    for (int i = 0; i < measureIdx; i++) {
+      offset += widget.song.measures[i].playableNotes.length;
+    }
+    return _currentNoteIndex - offset;
+  }
+
   @override
   Widget build(BuildContext context) {
     final current = _currentNote;
@@ -289,6 +321,16 @@ class _PracticeScreenState extends State<PracticeScreen>
             title: Text('Practice: ${widget.song.title}'),
             actions: [
               IconButton(
+                icon: Icon(
+                  Icons.rotate_left,
+                  color: _gameModeEnabled
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
+                ),
+                tooltip: _gameModeEnabled ? 'Exit Game Mode' : 'Game Mode',
+                onPressed: () => setState(() => _gameModeEnabled = !_gameModeEnabled),
+              ),
+              IconButton(
                 icon: const Icon(Icons.settings),
                 tooltip: 'Settings',
                 onPressed: _openSettings,
@@ -351,17 +393,31 @@ class _PracticeScreenState extends State<PracticeScreen>
 
             const Divider(height: 1),
 
-            // Sheet music (scrollable)
+            // Sheet music (scrollable or game mode)
             Expanded(
-              child: SheetMusicWidget(
-                song: widget.song,
-                activeNoteIndex: _currentNoteIndex,
-                showSolfege: provider.showSolfege,
-                showLetter: provider.showLetter,
-                labelsBelow: provider.labelsBelow,
-                coloredLabels: provider.coloredLabels,
-                measuresPerRow: provider.measuresPerRow,
-              ),
+              child: _gameModeEnabled
+                  ? RotatedBox(
+                      quarterTurns: 3,
+                      child: SheetMusicWidget(
+                        song: _gameModeFilteredSong(),
+                        activeNoteIndex: _gameModeNoteIndex(),
+                        showSolfege: provider.showSolfege,
+                        showLetter: provider.showLetter,
+                        labelsBelow: provider.labelsBelow,
+                        coloredLabels: provider.coloredLabels,
+                        measuresPerRow: 2,
+                        showHeader: false,
+                      ),
+                    )
+                  : SheetMusicWidget(
+                      song: widget.song,
+                      activeNoteIndex: _currentNoteIndex,
+                      showSolfege: provider.showSolfege,
+                      showLetter: provider.showLetter,
+                      labelsBelow: provider.labelsBelow,
+                      coloredLabels: provider.coloredLabels,
+                      measuresPerRow: provider.measuresPerRow,
+                    ),
             ),
 
             // Navigation controls

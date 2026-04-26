@@ -19,6 +19,7 @@ class SheetMusicWidget extends StatelessWidget {
   final bool coloredLabels;
   final int measuresPerRow;
   final bool includePickupInFirstRow;
+  final bool showHeader;
 
   const SheetMusicWidget({
     super.key,
@@ -32,6 +33,7 @@ class SheetMusicWidget extends StatelessWidget {
     this.coloredLabels = false,
     this.measuresPerRow = 4,
     this.includePickupInFirstRow = true,
+    this.showHeader = true,
   });
 
   @override
@@ -51,7 +53,7 @@ class SheetMusicWidget extends StatelessWidget {
       measuresPerRow: measuresPerRow,
       showNoteLabels: ip.showNoteLabels,
       includePickupInFirstRow: includePickupInFirstRow,
-      header: _ColorLegend(showSolfege: showSolfege),
+      header: showHeader ? _ColorLegend(showSolfege: showSolfege) : null,
     );
   }
 }
