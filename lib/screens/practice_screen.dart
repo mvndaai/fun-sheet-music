@@ -211,6 +211,24 @@ class _PracticeScreenState extends State<PracticeScreen>
 
           // Helper to find note by exact mapping string
           String? findNote(String mapping) {
+            // If we have a current note, prefer a mapping that matches its letter name (ignoring octave)
+            // or better yet, matches the target note name exactly.
+            final current = _currentNote;
+            if (current != null) {
+              final targetNoteName = NoteResolver.resolveTargetNote(
+                note: current,
+                activeScheme: provider.activeScheme,
+              );
+              if (overrides[targetNoteName] == mapping) return targetNoteName;
+
+              // If not exact match, check other octaves of the same note
+              final step = targetNoteName.replaceAll(RegExp(r'\d+$'), '');
+              for (int oct = 1; oct <= 8; oct++) {
+                final candidate = '$step$oct';
+                if (overrides[candidate] == mapping) return candidate;
+              }
+            }
+
             for (final entry in overrides.entries) {
               if (entry.value == mapping) return entry.key;
             }

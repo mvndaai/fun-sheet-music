@@ -137,6 +137,9 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
       ...disabledNotes,
     ];
 
+    final effectiveOverrides =
+        widget.scheme.copyWith(keyboardOverrides: _overrides).effectiveKeyboardOverrides;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(isStandard
@@ -279,6 +282,7 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
 
                   final note = item;
                   final mapping = _overrides[note];
+                  final effectiveMapping = effectiveOverrides[note];
                   final isPending = _pendingNote == note;
 
                   final defaultMapping =
@@ -286,6 +290,7 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
 
                   String displayMapping;
                   bool isFallback = false;
+                  bool isSpread = false;
                   bool isUnset = mapping == '';
                   bool hasExplicitMapping =
                       mapping != null && mapping.isNotEmpty;
@@ -297,6 +302,12 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
                         defaultMapping != null && defaultMapping.isNotEmpty
                             ? 'Unset (Default: ${KeyboardUtils.formatForDisplay(defaultMapping)})'
                             : 'Unset';
+                  } else if (effectiveMapping != null &&
+                      effectiveMapping.isNotEmpty &&
+                      effectiveMapping != defaultMapping) {
+                    displayMapping =
+                        '${KeyboardUtils.formatForDisplay(effectiveMapping)} (Auto)';
+                    isSpread = true;
                   } else if (!isStandard &&
                       defaultMapping != null &&
                       defaultMapping.isNotEmpty) {
@@ -314,12 +325,13 @@ class _KeyboardConfigScreenState extends State<KeyboardConfigScreen> {
                     subtitle: Text(
                       isPending ? 'WAITING FOR KEY...' : displayMapping,
                       style: TextStyle(
-                        color: isFallback
+                        color: isFallback || isSpread
                             ? Colors.grey.shade500
                             : isUnset
                                 ? Colors.red.shade300
                                 : null,
-                        fontStyle: isFallback ? FontStyle.italic : null,
+                        fontStyle:
+                            isFallback || isSpread ? FontStyle.italic : null,
                       ),
                     ),
                     trailing: (hasExplicitMapping || isUnset) && !isPending

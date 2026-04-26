@@ -162,12 +162,39 @@ class InstrumentProfile {
   }
 
   /// Returns a merged map of keyboard overrides, falling back to the standard profile.
+  /// If only one octave is mapped in this profile, it spreads those mappings to all octaves.
   Map<String, String> get effectiveKeyboardOverrides {
-    if (id == black.id) return keyboardOverrides;
-    return {
-      ...black.keyboardOverrides,
-      ...keyboardOverrides,
-    };
+    final Map<String, String> result = {};
+    if (id != black.id) {
+      result.addAll(black.keyboardOverrides);
+    }
+
+    // Check if user has only mapped one octave in their profile
+    final userOverrides = keyboardOverrides;
+    final octavesMapped = <int>{};
+    for (final note in userOverrides.keys) {
+      final match = RegExp(r'(\d+)$').firstMatch(note);
+      if (match != null) {
+        octavesMapped.add(int.parse(match.group(1)!));
+      }
+    }
+
+    if (octavesMapped.length == 1) {
+      final sourceOctave = octavesMapped.first;
+      // Generate "virtual" overrides for other octaves (1 through 8)
+      final virtualOverrides = <String, String>{};
+      for (int targetOctave = 1; targetOctave <= 8; targetOctave++) {
+        if (targetOctave == sourceOctave) continue;
+        for (final entry in userOverrides.entries) {
+          final noteName = entry.key.replaceAll(RegExp(r'\d+$'), '');
+          virtualOverrides['$noteName$targetOctave'] = entry.value;
+        }
+      }
+      result.addAll(virtualOverrides);
+    }
+
+    result.addAll(userOverrides);
+    return result;
   }
 
   Map<String, dynamic> toJson() => {
