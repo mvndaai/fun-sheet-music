@@ -19,7 +19,7 @@ class InstrumentSetupScreen extends StatefulWidget {
   const InstrumentSetupScreen({
     super.key,
     required this.scheme,
-    this.initialMode = SetupMode.keyboard,
+    this.initialMode = SetupMode.tuning,
   });
 
   @override
@@ -220,9 +220,9 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
               padding: const EdgeInsets.only(bottom: 8),
               child: SegmentedButton<SetupMode>(
                 segments: const [
+                  ButtonSegment(value: SetupMode.tuning, icon: Icon(Icons.tune), label: Text('Tuning')),
                   ButtonSegment(value: SetupMode.keyboard, icon: Icon(Icons.keyboard), label: Text('Keys')),
                   ButtonSegment(value: SetupMode.sounds, icon: Icon(Icons.mic), label: Text('Sounds')),
-                  ButtonSegment(value: SetupMode.tuning, icon: Icon(Icons.tune), label: Text('Tuning')),
                 ],
                 selected: {_mode},
                 onSelectionChanged: (val) {
