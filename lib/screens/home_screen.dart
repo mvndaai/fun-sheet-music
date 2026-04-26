@@ -7,6 +7,7 @@ import '../widgets/tag_chip.dart';
 import 'sheet_music_screen.dart';
 import 'upload_screen.dart';
 import 'share_screen.dart';
+import 'instruments_screen.dart';
 import 'music_editor_screen.dart';
 import '../music_kit/utils/music_xml_generator.dart';
 import '../platform/platform.dart';
@@ -45,6 +46,14 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('🎵 My Songs'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.piano_outlined),
+            tooltip: 'Instruments',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const InstrumentsScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.ios_share),
             tooltip: 'Get the app / share',

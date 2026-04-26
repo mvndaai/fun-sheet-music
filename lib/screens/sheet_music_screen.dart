@@ -10,7 +10,6 @@ import '../widgets/sheet_music_widget.dart';
 import '../widgets/note_settings_sheet.dart';
 import 'practice_screen.dart';
 import 'instruments_screen.dart';
-import '../providers/song_provider.dart';
 
 /// Displays the full sheet music for a song with color-coded notes.
 class SheetMusicScreen extends StatefulWidget {
