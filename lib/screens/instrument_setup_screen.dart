@@ -10,7 +10,7 @@ import '../services/tone_player.dart';
 import '../services/pitch_detection_service.dart';
 import '../platform/platform.dart' as platform;
 
-enum SetupMode { keyboard, sounds, tuning }
+enum SetupMode { tuning, keyboard, sounds }
 
 class InstrumentSetupScreen extends StatefulWidget {
   final InstrumentProfile scheme;
@@ -167,42 +167,39 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
 
   @override
   Widget build(BuildContext context) {
-    final Set<String> allNotes = {};
-
-    // Add enabled notes from standard octave range (skip disabled keys)
-    for (int octave = 3; octave <= 6; octave++) {
+    final allPossibleNotes = <String>{};
+    for (int octave = 0; octave <= 8; octave++) {
       for (final note in kNoteKeys) {
-        if (!widget.scheme.disabledKeys.contains(note)) {
-          allNotes.add('$note$octave');
-        }
+        allPossibleNotes.add('$note$octave');
       }
     }
-    
-    // Add notes with explicit overrides (even if they're disabled keys)
-    allNotes.addAll(_keyboardOverrides.keys);
-    allNotes.addAll(_noteSounds.keys);
-    allNotes.addAll(_tuningOverrides.keys);
 
     final enabledNotes = <String>[];
-    final disabledNotes = <String>[];
+    final hiddenNotes = <String>[];
 
-    for (final note in allNotes) {
+    for (final note in allPossibleNotes) {
       final step = note.replaceAll(RegExp(r'\d'), '');
-      if (widget.scheme.disabledKeys.contains(step)) {
-        disabledNotes.add(note);
-      } else {
+      final octave = int.tryParse(note.replaceAll(RegExp(r'\D'), '')) ?? -1;
+
+      final isOverride = _keyboardOverrides.containsKey(note) || _noteSounds.containsKey(note) || _tuningOverrides.containsKey(note);
+      final isDisabled = widget.scheme.disabledKeys.contains(step);
+      final isInStandardRange = octave >= 3 && octave <= 6;
+
+      if (!isDisabled && isInStandardRange) {
         enabledNotes.add(note);
+      } else if (isDisabled || isOverride) {
+        hiddenNotes.add(note);
       }
     }
 
     int midiSort(String a, String b) => MusicConstants.noteNameToMidi(a).compareTo(MusicConstants.noteNameToMidi(b));
     enabledNotes.sort(midiSort);
-    disabledNotes.sort(midiSort);
+    hiddenNotes.sort(midiSort);
 
     final displayNotes = [
       ...enabledNotes,
-      if (disabledNotes.isNotEmpty) '---DIVIDER---',
-      ...disabledNotes,
+      if (hiddenNotes.isNotEmpty) '---DIVIDER---',
+      ...hiddenNotes,
     ];
 
     return Focus(
@@ -254,7 +251,7 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           child: Text(
-                            'DISABLED KEYS',
+                            'HIDDEN KEYS',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
