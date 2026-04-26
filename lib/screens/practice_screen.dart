@@ -396,25 +396,47 @@ class _PracticeScreenState extends State<PracticeScreen>
             // Sheet music (scrollable or game mode)
             Expanded(
               child: _gameModeEnabled
-                  ? ClipRect(
-                      child: Transform(
-                        // Perspective: bottom (current notes) appears wider/closer,
-                        // top (upcoming notes) narrower/farther — highway effect.
-                        transform: Matrix4.identity()
-                          ..setEntry(3, 2, 0.003) // perspective depth
-                          ..rotateX(0.4), // tilt top away from viewer
-                        alignment: Alignment.bottomCenter,
-                        child: RotatedBox(
-                          quarterTurns: 3,
-                          child: SheetMusicWidget(
-                            song: _gameModeFilteredSong(),
-                            activeNoteIndex: _gameModeNoteIndex(),
-                            showSolfege: provider.showSolfege,
-                            showLetter: provider.showLetter,
-                            labelsBelow: provider.labelsBelow,
-                            coloredLabels: provider.coloredLabels,
-                            measuresPerRow: 2,
-                            showHeader: false,
+                  // ── Game mode: perspective highway with progressive fade ──
+                  ? ShaderMask(
+                      // Fix 4: progressive alpha — notes furthest from the
+                      // current note fade to transparent toward the top.
+                      shaderCallback: (bounds) => const LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [Colors.white, Colors.transparent],
+                        stops: [0.15, 0.90],
+                      ).createShader(bounds),
+                      blendMode: BlendMode.dstIn,
+                      child: ClipRect(
+                        child: Transform(
+                          // Fix 1: bottom (current note) is larger than top
+                          // (upcoming notes).  Negate the tilt so the bottom
+                          // rotates toward the viewer and the top tilts away.
+                          transform: Matrix4.identity()
+                            ..setEntry(3, 2, 0.003)
+                            ..rotateX(-0.4),
+                          alignment: Alignment.topCenter,
+                          child: RotatedBox(
+                            quarterTurns: 3,
+                            child: SheetMusicWidget(
+                              // Fix 2: show the full song so the renderer's
+                              // built-in scroll animation advances one measure
+                              // at a time (smooth) rather than re-building a
+                              // filtered song slice on each measure boundary
+                              // (abrupt jump).
+                              song: widget.song,
+                              activeNoteIndex: _currentNoteIndex,
+                              showSolfege: provider.showSolfege,
+                              showLetter: provider.showLetter,
+                              labelsBelow: provider.labelsBelow,
+                              coloredLabels: provider.coloredLabels,
+                              measuresPerRow: 1,
+                              showHeader: false,
+                              // Fix 2 cont. + Fix 3: gameMode flag enables
+                              // leading-edge scroll alignment and measure-level
+                              // fade overlays.
+                              gameMode: true,
+                            ),
                           ),
                         ),
                       ),
