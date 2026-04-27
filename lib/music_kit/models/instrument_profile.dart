@@ -94,9 +94,9 @@ class InstrumentProfile {
     }
 
     final bool isStandard = baseColor == null ||
-        baseColor.alpha == 0 ||
-        baseColor.value == 0xFF000000 ||
-        baseColor.value == 0xFFFFFFFF;
+        baseColor.a == 0 ||
+        baseColor.toARGB32() == 0xFF000000 ||
+        baseColor.toARGB32() == 0xFFFFFFFF;
 
     if (isStandard) {
       final isDark = brightness == Brightness.dark ||

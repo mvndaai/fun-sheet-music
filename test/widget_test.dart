@@ -276,7 +276,7 @@ void main() {
         theme: ThemeData(brightness: Brightness.light),
         home: Scaffold(body: Builder(builder: (context) {
           final color = InstrumentProfile.black.colorForNote('C', 0, context: context);
-          expect(color.value, Colors.black.value);
+          expect(color.toARGB32(), Colors.black.toARGB32());
           return const SizedBox();
         })),
       ));
@@ -288,7 +288,7 @@ void main() {
           // If the test environment doesn't propagate theme brightness correctly to the builder,
           // we can also test by passing it explicitly.
           final colorExplicit = InstrumentProfile.black.colorForNote('C', 0, brightness: Brightness.dark);
-          expect(colorExplicit.value, Colors.white.value);
+          expect(colorExplicit.toARGB32(), Colors.white.toARGB32());
           
           // We'll accept either behavior for the context-based lookup in tests as long as one works,
           // but typically colorExplicit is safer for unit testing this logic.
@@ -306,7 +306,7 @@ void main() {
       final json = scheme.toJson();
       final restored = InstrumentProfile.fromJson(json, fallbackId: 'test_id');
       expect(restored.name, scheme.name);
-      expect(restored.colors['C']?.value, scheme.colors['C']?.value);
+      expect(restored.colors['C']?.toARGB32(), scheme.colors['C']?.toARGB32());
     });
 
     test('copyWith changes only specified fields', () {
