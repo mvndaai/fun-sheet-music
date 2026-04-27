@@ -487,7 +487,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
         body: Column(
           children: [
             if (mode != MusicDisplayMode.game) LinearProgressIndicator(value: progress, minHeight: 4),
-            if (mode == MusicDisplayMode.practice) _PracticeStatusBar(micActive: _micActive, statusMessage: _statusMessage, currentIdx: _activeNoteIndex, total: _notes.length),
             if (mode == MusicDisplayMode.practice && current != null)
               _CurrentNoteCard(
                 note: current,
@@ -516,31 +515,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _PracticeStatusBar extends StatelessWidget {
-  final bool micActive;
-  final String? statusMessage;
-  final int currentIdx;
-  final int total;
-
-  const _PracticeStatusBar({required this.micActive, this.statusMessage, required this.currentIdx, required this.total});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      color: micActive ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.2) : null,
-      child: Row(
-        children: [
-          Icon(micActive ? Icons.mic : Icons.mic_off, color: micActive ? Colors.green : Colors.grey, size: 18),
-          const SizedBox(width: 8),
-          Expanded(child: Text(statusMessage ?? (micActive ? 'Listening…' : 'Tap mic to start practice'), style: const TextStyle(fontSize: 13))),
-          Text('${currentIdx + 1} / $total', style: Theme.of(context).textTheme.bodySmall),
-        ],
       ),
     );
   }
