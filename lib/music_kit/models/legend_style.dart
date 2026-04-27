@@ -1,0 +1,4 @@
+enum LegendStyle {
+  circles,
+  piano,
+}

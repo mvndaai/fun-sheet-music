@@ -5,7 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
 import '../music_kit/utils/music_constants.dart';
+import '../music_kit/models/legend_style.dart';
 import '../widgets/legend_circle.dart';
+import '../widgets/legend_piano.dart';
 import 'instrument_setup_screen.dart';
 
 /// Screen for managing instrument profiles.
@@ -555,6 +557,17 @@ class _ColorSwatchRow extends StatelessWidget {
     final provider = context.watch<InstrumentProvider>();
     final showSolfege = provider.showSolfege;
     final showLabels = provider.showNoteLabels;
+    final style = provider.legendStyle;
+
+    if (style == LegendStyle.piano) {
+      return LegendPiano(
+        instrument: scheme,
+        showSolfege: showSolfege,
+        showLabels: showLabels,
+        keyWidth: 20,
+        keyHeight: 32,
+      );
+    }
 
     // List of note names that have explicit colors and are not hidden
     final coloredNotes = kNoteKeys.where((n) => 

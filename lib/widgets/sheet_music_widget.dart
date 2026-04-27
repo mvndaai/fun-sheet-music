@@ -6,7 +6,9 @@ import '../music_kit/models/song.dart';
 import '../music_kit/models/music_note.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../music_kit/utils/music_constants.dart';
+import '../music_kit/models/legend_style.dart';
 import 'legend_circle.dart';
+import 'legend_piano.dart';
 
 /// App-specific wrapper around [SheetMusicRenderer] that connects it to [InstrumentProvider].
 class SheetMusicWidget extends StatelessWidget {
@@ -78,6 +80,15 @@ class _ColorLegend extends StatelessWidget {
     final provider = context.watch<InstrumentProvider>();
     final scheme = provider.activeScheme;
     final showLabels = provider.showNoteLabels;
+    final style = provider.legendStyle;
+
+    if (style == LegendStyle.piano) {
+      return LegendPiano(
+        instrument: scheme,
+        showSolfege: showSolfege,
+        showLabels: showLabels,
+      );
+    }
 
     final coloredNotes = kNoteKeys.where((n) => scheme.colors.containsKey(n));
     final overrideKeys = scheme.octaveOverrides.keys.toList()..sort();

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/instrument_provider.dart';
 import '../screens/instruments_screen.dart';
 import '../music_kit/models/music_display_mode.dart';
+import '../music_kit/models/legend_style.dart';
 
 /// A shared settings bottom sheet for music display and playback settings.
 class NoteSettingsSheet extends StatelessWidget {
@@ -215,6 +216,17 @@ class NoteSettingsSheet extends StatelessWidget {
                       onChanged: (v) => provider.setShowLegend(v),
                     ),
 
+                    if (provider.showLegend)
+                      _SegmentedSetting<LegendStyle>(
+                        title: 'Legend Style',
+                        value: provider.legendStyle,
+                        options: const [
+                          (value: LegendStyle.circles, label: 'Circles', icon: Icons.circle),
+                          (value: LegendStyle.piano, label: 'Piano', icon: Icons.piano),
+                        ],
+                        onChanged: (v) => provider.setLegendStyle(v),
+                      ),
+
                     const Divider(height: 24),
                     _SectionHeader(title: 'Sound'),
 
@@ -231,15 +243,22 @@ class NoteSettingsSheet extends StatelessWidget {
 
                     // 12. Tempo
                     if (showTempo && tempo != null && onTempoChanged != null)
-                      _SliderSetting(
-                        title: 'Tempo: ${localTempo.round()} BPM',
-                        value: localTempo,
-                        min: 40,
-                        max: 240,
-                        onChanged: (v) {
-                          setSheetState(() => localTempo = v);
-                          onTempoChanged!(v);
-                        },
+                      ListTile(
+                        title: const Text('Tempo'),
+                        subtitle: Text('${localTempo.round()} BPM'),
+                        trailing: SizedBox(
+                          width: 200, // Increased width for better dragging
+                          child: Slider(
+                            value: localTempo,
+                            min: 40,
+                            max: 240,
+                            divisions: 200, // Smoother 1-BPM increments
+                            onChanged: (v) {
+                              setSheetState(() => localTempo = v);
+                              onTempoChanged!(v);
+                            },
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -248,51 +267,6 @@ class NoteSettingsSheet extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class _SliderSetting extends StatelessWidget {
-  final String title;
-  final double value;
-  final double min;
-  final double max;
-  final ValueChanged<double> onChanged;
-
-  const _SliderSetting({
-    required this.title,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.normal,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Slider(
-            value: value,
-            min: min,
-            max: max,
-            divisions: (max - min).toInt(),
-            onChanged: onChanged,
-          ),
-        ),
-      ],
     );
   }
 }
