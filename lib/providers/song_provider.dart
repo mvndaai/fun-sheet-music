@@ -68,7 +68,6 @@ class SongProvider extends ChangeNotifier {
     }
     // These are the known "available" libraries.
     libs.add('Flutter Music');
-    libs.add('musetrainer/library');
     return libs.toList()..sort();
   }
 

@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import '../providers/song_provider.dart';
@@ -486,15 +484,6 @@ class _LibraryTab extends StatefulWidget {
 
 class _LibraryTabState extends State<_LibraryTab>
     with AutomaticKeepAliveClientMixin {
-  static const _githubApiUrl =
-      'https://api.github.com/repos/musetrainer/library/contents/scores';
-  static const _githubRawBase =
-      'https://raw.githubusercontent.com/musetrainer/library/master/scores/';
-
-  List<_LibraryEntry> _remoteEntries = [];
-  bool _fetchingRemote = false;
-  String? _remoteError;
-  
   final Set<String> _adding = {};
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -505,52 +494,12 @@ class _LibraryTabState extends State<_LibraryTab>
   @override
   void initState() {
     super.initState();
-    _loadRemoteEntries();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadRemoteEntries() async {
-    setState(() {
-      _fetchingRemote = true;
-      _remoteError = null;
-    });
-    try {
-      final response = await http.get(Uri.parse(_githubApiUrl));
-      if (response.statusCode != 200) {
-        throw Exception('HTTP ${response.statusCode}');
-      }
-      final List<dynamic> data = json.decode(response.body) as List<dynamic>;
-      final entries = data
-          .where((item) {
-            if (item['type'] != 'file') return false;
-            final name = (item['name'] as String).toLowerCase();
-            return name.endsWith('.mxl') ||
-                name.endsWith('.xml') ||
-                name.endsWith('.musicxml');
-          })
-          .map((item) {
-            final fileName = item['name'] as String;
-            final title = fileName
-                .replaceAll(RegExp(r'\.(mxl|xml|musicxml)$', caseSensitive: false), '')
-                .replaceAll('_', ' ');
-            return _LibraryEntry(
-              title: title,
-              library: 'musetrainer/library',
-              url: Uri.parse(_githubRawBase).resolve(fileName).toString(),
-            );
-          })
-          .toList();
-      setState(() => _remoteEntries = entries);
-    } catch (e) {
-      setState(() => _remoteError = 'Failed to load remote library: $e');
-    } finally {
-      setState(() => _fetchingRemote = false);
-    }
   }
 
   Future<void> _addSong(_LibraryEntry entry) async {
@@ -606,12 +555,7 @@ class _LibraryTabState extends State<_LibraryTab>
       }
     }
 
-    // 2. Add remote songs if selected
-    if (provider.selectedLibraries.contains('musetrainer/library')) {
-      allAvailable.addAll(_remoteEntries);
-    }
-
-    // 3. Filter by search
+    // 2. Filter by search
     final filtered = _searchQuery.isEmpty
         ? allAvailable
         : allAvailable
@@ -667,16 +611,6 @@ class _LibraryTabState extends State<_LibraryTab>
           ),
         ),
 
-        // List Header / Info
-        if (_fetchingRemote && provider.selectedLibraries.contains('musetrainer/library'))
-          const LinearProgressIndicator(),
-        
-        if (_remoteError != null && provider.selectedLibraries.contains('musetrainer/library'))
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(_remoteError!, style: const TextStyle(color: Colors.red, fontSize: 12)),
-          ),
-
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Row(
@@ -685,15 +619,6 @@ class _LibraryTabState extends State<_LibraryTab>
                 '${filtered.length} songs available',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              const Spacer(),
-              if (provider.selectedLibraries.contains('musetrainer/library'))
-                IconButton(
-                  icon: const Icon(Icons.refresh, size: 16),
-                  onPressed: _loadRemoteEntries,
-                  tooltip: 'Refresh GitHub Library',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
             ],
           ),
         ),
