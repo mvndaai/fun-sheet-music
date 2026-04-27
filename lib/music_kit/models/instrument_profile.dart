@@ -41,13 +41,6 @@ class InstrumentProfile {
   /// E.g. `{'C5': 'B4'}` means when the app expects C5, it should listen for B4.
   final Map<String, String> tuningOverrides;
 
-  /// Optional keyboard overrides, mapping a note name to a physical key name.
-  /// E.g. `{'C4': 'KeyA'}`.
-  final Map<String, String> keyboardOverrides;
-
-  /// Optional mapping from note names to recorded sound file paths.
-  final Map<String, String> noteSounds;
-
   const InstrumentProfile({
     required this.id,
     required this.name,
@@ -59,8 +52,6 @@ class InstrumentProfile {
     this.octaveOverrides = const {},
     this.hiddenKeys = const {},
     this.tuningOverrides = const {},
-    this.keyboardOverrides = const {},
-    this.noteSounds = const {},
   });
 
   /// Returns the color for a note given its [step] (C–B), [alter] (-1/0/+1),
@@ -125,15 +116,9 @@ class InstrumentProfile {
     Map<String, Color>? octaveOverrides,
     Set<String>? hiddenKeys,
     Map<String, String>? tuningOverrides,
-    Map<String, String>? keyboardOverrides,
-    Map<String, String>? noteSounds,
     bool? isBuiltIn,
     bool? isImported,
   }) {
-    // Determine which icon/emoji to use based on which one is provided.
-    // If both are provided, we should probably prefer emoji or follow the caller.
-    // To support clearing, we can check if they are explicitly passed.
-    // For now, we'll stick to the existing pattern but be mindful in the caller.
     return InstrumentProfile(
       id: id ?? this.id,
       name: name ?? this.name,
@@ -145,8 +130,6 @@ class InstrumentProfile {
       octaveOverrides: octaveOverrides ?? Map.from(this.octaveOverrides),
       hiddenKeys: hiddenKeys ?? Set.from(this.hiddenKeys),
       tuningOverrides: tuningOverrides ?? Map.from(this.tuningOverrides),
-      keyboardOverrides: keyboardOverrides ?? Map.from(this.keyboardOverrides),
-      noteSounds: noteSounds ?? Map.from(this.noteSounds),
     );
   }
 
@@ -163,65 +146,7 @@ class InstrumentProfile {
       octaveOverrides: octaveOverrides,
       hiddenKeys: hiddenKeys,
       tuningOverrides: tuningOverrides,
-      keyboardOverrides: keyboardOverrides,
-      noteSounds: noteSounds,
     );
-  }
-
-  /// Gets a sample path for a note, with fallback to C4 if the specific octave doesn't exist.
-  /// Returns null if no sample exists at all.
-  String? getSamplePath(String noteName) {
-    // Try the exact note first
-    final exactPath = noteSounds[noteName];
-    if (exactPath != null && exactPath.isNotEmpty) {
-      return exactPath;
-    }
-
-    // Fallback: try the same note in octave 4 (e.g., C5 -> C4)
-    final step = noteName.replaceAll(RegExp(r'\d'), '');
-    final fallbackNote = '$step' '4';
-    final fallbackPath = noteSounds[fallbackNote];
-    if (fallbackPath != null && fallbackPath.isNotEmpty) {
-      return fallbackPath;
-    }
-
-    return null;
-  }
-
-  /// Returns a merged map of keyboard overrides, falling back to the standard profile.
-  /// If only one octave is mapped in this profile, it spreads those mappings to all octaves.
-  Map<String, String> get effectiveKeyboardOverrides {
-    final Map<String, String> result = {};
-    if (id != black.id) {
-      result.addAll(black.keyboardOverrides);
-    }
-
-    // Check if user has only mapped one octave in their profile
-    final userOverrides = keyboardOverrides;
-    final octavesMapped = <int>{};
-    for (final note in userOverrides.keys) {
-      final match = RegExp(r'(\d+)$').firstMatch(note);
-      if (match != null) {
-        octavesMapped.add(int.parse(match.group(1)!));
-      }
-    }
-
-    if (octavesMapped.length == 1) {
-      final sourceOctave = octavesMapped.first;
-      // Generate "virtual" overrides for other octaves (1 through 8)
-      final virtualOverrides = <String, String>{};
-      for (int targetOctave = 1; targetOctave <= 8; targetOctave++) {
-        if (targetOctave == sourceOctave) continue;
-        for (final entry in userOverrides.entries) {
-          final noteName = entry.key.replaceAll(RegExp(r'\d+$'), '');
-          virtualOverrides['$noteName$targetOctave'] = entry.value;
-        }
-      }
-      result.addAll(virtualOverrides);
-    }
-
-    result.addAll(userOverrides);
-    return result;
   }
 
   Map<String, dynamic> toJson() => {
@@ -233,19 +158,15 @@ class InstrumentProfile {
           'octaveOverrides':
               octaveOverrides.map((k, v) => MapEntry(k, v.toARGB32())),
         if (hiddenKeys.isNotEmpty) 'hiddenKeys': hiddenKeys.toList(),
-        if (keyboardOverrides.isNotEmpty) 'keyboardOverrides': keyboardOverrides,
-        if (noteSounds.isNotEmpty) 'noteSounds': noteSounds,
-        // Skipped attributes: id, tuningOverrides, isBuiltIn, isImported
+        if (tuningOverrides.isNotEmpty) 'tuningOverrides': tuningOverrides,
       };
 
   factory InstrumentProfile.fromJson(Map<String, dynamic> json, {String? fallbackId}) {
     final rawColors = json['colors'] as Map<String, dynamic>? ?? {};
     final rawOverrides =
         json['octaveOverrides'] as Map<String, dynamic>? ?? {};
-    final rawDisabled = json['disabledKeys'] as List<dynamic>? ?? [];
+    final rawDisabled = json['hiddenKeys'] as List<dynamic>? ?? json['disabledKeys'] as List<dynamic>? ?? [];
     final rawTuning = json['tuningOverrides'] as Map<String, dynamic>? ?? {};
-    final rawKeyboard = json['keyboardOverrides'] as Map<String, dynamic>? ?? {};
-    final rawSounds = json['noteSounds'] as Map<String, dynamic>? ?? {};
     return InstrumentProfile(
       id: (json['id'] as String?) ?? fallbackId ?? const Uuid().v7(),
       name: json['name'] as String,
@@ -258,8 +179,6 @@ class InstrumentProfile {
           rawOverrides.map((k, v) => MapEntry(k, Color(v as int))),
       hiddenKeys: rawDisabled.cast<String>().toSet(),
       tuningOverrides: rawTuning.cast<String, String>(),
-      keyboardOverrides: rawKeyboard.cast<String, String>(),
-      noteSounds: rawSounds.cast<String, String>(),
     );
   }
 
@@ -269,34 +188,5 @@ class InstrumentProfile {
     emoji: '🎹',
     isBuiltIn: true,
     colors: {},
-    keyboardOverrides: {
-      'C4': 'KeyA',
-      'C#4': 'KeyW',
-      'D4': 'KeyS',
-      'D#4': 'KeyE',
-      'E4': 'KeyD',
-      'F4': 'KeyF',
-      'F#4': 'KeyT',
-      'G4': 'KeyG',
-      'G#4': 'KeyY',
-      'A4': 'KeyH',
-      'A#4': 'KeyU',
-      'B4': 'KeyJ',
-      'C5': 'Shift+KeyA',
-      'C#5': 'Shift+KeyW',
-      'D5': 'Shift+KeyS',
-      'D#5': 'Shift+KeyE',
-      'E5': 'Shift+KeyD',
-      'F5': 'Shift+KeyF',
-      'F#5': 'Shift+KeyT',
-      'G5': 'Shift+KeyG',
-      'G#5': 'Shift+KeyY',
-      'A5': 'Shift+KeyH',
-      'A#5': 'Shift+KeyU',
-      'B5': 'Shift+KeyJ',
-      'C6': 'Alt+KeyA',
-      'D6': 'Alt+KeyS',
-      'E6': 'Alt+KeyD',
-    },
   );
 }

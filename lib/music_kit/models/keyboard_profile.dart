@@ -1,0 +1,102 @@
+import 'package:uuid/uuid.dart';
+
+class KeyboardProfile {
+  final String id;
+  final String name;
+  final String? icon;
+  final String? emoji;
+  final bool isBuiltIn;
+  final bool isImported;
+
+  /// Optional keyboard overrides, mapping a note name to a physical key name.
+  /// E.g. `{'C4': 'KeyA'}`.
+  final Map<String, String> keyboardOverrides;
+
+  /// Optional mapping from note names to recorded sound file paths.
+  final Map<String, String> noteSounds;
+
+  const KeyboardProfile({
+    required this.id,
+    required this.name,
+    this.icon,
+    this.emoji,
+    this.isBuiltIn = false,
+    this.isImported = false,
+    this.keyboardOverrides = const {},
+    this.noteSounds = const {},
+  });
+
+  KeyboardProfile copyWith({
+    String? id,
+    String? name,
+    String? icon,
+    String? emoji,
+    Map<String, String>? keyboardOverrides,
+    Map<String, String>? noteSounds,
+    bool? isBuiltIn,
+    bool? isImported,
+  }) {
+    return KeyboardProfile(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      icon: icon ?? this.icon,
+      emoji: emoji ?? this.emoji,
+      isBuiltIn: isBuiltIn ?? this.isBuiltIn,
+      isImported: isImported ?? this.isImported,
+      keyboardOverrides: keyboardOverrides ?? Map.from(this.keyboardOverrides),
+      noteSounds: noteSounds ?? Map.from(this.noteSounds),
+    );
+  }
+
+  /// Gets a sample path for a note, with fallback to C4 if the specific octave doesn't exist.
+  String? getSamplePath(String noteName) {
+    final exactPath = noteSounds[noteName];
+    if (exactPath != null && exactPath.isNotEmpty) return exactPath;
+
+    final step = noteName.replaceAll(RegExp(r'\d'), '');
+    final fallbackNote = '${step}4';
+    final fallbackPath = noteSounds[fallbackNote];
+    if (fallbackPath != null && fallbackPath.isNotEmpty) return fallbackPath;
+
+    return null;
+  }
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        if (icon != null) 'icon': icon,
+        if (emoji != null) 'emoji': emoji,
+        if (keyboardOverrides.isNotEmpty) 'keyboardOverrides': keyboardOverrides,
+        if (noteSounds.isNotEmpty) 'noteSounds': noteSounds,
+      };
+
+  factory KeyboardProfile.fromJson(Map<String, dynamic> json, {String? fallbackId}) {
+    final rawKeyboard = json['keyboardOverrides'] as Map<String, dynamic>? ?? {};
+    final rawSounds = json['noteSounds'] as Map<String, dynamic>? ?? {};
+    return KeyboardProfile(
+      id: (json['id'] as String?) ?? fallbackId ?? const Uuid().v7(),
+      name: json['name'] as String,
+      icon: json['icon'] as String?,
+      emoji: json['emoji'] as String?,
+      isBuiltIn: json['isBuiltIn'] as bool? ?? false,
+      isImported: json['isImported'] as bool? ?? false,
+      keyboardOverrides: rawKeyboard.cast<String, String>(),
+      noteSounds: rawSounds.cast<String, String>(),
+    );
+  }
+
+  static const KeyboardProfile standard = KeyboardProfile(
+    id: 'builtin_keyboard_standard',
+    name: 'Standard QWERTY',
+    emoji: '⌨️',
+    isBuiltIn: true,
+    keyboardOverrides: {
+      'C4': 'KeyA', 'C#4': 'KeyW', 'D4': 'KeyS', 'D#4': 'KeyE', 'E4': 'KeyD',
+      'F4': 'KeyF', 'F#4': 'KeyT', 'G4': 'KeyG', 'G#4': 'KeyY', 'A4': 'KeyH',
+      'A#4': 'KeyU', 'B4': 'KeyJ',
+      'C5': 'Shift+KeyA', 'C#5': 'Shift+KeyW', 'D5': 'Shift+KeyS', 'D#5': 'Shift+KeyE',
+      'E5': 'Shift+KeyD', 'F5': 'Shift+KeyF', 'F#5': 'Shift+KeyT', 'G5': 'Shift+KeyG',
+      'G#5': 'Shift+KeyY', 'A5': 'Shift+KeyH', 'A#5': 'Shift+KeyU', 'B5': 'Shift+KeyJ',
+      'C6': 'Alt+KeyA', 'D6': 'Alt+KeyS', 'E6': 'Alt+KeyD',
+    },
+  );
+}

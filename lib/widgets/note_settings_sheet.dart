@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/instrument_provider.dart';
+import '../providers/keyboard_provider.dart';
 import '../screens/instruments_screen.dart';
+import '../screens/keyboards_screen.dart';
 import '../music_kit/models/music_display_mode.dart';
 import '../music_kit/models/legend_style.dart';
 
@@ -67,8 +69,8 @@ class NoteSettingsSheet extends StatelessWidget {
               top: 12,
               bottom: MediaQuery.of(context).viewInsets.bottom + 24,
             ),
-            child: Consumer<InstrumentProvider>(
-              builder: (context, provider, _) => SingleChildScrollView(
+            child: Consumer2<InstrumentProvider, KeyboardProvider>(
+              builder: (context, provider, keyboardProvider, _) => SingleChildScrollView(
                 primary: true,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -108,8 +110,8 @@ class NoteSettingsSheet extends StatelessWidget {
                     // 2. Instrument
                     if (showInstrument)
                       ListTile(
-                        leading: const Icon(Icons.piano),
-                        title: const Text('Instrument'),
+                        leading: const Icon(Icons.palette),
+                        title: const Text('Instrument (Visuals)'),
                         subtitle: Text(provider.activeScheme.name),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
@@ -120,6 +122,21 @@ class NoteSettingsSheet extends StatelessWidget {
                           );
                         },
                       ),
+
+                    // 2.1 Keyboard
+                    ListTile(
+                      leading: const Icon(Icons.keyboard),
+                      title: const Text('Keyboard & Sounds'),
+                      subtitle: Text(keyboardProvider.activeProfile.name),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const KeyboardsScreen()),
+                        );
+                      },
+                    ),
 
                     // 3. Print
                     if (showPrint && onPrint != null)

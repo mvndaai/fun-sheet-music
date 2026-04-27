@@ -8,6 +8,7 @@ import '../music_kit/models/measure.dart';
 import '../music_kit/models/music_note.dart';
 import '../music_kit/models/music_display_mode.dart';
 import '../providers/instrument_provider.dart';
+import '../providers/keyboard_provider.dart';
 import '../services/pitch_detection_service.dart';
 import '../services/tone_player.dart';
 import '../music_kit/utils/music_pdf_service.dart';
@@ -122,7 +123,8 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
 
     final note = _notes[_activeNoteIndex];
     final provider = context.read<InstrumentProvider>();
-    final samplePath = provider.activeScheme.getSamplePath(note.letterName);
+    final keyboardProvider = context.read<KeyboardProvider>();
+    final samplePath = keyboardProvider.activeProfile.getSamplePath(note.letterName);
     _tonePlayer.playNote(note.frequency, samplePath: samplePath);
 
     final quarterNoteDuration = 60000.0 / _tempo;
@@ -369,6 +371,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<InstrumentProvider>();
+    final keyboardProvider = context.watch<KeyboardProvider>();
     final mode = provider.displayMode;
     final current = _currentNote;
     final progress = _notes.isEmpty ? 0.0 : (_activeNoteIndex / _notes.length).clamp(0.0, 1.0);
@@ -385,17 +388,18 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
         if (mode == MusicDisplayMode.view) return KeyEventResult.ignored;
         if (event is KeyRepeatEvent) return KeyEventResult.handled;
         final mapping = KeyboardUtils.getMappingName(event);
-        final overrides = provider.activeScheme.effectiveKeyboardOverrides;
+        final overrides = keyboardProvider.activeProfile.keyboardOverrides;
 
         String? findNote(String mapping) {
           final current = _currentNote;
           if (current != null) {
             final targetNoteName = NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme);
             if (overrides[targetNoteName] == mapping) return targetNoteName;
+            // Fallback for keyboard mappings across octaves if only one was mapped
+            // (Standard Keyboard already has many mapped, but we can do a quick check)
             final step = targetNoteName.replaceAll(RegExp(r'\d+$'), '');
             for (int oct = 1; oct <= 8; oct++) {
-              final candidate = '$step$oct';
-              if (overrides[candidate] == mapping) return candidate;
+              if (overrides['$step$oct'] == mapping) return '$step$oct';
             }
           }
           for (final entry in overrides.entries) {
@@ -409,7 +413,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           if (noteName != null) {
             final midi = MusicConstants.noteNameToMidi(noteName);
             if (midi >= 0) {
-              final samplePath = provider.activeScheme.getSamplePath(noteName);
+              final samplePath = keyboardProvider.activeProfile.getSamplePath(noteName);
               _tonePlayer.stopNote(MusicConstants.midiToFrequency(midi), samplePath: samplePath);
             }
           }
@@ -428,7 +432,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           _keyToNote[event.logicalKey] = noteName;
           final midi = MusicConstants.noteNameToMidi(noteName);
           if (midi >= 0) {
-            final samplePath = provider.activeScheme.getSamplePath(noteName);
+            final samplePath = keyboardProvider.activeProfile.getSamplePath(noteName);
             _tonePlayer.startNote(MusicConstants.midiToFrequency(midi), samplePath: samplePath);
           }
           setState(() => _lastPhysicalKey = KeyboardUtils.formatForDisplay(mapping));
@@ -495,7 +499,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
                 isKeyboardInput: _isKeyboardInput,
                 lastPhysicalKey: _lastPhysicalKey,
                 targetNoteName: NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme),
-                keyboardOverrides: provider.activeScheme.effectiveKeyboardOverrides,
+                keyboardOverrides: keyboardProvider.activeProfile.keyboardOverrides,
               ),
             Expanded(
               child: mode == MusicDisplayMode.game ? _GameView(

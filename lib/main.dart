@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/song_provider.dart';
 import 'providers/instrument_provider.dart';
+import 'providers/keyboard_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/database.dart';
 import 'services/storage_service.dart';
@@ -17,12 +18,16 @@ void main() async {
   final storageService = StorageService(db: database);
   
   final instrumentProvider = InstrumentProvider();
-  await instrumentProvider.load(); // Wait for preferences before starting app
+  await instrumentProvider.load();
+  
+  final keyboardProvider = KeyboardProvider();
+  await keyboardProvider.load();
 
   runApp(FlutterMusicApp(
     database: database,
     storageService: storageService,
     instrumentProvider: instrumentProvider,
+    keyboardProvider: keyboardProvider,
   ));
 }
 
@@ -30,12 +35,14 @@ class FlutterMusicApp extends StatelessWidget {
   final AppDatabase database;
   final StorageService storageService;
   final InstrumentProvider instrumentProvider;
+  final KeyboardProvider keyboardProvider;
 
   const FlutterMusicApp({
     super.key,
     required this.database,
     required this.storageService,
     required this.instrumentProvider,
+    required this.keyboardProvider,
   });
 
   @override
@@ -47,6 +54,9 @@ class FlutterMusicApp extends StatelessWidget {
         ),
         ChangeNotifierProvider.value(
           value: instrumentProvider,
+        ),
+        ChangeNotifierProvider.value(
+          value: keyboardProvider,
         ),
       ],
       child: Consumer<InstrumentProvider>(
