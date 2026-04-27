@@ -516,8 +516,9 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _GameView extends StatelessWidget {
