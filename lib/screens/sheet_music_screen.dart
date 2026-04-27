@@ -50,9 +50,21 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   StreamSubscription<String>? _noteSubscription;
   Timer? _clearNoteTimer;
   final ScrollController _gameScrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
 
   List<MusicNote> get _notes => widget.song.allNotes;
   MusicNote? get _currentNote => _activeNoteIndex < _notes.length ? _notes[_activeNoteIndex] : null;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure keyboard focus is regained if lost
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus && mounted) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -61,6 +73,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     _audio.dispose();
     _tonePlayer.dispose();
     _gameScrollController.dispose();
+    _focusNode.dispose();
     _clearNoteTimer?.cancel();
     super.dispose();
   }
@@ -361,6 +374,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     final progress = _notes.isEmpty ? 0.0 : (_activeNoteIndex / _notes.length).clamp(0.0, 1.0);
 
     return Focus(
+      focusNode: _focusNode,
       autofocus: true,
       onKeyEvent: (node, event) {
         if (mode == MusicDisplayMode.view) return KeyEventResult.ignored;
