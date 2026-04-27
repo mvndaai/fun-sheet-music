@@ -130,6 +130,12 @@ class NoteSettingsSheet extends StatelessWidget {
                     value: provider.coloredLabels,
                     onChanged: (v) => provider.setColoredLabels(v),
                   ),
+                  SwitchListTile(
+                    title: const Text('Show Legend'),
+                    subtitle: const Text('Show the color key at the top'),
+                    value: provider.showLegend,
+                    onChanged: (v) => provider.setShowLegend(v),
+                  ),
 
                   const Divider(height: 24),
 

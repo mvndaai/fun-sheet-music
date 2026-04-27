@@ -16,6 +16,7 @@ class InstrumentProvider extends ChangeNotifier {
   static const String _labelsBelowKey = 'settings_labels_below';
   static const String _coloredLabelsKey = 'settings_colored_labels';
   static const String _measuresPerRowKey = 'settings_measures_per_row';
+  static const String _showLegendKey = 'settings_show_legend';
   static const String _themeModeKey = 'app_theme_mode';
   static const String _metronomeSoundKey = 'settings_metronome_sound';
   static const String _displayModeKey = 'settings_display_mode';
@@ -35,6 +36,7 @@ class InstrumentProvider extends ChangeNotifier {
   bool _labelsBelow = true;
   bool _coloredLabels = false;
   int _measuresPerRow = 4;
+  bool _showLegend = true;
   ThemeMode _themeMode = ThemeMode.system;
   String _metronomeSound = 'tick';
   MusicDisplayMode _displayMode = MusicDisplayMode.view;
@@ -45,6 +47,7 @@ class InstrumentProvider extends ChangeNotifier {
   bool get labelsBelow => _labelsBelow;
   bool get coloredLabels => _coloredLabels;
   int get measuresPerRow => _measuresPerRow;
+  bool get showLegend => _showLegend;
   String get activeId => _activeId;
   ThemeMode get themeMode => _themeMode;
   String get metronomeSound => _metronomeSound;
@@ -77,6 +80,7 @@ class InstrumentProvider extends ChangeNotifier {
     _labelsBelow = prefs.getBool(_labelsBelowKey) ?? true;
     _coloredLabels = prefs.getBool(_coloredLabelsKey) ?? false;
     _measuresPerRow = prefs.getInt(_measuresPerRowKey) ?? 4;
+    _showLegend = prefs.getBool(_showLegendKey) ?? true;
     _metronomeSound = prefs.getString(_metronomeSoundKey) ?? 'tick';
 
     final modeIndex = prefs.getInt(_displayModeKey) ?? 0;
@@ -260,6 +264,14 @@ class InstrumentProvider extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_measuresPerRowKey, value);
+  }
+
+  Future<void> setShowLegend(bool value) async {
+    if (_showLegend == value) return;
+    _showLegend = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_showLegendKey, value);
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {

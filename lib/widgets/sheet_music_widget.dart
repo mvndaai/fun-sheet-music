@@ -45,6 +45,7 @@ class SheetMusicWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ip = context.watch<InstrumentProvider>();
+    final effectiveShowHeader = showHeader && ip.showLegend;
 
     return SheetMusicRenderer(
       song: song,
@@ -59,7 +60,7 @@ class SheetMusicWidget extends StatelessWidget {
       measuresPerRow: measuresPerRow,
       showNoteLabels: ip.showNoteLabels,
       includePickupInFirstRow: includePickupInFirstRow,
-      header: showHeader ? _ColorLegend(showSolfege: showSolfege) : null,
+      header: effectiveShowHeader ? _ColorLegend(showSolfege: showSolfege) : null,
       scrollable: scrollable,
       labelRotation: labelRotation,
       scrollController: scrollController,
