@@ -50,6 +50,7 @@ class _UploadScreenState extends State<UploadScreen>
       allowedExtensions: ['xml', 'mxl', 'musicxml'],
       withData: true,
     );
+    if (!mounted) return;
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
     if (file.bytes == null) {

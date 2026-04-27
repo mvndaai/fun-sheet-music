@@ -334,6 +334,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     final noteDurationMs = (note.duration * quarterNoteDuration).toInt();
 
     _playbackTimer = Timer(Duration(milliseconds: noteDurationMs), () {
+      if (!mounted) return;
       _playbackNoteIndex++;
       _scheduleNextNote(playbackSong);
     });

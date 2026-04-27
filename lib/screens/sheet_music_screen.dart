@@ -159,6 +159,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   Future<void> _startMic() async {
     setState(() => _statusMessage = 'Starting microphone...');
     final success = await _audio.startListening();
+    if (!mounted) return;
     if (!success) {
       setState(() {
         _statusMessage = 'Microphone permission denied.';
@@ -177,6 +178,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     await _noteSubscription?.cancel();
     _noteSubscription = null;
     await _audio.stopListening();
+    if (!mounted) return;
     setState(() {
       _micActive = false;
       _detectedNote = '';

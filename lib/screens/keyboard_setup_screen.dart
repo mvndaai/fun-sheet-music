@@ -109,6 +109,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
     final noteKey = _getMappingKey(note);
     if (_isActionActive) {
       final key = await _audioRecorder.stopRecording();
+      if (!mounted) return;
       setState(() {
         if (key != null && _pendingNote != null) _noteSounds[noteKey] = key;
         _isActionActive = false;
@@ -118,6 +119,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
     } else {
       try {
         await _audioRecorder.startRecording(widget.profile.id, noteKey);
+        if (!mounted) return;
         setState(() {
           _pendingNote = note;
           _isActionActive = true;

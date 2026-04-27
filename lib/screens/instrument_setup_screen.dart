@@ -112,9 +112,11 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> {
     if (_isActionActive) {
       await _pitchSub?.cancel();
       await _pitchService.stopListening();
+      if (!mounted) return;
       setState(() { _isActionActive = false; _pendingNote = null; _liveDetection = null; });
     } else {
       final ok = await _pitchService.startListening();
+      if (!mounted) return;
       if (!ok) return;
       setState(() { _pendingNote = note; _isActionActive = true; _liveDetection = null; });
       _pitchSub = _pitchService.noteStream.listen((detected) {
