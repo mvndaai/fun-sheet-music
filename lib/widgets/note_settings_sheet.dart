@@ -52,6 +52,7 @@ class NoteSettingsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double localTempo = tempo ?? 140.0;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.pop(context),
@@ -159,7 +160,7 @@ class NoteSettingsSheet extends StatelessWidget {
                       onChanged: (v) => provider.setThemeMode(v),
                     ),
 
-                    // 6. Letters
+                    // 6. Note Letters (A, B, C…)
                     _SegmentedSetting<bool>(
                       title: 'Note Letters (A, B, C…)',
                       value: provider.showLetter,
@@ -170,7 +171,7 @@ class NoteSettingsSheet extends StatelessWidget {
                       onChanged: (v) => provider.setShowLetter(v),
                     ),
 
-                    // 7. Solfege
+                    // 7. Solfège Names (Do, Re, Mi…)
                     _SegmentedSetting<bool>(
                       title: 'Solfège Names (Do, Re, Mi…)',
                       value: provider.showSolfege,
@@ -181,7 +182,7 @@ class NoteSettingsSheet extends StatelessWidget {
                       onChanged: (v) => provider.setShowSolfege(v),
                     ),
 
-                    // 8. Labels below notes
+                    // 8. Label Position
                     _SegmentedSetting<bool>(
                       title: 'Label Position',
                       value: provider.labelsBelow,
@@ -192,7 +193,7 @@ class NoteSettingsSheet extends StatelessWidget {
                       onChanged: (v) => provider.setLabelsBelow(v),
                     ),
 
-                    // 9. Colored Labels
+                    // 9. Label Color
                     _SegmentedSetting<bool>(
                       title: 'Label Color',
                       value: provider.coloredLabels,
@@ -203,7 +204,7 @@ class NoteSettingsSheet extends StatelessWidget {
                       onChanged: (v) => provider.setColoredLabels(v),
                     ),
 
-                    // 10. Show Legend
+                    // 10. Top Color Legend
                     _SegmentedSetting<bool>(
                       title: 'Top Color Legend',
                       value: provider.showLegend,
@@ -230,21 +231,15 @@ class NoteSettingsSheet extends StatelessWidget {
 
                     // 12. Tempo
                     if (showTempo && tempo != null && onTempoChanged != null)
-                      ListTile(
-                        title: const Text('Tempo'),
-                        subtitle: Text('${tempo!.round()} BPM'),
-                        trailing: SizedBox(
-                          width: 150,
-                          child: Slider(
-                            value: tempo!,
-                            min: 40,
-                            max: 240,
-                            divisions: 40,
-                            onChanged: (v) {
-                              setSheetState(() => onTempoChanged!(v));
-                            },
-                          ),
-                        ),
+                      _SliderSetting(
+                        title: 'Tempo: ${localTempo.round()} BPM',
+                        value: localTempo,
+                        min: 40,
+                        max: 240,
+                        onChanged: (v) {
+                          setSheetState(() => localTempo = v);
+                          onTempoChanged!(v);
+                        },
                       ),
                   ],
                 ),
@@ -253,6 +248,51 @@ class NoteSettingsSheet extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _SliderSetting extends StatelessWidget {
+  final String title;
+  final double value;
+  final double min;
+  final double max;
+  final ValueChanged<double> onChanged;
+
+  const _SliderSetting({
+    required this.title,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.normal,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Slider(
+            value: value,
+            min: min,
+            max: max,
+            divisions: (max - min).toInt(),
+            onChanged: onChanged,
+          ),
+        ),
+      ],
     );
   }
 }
