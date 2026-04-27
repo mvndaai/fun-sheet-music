@@ -58,7 +58,6 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
         ? SetupMode.tuning
         : widget.initialMode;
     
-    // Default to Octave 4 if not in visuals/visibility mode
     _selectedOctave = (_mode == SetupMode.visuals || _mode == SetupMode.visibility) ? null : 4;
 
     _colors = Map.from(widget.scheme.colors);
@@ -138,8 +137,6 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
     }
   }
 
-  // ── Keyboard Logic ────────────────────────────────────────────────────────
-
   void _onKey(KeyEvent event) {
     if (_mode != SetupMode.keyboard || _pendingNote == null || event is! KeyDownEvent) return;
 
@@ -155,8 +152,6 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
     });
     _save();
   }
-
-  // ── Sound Logic ───────────────────────────────────────────────────────────
 
   Future<void> _toggleRecording(String note) async {
     final noteKey = _getMappingKey(note);
@@ -186,8 +181,6 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
       }
     }
   }
-
-  // ── Tuning Logic ──────────────────────────────────────────────────────────
 
   Future<void> _toggleTuning(String note) async {
     if (_isActionActive) {
@@ -225,8 +218,6 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
     }
   }
 
-  // ── Visuals Logic ─────────────────────────────────────────────────────────
-
   Future<void> _pickColor(String note, Color currentColor) async {
     final picked = await showNoteColorPicker(context, current: currentColor, label: note);
     if (picked != null) {
@@ -252,13 +243,9 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
     _save();
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
   String _getMappingKey(String step) {
     return _selectedOctave != null ? '$step$_selectedOctave' : step;
   }
-
-  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +336,14 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
                 itemBuilder: (context, index) {
                   final step = kNoteKeys[index];
                   final noteKey = _getMappingKey(step);
-                  
+                  final isOctaveSelected = _selectedOctave != null;
+
+                  // Determine inheritance for current octave
+                  final bool isColorInherited = isOctaveSelected && !_octaveOverrides.containsKey(noteKey);
+                  final bool isKeyInherited = isOctaveSelected && !_keyboardOverrides.containsKey(noteKey);
+                  final bool isSoundInherited = isOctaveSelected && !_noteSounds.containsKey(noteKey);
+                  final bool isTuningInherited = isOctaveSelected && !_tuningOverrides.containsKey(noteKey);
+
                   final currentColor = _octaveOverrides[noteKey] ?? _colors[step] ?? widget.scheme.colorForNote(step, 0, octave: _selectedOctave, context: context);
                   final isHidden = _hiddenKeys.contains(step);
 
@@ -362,6 +356,10 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> with Sing
                     keyboardMapping: _keyboardOverrides[noteKey],
                     soundPath: _noteSounds[noteKey],
                     tunedTo: _tuningOverrides[noteKey],
+                    isInherited: (_mode == SetupMode.visuals && isColorInherited) ||
+                                 (_mode == SetupMode.keyboard && isKeyInherited) ||
+                                 (_mode == SetupMode.sounds && isSoundInherited) ||
+                                 (_mode == SetupMode.tuning && isTuningInherited),
                     isPending: _pendingNote == step,
                     isActionActive: _isActionActive && _pendingNote == step,
                     liveDetection: _pendingNote == step ? _liveDetection : null,
@@ -442,6 +440,7 @@ class _NoteConfigTile extends StatelessWidget {
   final String? keyboardMapping;
   final String? soundPath;
   final String? tunedTo;
+  final bool isInherited;
   final bool isPending;
   final bool isActionActive;
   final String? liveDetection;
@@ -461,6 +460,7 @@ class _NoteConfigTile extends StatelessWidget {
     this.keyboardMapping,
     this.soundPath,
     this.tunedTo,
+    required this.isInherited,
     required this.isPending,
     required this.isActionActive,
     this.liveDetection,
@@ -479,7 +479,7 @@ class _NoteConfigTile extends StatelessWidget {
     Widget? trailing;
 
     if (mode == SetupMode.visuals) {
-      subtitle = '#${colorToHex(color)}';
+      subtitle = isInherited ? 'Default Color: #${colorToHex(color)}' : 'Specific Color: #${colorToHex(color)}';
     } else if (mode == SetupMode.visibility) {
       subtitle = isHidden ? 'Hidden' : 'Visible';
       trailing = Switch(value: !isHidden, onChanged: (_) => onToggleVisibility?.call());
@@ -487,13 +487,23 @@ class _NoteConfigTile extends StatelessWidget {
       if (isPending) {
         subtitle = 'WAITING FOR KEY...';
       } else if (keyboardMapping?.isNotEmpty == true) {
-        subtitle = KeyboardUtils.formatForDisplay(keyboardMapping!);
+        subtitle = 'Specific: ${KeyboardUtils.formatForDisplay(keyboardMapping!)}';
       } else {
-        final defaultMapping = scheme.effectiveKeyboardOverrides[note];
-        subtitle = (defaultMapping?.isNotEmpty == true) ? 'Default: ${KeyboardUtils.formatForDisplay(defaultMapping!)}' : 'Not mapped';
+        // Find if inherited from the base step map or the standard profile
+        final baseStep = note.replaceAll(RegExp(r'\d'), '');
+        final userDefaultMapping = scheme.keyboardOverrides[baseStep];
+        final standardMapping = scheme.effectiveKeyboardOverrides[note];
+        
+        if (userDefaultMapping?.isNotEmpty == true) {
+          subtitle = 'Default: ${KeyboardUtils.formatForDisplay(userDefaultMapping!)}';
+        } else if (standardMapping?.isNotEmpty == true) {
+          subtitle = 'Standard: ${KeyboardUtils.formatForDisplay(standardMapping!)}';
+        } else {
+          subtitle = 'Not mapped';
+        }
       }
     } else if (mode == SetupMode.sounds) {
-      subtitle = isActionActive ? 'RECORDING...' : (soundPath?.isNotEmpty == true ? 'Recorded' : 'Default');
+      subtitle = isActionActive ? 'RECORDING...' : (soundPath?.isNotEmpty == true ? 'Specific Recording' : 'Default');
       trailing = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -502,7 +512,7 @@ class _NoteConfigTile extends StatelessWidget {
         ],
       );
     } else if (mode == SetupMode.tuning) {
-      subtitle = tunedTo?.isNotEmpty == true ? 'Tuned to $tunedTo' : 'Standard';
+      subtitle = isActionActive ? (liveDetection ?? 'Listening...') : (tunedTo?.isNotEmpty == true ? 'Specific: $tunedTo' : 'Standard');
       trailing = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -540,14 +550,14 @@ class _NoteConfigTile extends StatelessWidget {
           subtitle,
           style: TextStyle(
             color: isActionActive || isPending ? Theme.of(context).primaryColor : null,
-            fontStyle: subtitle.startsWith('Default:') ? FontStyle.italic : null,
+            fontStyle: isInherited ? FontStyle.italic : null,
           ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (trailing != null) trailing,
-            if ((keyboardMapping?.isNotEmpty == true || (soundPath?.isNotEmpty == true) || (tunedTo?.isNotEmpty == true) || (mode == SetupMode.visuals && note.contains(RegExp(r'\d')))) && !isActionActive)
+            if (!isInherited && !isActionActive && mode != SetupMode.visibility)
               IconButton(icon: const Icon(Icons.close, size: 20), onPressed: onClear),
           ],
         ),

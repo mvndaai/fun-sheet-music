@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
 import '../music_kit/utils/music_constants.dart';
+import '../widgets/legend_circle.dart';
 import 'instrument_setup_screen.dart';
 
 /// Screen for managing instrument profiles.
@@ -551,7 +552,11 @@ class _ColorSwatchRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // List of note names that have explicit colors or overrides
+    final provider = context.watch<InstrumentProvider>();
+    final showSolfege = provider.showSolfege;
+    final showLabels = provider.showNoteLabels;
+
+    // List of note names that have explicit colors and are not hidden
     final coloredNotes = kNoteKeys.where((n) => 
       scheme.colors.containsKey(n) && !scheme.hiddenKeys.contains(n)
     );
@@ -568,40 +573,21 @@ class _ColorSwatchRow extends StatelessWidget {
       spacing: 4,
       runSpacing: 4,
       children: [
-        ...coloredNotes.map((note) {
-          final color = scheme.colors[note]!;
-          return _SwatchCircle(label: note, color: color);
-        }),
-        ...overrideKeys.map((key) {
-          final color = scheme.octaveOverrides[key]!;
-          return _SwatchCircle(label: key, color: color);
-        }),
+        ...coloredNotes.map((note) => LegendCircle(
+              label: note,
+              color: scheme.colors[note]!,
+              showSolfege: showSolfege,
+              showLabels: showLabels,
+              size: 20,
+            )),
+        ...overrideKeys.map((key) => LegendCircle(
+              label: key,
+              color: scheme.octaveOverrides[key]!,
+              showSolfege: showSolfege,
+              showLabels: showLabels,
+              size: 20,
+            )),
       ],
-    );
-  }
-}
-
-class _SwatchCircle extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _SwatchCircle({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Container(
-        width: 18,
-        height: 18,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: Theme.of(context).dividerColor,
-            width: 1,
-          ),
-        ),
-      ),
     );
   }
 }

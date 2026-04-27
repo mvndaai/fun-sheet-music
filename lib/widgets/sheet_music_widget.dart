@@ -6,6 +6,7 @@ import '../music_kit/models/song.dart';
 import '../music_kit/models/music_note.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../music_kit/utils/music_constants.dart';
+import 'legend_circle.dart';
 
 /// App-specific wrapper around [SheetMusicRenderer] that connects it to [InstrumentProvider].
 class SheetMusicWidget extends StatelessWidget {
@@ -87,72 +88,19 @@ class _ColorLegend extends StatelessWidget {
         spacing: 6,
         runSpacing: 6,
         children: [
-          ...coloredNotes.map((note) => _LegendCircle(
+          ...coloredNotes.map((note) => LegendCircle(
                 label: note,
                 color: scheme.colors[note]!,
                 showSolfege: showSolfege,
                 showLabels: showLabels,
               )),
-          ...overrideKeys.map((key) => _LegendCircle(
+          ...overrideKeys.map((key) => LegendCircle(
                 label: key,
                 color: scheme.octaveOverrides[key]!,
                 showSolfege: showSolfege,
                 showLabels: showLabels,
               )),
         ],
-      ),
-    );
-  }
-}
-
-class _LegendCircle extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool showSolfege;
-  final bool showLabels;
-
-  const _LegendCircle({
-    required this.label,
-    required this.color,
-    required this.showSolfege,
-    required this.showLabels,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final baseNote = label.replaceAll(RegExp(r'[0-9]'), '');
-    final solfege = MusicConstants.stepToSolfege[baseNote] ?? baseNote;
-    final textColor = color.computeLuminance() > 0.35 ? Colors.black87 : Colors.white;
-
-    String displayLabel = label;
-    if (showSolfege) {
-      displayLabel = '$solfege\n$label';
-    }
-
-    return Tooltip(
-      message: label,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(color: Theme.of(context).dividerColor, width: 1),
-        ),
-        child: showLabels
-            ? Center(
-                child: Text(
-                  displayLabel,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    height: 1.1,
-                  ),
-                ),
-              )
-            : null,
       ),
     );
   }
