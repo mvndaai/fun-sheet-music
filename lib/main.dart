@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'providers/song_provider.dart';
 import 'providers/instrument_provider.dart';
 import 'providers/keyboard_provider.dart';
@@ -22,6 +23,9 @@ void main() async {
   
   final keyboardProvider = KeyboardProvider();
   await keyboardProvider.load();
+
+  // Ensure Google Fonts can fetch missing characters (like emojis/symbols) at runtime
+  GoogleFonts.config.allowRuntimeFetching = true;
 
   runApp(FlutterMusicApp(
     database: database,
@@ -71,6 +75,7 @@ class FlutterMusicApp extends StatelessWidget {
                 brightness: Brightness.light,
               ),
               useMaterial3: true,
+              textTheme: GoogleFonts.notoSansTextTheme(),
               appBarTheme: const AppBarTheme(
                 centerTitle: false,
                 elevation: 2,
@@ -93,6 +98,7 @@ class FlutterMusicApp extends StatelessWidget {
                 brightness: Brightness.dark,
               ),
               useMaterial3: true,
+              textTheme: GoogleFonts.notoSansTextTheme(ThemeData.dark().textTheme),
               appBarTheme: const AppBarTheme(
                 centerTitle: false,
               ),

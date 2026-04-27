@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../providers/instrument_provider.dart';
 import '../music_kit/models/instrument_profile.dart'; // For kNoteKeys
 import '../music_kit/models/keyboard_profile.dart';
 import '../providers/keyboard_provider.dart';
@@ -212,30 +213,68 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                   final noteKey = _getMappingKey(step);
                   final isInherited = _selectedOctave != null && !_keyboardOverrides.containsKey(noteKey) && !_noteSounds.containsKey(noteKey);
                   
-                  return ListTile(
-                    onTap: widget.profile.isBuiltIn ? null : () {
-                      if (_isActionActive) return;
-                      setState(() => _pendingNote = _pendingNote == step ? null : step);
-                    },
-                    selected: _pendingNote == step,
-                    leading: CircleAvatar(child: Text(step)),
-                    title: Text(noteKey, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(_getSubtitleText(noteKey, isInherited)),
-                    trailing: widget.profile.isBuiltIn ? null : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (_mode == KeyboardSetupMode.sounds) ...[
-                          if (_noteSounds[noteKey] != null) IconButton(icon: const Icon(Icons.play_arrow), onPressed: () => _tonePlayer.playNote(440, samplePath: _noteSounds[noteKey])),
-                          IconButton(icon: Icon(_isActionActive && _pendingNote == step ? Icons.stop : Icons.mic), color: _isActionActive && _pendingNote == step ? Colors.red : null, onPressed: () => _toggleRecording(step)),
+                  // Get current instrument color for this note
+                  final instrument = context.watch<InstrumentProvider>().activeScheme;
+                  final isHidden = instrument.hiddenKeys.contains(step);
+                  final color = instrument.colorForNote(step, 0, octave: _selectedOctave, context: context);
+                  final textColor = color.computeLuminance() > 0.35 ? Colors.black87 : Colors.white;
+
+                  return Opacity(
+                    opacity: isHidden ? 0.4 : 1.0,
+                    child: ListTile(
+                      onTap: widget.profile.isBuiltIn ? null : () {
+                        if (_isActionActive) return;
+                        setState(() => _pendingNote = _pendingNote == step ? null : step);
+                      },
+                      selected: _pendingNote == step,
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.black12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            step,
+                            style: TextStyle(
+                              color: textColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      title: Row(
+                        children: [
+                          Text(noteKey, style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            decoration: isHidden ? TextDecoration.lineThrough : null,
+                          )),
+                          if (isHidden) ...[
+                            const SizedBox(width: 8),
+                            const Icon(Icons.visibility_off, size: 14, color: Colors.grey),
+                          ],
                         ],
-                        if (!isInherited && !_isActionActive) IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () {
-                          setState(() {
-                            if (_mode == KeyboardSetupMode.keys) _keyboardOverrides.remove(noteKey);
-                            if (_mode == KeyboardSetupMode.sounds) _noteSounds.remove(noteKey);
-                          });
-                          _save();
-                        }),
-                      ],
+                      ),
+                      subtitle: Text(_getSubtitleText(noteKey, isInherited, isHidden)),
+                      trailing: widget.profile.isBuiltIn ? null : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_mode == KeyboardSetupMode.sounds) ...[
+                            if (_noteSounds[noteKey] != null) IconButton(icon: const Icon(Icons.play_arrow), onPressed: () => _tonePlayer.playNote(440, samplePath: _noteSounds[noteKey])),
+                            IconButton(icon: Icon(_isActionActive && _pendingNote == step ? Icons.stop : Icons.mic), color: _isActionActive && _pendingNote == step ? Colors.red : null, onPressed: () => _toggleRecording(step)),
+                          ],
+                          if (!isInherited && !_isActionActive) IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () {
+                            setState(() {
+                              if (_mode == KeyboardSetupMode.keys) _keyboardOverrides.remove(noteKey);
+                              if (_mode == KeyboardSetupMode.sounds) _noteSounds.remove(noteKey);
+                            });
+                            _save();
+                          }),
+                        ],
+                      ),
                     ),
                   );
                 },
@@ -253,11 +292,12 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
     return 'Record custom sounds for $octaveLabel.';
   }
 
-  String _getSubtitleText(String noteKey, bool isInherited) {
+  String _getSubtitleText(String noteKey, bool isInherited, bool isHidden) {
+    String prefix = isHidden ? '[HIDDEN] ' : '';
     if (_mode == KeyboardSetupMode.keys) {
       final mapping = _keyboardOverrides[noteKey] ?? KeyboardProfile.standard.keyboardOverrides[noteKey];
-      return isInherited ? 'Default: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}' : 'Specific: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}';
+      return '$prefix${isInherited ? 'Default: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}' : 'Specific: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}'}';
     }
-    return isInherited ? 'Default sound' : 'Specific Recording';
+    return '$prefix${isInherited ? 'Default sound' : 'Specific Recording'}';
   }
 }

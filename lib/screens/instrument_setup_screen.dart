@@ -240,41 +240,51 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> {
                 final isHidden = _hiddenKeys.contains(step);
                 final isInherited = _selectedOctave != null && !_octaveOverrides.containsKey(noteKey) && _mode != SetupMode.tuning;
 
-                return ListTile(
-                  onTap: widget.scheme.isBuiltIn ? null : () {
-                    if (_isActionActive) return;
-                    if (_mode == SetupMode.visuals) _pickColor(step, currentColor);
-                    else if (_mode == SetupMode.visibility) _toggleVisibility(step);
-                    else setState(() => _pendingNote = _pendingNote == step ? null : step);
-                  },
-                  leading: Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(color: currentColor, shape: BoxShape.circle),
-                    child: Center(child: Text(step, style: TextStyle(color: currentColor.computeLuminance() > 0.35 ? Colors.black87 : Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
+                return Opacity(
+                  opacity: (isHidden && _mode != SetupMode.visibility) ? 0.4 : 1.0,
+                  child: ListTile(
+                    onTap: widget.scheme.isBuiltIn ? null : () {
+                      if (_isActionActive) return;
+                      if (_mode == SetupMode.visuals) _pickColor(step, currentColor);
+                      else if (_mode == SetupMode.visibility) _toggleVisibility(step);
+                      else setState(() => _pendingNote = _pendingNote == step ? null : step);
+                    },
+                    leading: Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(color: currentColor, shape: BoxShape.circle),
+                      child: Center(child: Text(step, style: TextStyle(color: currentColor.computeLuminance() > 0.35 ? Colors.black87 : Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
+                    ),
+                    title: Row(
+                      children: [
+                        Text(noteKey, style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          decoration: (isHidden && _mode != SetupMode.visibility) ? TextDecoration.lineThrough : null,
+                        )),
+                        if (isHidden && _mode != SetupMode.visibility) ...[
+                          const SizedBox(width: 8),
+                          const Icon(Icons.visibility_off, size: 14, color: Colors.grey),
+                        ],
+                        if (_isActionActive && _pendingNote == step && _liveDetection != null) ...[
+                          const SizedBox(width: 12),
+                          const Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          Text(_liveDetection!, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 18)),
+                        ]
+                      ],
+                    ),
+                    subtitle: Text(_getSubtitleText(step, noteKey, currentColor, isHidden, isInherited)),
+                    trailing: widget.scheme.isBuiltIn 
+                      ? (isHidden ? const Icon(Icons.visibility_off, size: 20, color: Colors.grey) : null)
+                      : (_mode == SetupMode.tuning 
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_isActionActive && _pendingNote == step && _liveDetection != null) IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: _confirmTuning),
+                                IconButton(icon: Icon(_isActionActive && _pendingNote == step ? Icons.stop : Icons.tune), color: _isActionActive && _pendingNote == step ? Colors.green : null, onPressed: () => _toggleTuning(step)),
+                              ],
+                            )
+                          : (_mode == SetupMode.visibility ? Switch(value: !isHidden, onChanged: (_) => _toggleVisibility(step)) : null)),
                   ),
-                  title: Row(
-                    children: [
-                      Text(noteKey, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      if (_isActionActive && _pendingNote == step && _liveDetection != null) ...[
-                        const SizedBox(width: 12),
-                        const Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
-                        const SizedBox(width: 8),
-                        Text(_liveDetection!, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 18)),
-                      ]
-                    ],
-                  ),
-                  subtitle: Text(_getSubtitleText(step, noteKey, currentColor, isHidden, isInherited)),
-                  trailing: widget.scheme.isBuiltIn 
-                    ? (isHidden ? const Icon(Icons.visibility_off, size: 20, color: Colors.grey) : null)
-                    : (_mode == SetupMode.tuning 
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (_isActionActive && _pendingNote == step && _liveDetection != null) IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: _confirmTuning),
-                              IconButton(icon: Icon(_isActionActive && _pendingNote == step ? Icons.stop : Icons.tune), color: _isActionActive && _pendingNote == step ? Colors.green : null, onPressed: () => _toggleTuning(step)),
-                            ],
-                          )
-                        : (_mode == SetupMode.visibility ? Switch(value: !isHidden, onChanged: (_) => _toggleVisibility(step)) : null)),
                 );
               },
             ),
@@ -294,9 +304,14 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> {
   }
 
   String _getSubtitleText(String step, String noteKey, Color color, bool isHidden, bool isInherited) {
-    if (_mode == SetupMode.visuals) return isInherited ? 'Default Color: #${colorToHex(color)}' : 'Specific Color: #${colorToHex(color)}';
+    String prefix = '';
+    if (isHidden && _mode != SetupMode.visibility) {
+      prefix = '[HIDDEN] ';
+    }
+    
+    if (_mode == SetupMode.visuals) return '$prefix${isInherited ? 'Default Color: #${colorToHex(color)}' : 'Specific Color: #${colorToHex(color)}'}';
     if (_mode == SetupMode.visibility) return isHidden ? 'Hidden' : 'Visible';
-    if (_mode == SetupMode.tuning) return _tuningOverrides[noteKey] != null ? 'Tuned to ${_tuningOverrides[noteKey]}' : 'Standard';
+    if (_mode == SetupMode.tuning) return '$prefix${_tuningOverrides[noteKey] != null ? 'Tuned to ${_tuningOverrides[noteKey]}' : 'Standard'}';
     return '';
   }
 }
