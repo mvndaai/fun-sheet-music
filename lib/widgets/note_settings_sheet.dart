@@ -92,50 +92,15 @@ class NoteSettingsSheet extends StatelessWidget {
                     const Divider(height: 24),
 
                     // 1. Display Mode
-                    ListTile(
-                      title: const Text('Display Mode'),
-                      trailing: DropdownButton<MusicDisplayMode>(
-                        value: provider.displayMode,
-                        underline: const SizedBox.shrink(),
-                        items: const [
-                          DropdownMenuItem(
-                            value: MusicDisplayMode.view,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.visibility, size: 20),
-                                SizedBox(width: 10),
-                                Text('View'),
-                              ],
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: MusicDisplayMode.practice,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.mic, size: 20),
-                                SizedBox(width: 10),
-                                Text('Practice'),
-                              ],
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: MusicDisplayMode.game,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.sports_esports, size: 20),
-                                SizedBox(width: 10),
-                                Text('Game'),
-                              ],
-                            ),
-                          ),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) provider.setDisplayMode(v);
-                        },
-                      ),
+                    _SegmentedSetting<MusicDisplayMode>(
+                      title: 'Display Mode',
+                      value: provider.displayMode,
+                      options: const [
+                        (value: MusicDisplayMode.view, label: 'View', icon: Icons.visibility),
+                        (value: MusicDisplayMode.practice, label: 'Practice', icon: Icons.mic),
+                        (value: MusicDisplayMode.game, label: 'Game', icon: Icons.sports_esports),
+                      ],
+                      onChanged: (v) => provider.setDisplayMode(v),
                     ),
 
                     // 2. Instrument
@@ -170,35 +135,28 @@ class NoteSettingsSheet extends StatelessWidget {
                     _SectionHeader(title: 'Display'),
 
                     // 4. Measures per row
-                    ListTile(
-                      title: const Text('Measures per row'),
-                      trailing: DropdownButton<int>(
-                        value: provider.measuresPerRow,
-                        underline: const SizedBox.shrink(),
-                        items: [2, 3, 4, 6]
-                            .map((v) => DropdownMenuItem(value: v, child: Text('$v')))
-                            .toList(),
-                        onChanged: (v) {
-                          if (v != null) provider.setMeasuresPerRow(v);
-                        },
-                      ),
+                    _SegmentedSetting<int>(
+                      title: 'Measures per row',
+                      value: provider.measuresPerRow,
+                      options: const [
+                        (value: 2, label: '2', icon: null),
+                        (value: 3, label: '3', icon: null),
+                        (value: 4, label: '4', icon: null),
+                        (value: 6, label: '6', icon: null),
+                      ],
+                      onChanged: (v) => provider.setMeasuresPerRow(v),
                     ),
 
                     // 5. Theme
-                    ListTile(
-                      title: const Text('Theme'),
-                      trailing: DropdownButton<ThemeMode>(
-                        value: provider.themeMode,
-                        underline: const SizedBox.shrink(),
-                        items: const [
-                          DropdownMenuItem(value: ThemeMode.system, child: Text('System')),
-                          DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
-                          DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark')),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) provider.setThemeMode(v);
-                        },
-                      ),
+                    _SegmentedSetting<ThemeMode>(
+                      title: 'Theme',
+                      value: provider.themeMode,
+                      options: const [
+                        (value: ThemeMode.system, label: 'System', icon: Icons.brightness_auto),
+                        (value: ThemeMode.light, label: 'Light', icon: Icons.light_mode),
+                        (value: ThemeMode.dark, label: 'Dark', icon: Icons.dark_mode),
+                      ],
+                      onChanged: (v) => provider.setThemeMode(v),
                     ),
 
                     // 6. Letters
@@ -245,19 +203,14 @@ class NoteSettingsSheet extends StatelessWidget {
                     _SectionHeader(title: 'Sound'),
 
                     // 11. Metronome Sound
-                    ListTile(
-                      title: const Text('Metronome Sound'),
-                      trailing: DropdownButton<String>(
-                        value: provider.metronomeSound,
-                        underline: const SizedBox.shrink(),
-                        items: const [
-                          DropdownMenuItem(value: 'tick', child: Text('Tick')),
-                          DropdownMenuItem(value: 'beep', child: Text('Beep')),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) provider.setMetronomeSound(v);
-                        },
-                      ),
+                    _SegmentedSetting<String>(
+                      title: 'Metronome Sound',
+                      value: provider.metronomeSound,
+                      options: const [
+                        (value: 'tick', label: 'Tick', icon: null),
+                        (value: 'beep', label: 'Beep', icon: null),
+                      ],
+                      onChanged: (v) => provider.setMetronomeSound(v),
                     ),
 
                     // 12. Tempo
@@ -285,6 +238,87 @@ class NoteSettingsSheet extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _SegmentedSetting<T> extends StatelessWidget {
+  final String title;
+  final T value;
+  final List<({T value, String label, IconData? icon})> options;
+  final ValueChanged<T> onChanged;
+
+  const _SegmentedSetting({
+    required this.title,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (options.length > 3) {
+      return ListTile(
+        title: Text(title),
+        trailing: DropdownButton<T>(
+          value: value,
+          underline: const SizedBox.shrink(),
+          items: options
+              .map((opt) => DropdownMenuItem(
+                    value: opt.value,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (opt.icon != null) ...[Icon(opt.icon, size: 20), const SizedBox(width: 10)],
+                        Text(opt.label),
+                      ],
+                    ),
+                  ))
+              .toList(),
+          onChanged: (v) {
+            if (v != null) onChanged(v);
+          },
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.normal,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<T>(
+              segments: options
+                  .map((opt) => ButtonSegment<T>(
+                        value: opt.value,
+                        icon: opt.icon != null ? Icon(opt.icon) : null,
+                        label: Text(opt.label),
+                      ))
+                  .toList(),
+              selected: {value},
+              onSelectionChanged: (set) => onChanged(set.first),
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }

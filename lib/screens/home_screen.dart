@@ -48,12 +48,14 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('🎵 My Songs'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.piano_outlined),
-            tooltip: 'Instruments',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const InstrumentsScreen()),
-            ),
+            icon: const Icon(Icons.bug_report_outlined),
+            tooltip: 'Report issue / feedback',
+            onPressed: () async {
+              final uri = Uri.parse('https://github.com/mvndaai/flutter-music/issues');
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
           ),
           IconButton(
             icon: const Icon(Icons.ios_share),
@@ -67,16 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Settings',
             onPressed: () => NoteSettingsSheet.show(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.bug_report_outlined),
-            tooltip: 'Report issue / feedback',
-            onPressed: () async {
-              final uri = Uri.parse('https://github.com/mvndaai/flutter-music/issues');
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            },
           ),
         ],
       ),
