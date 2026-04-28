@@ -42,7 +42,7 @@ class FunSheetMusic extends StatelessWidget {
   final InstrumentProvider instrumentProvider;
   final KeyboardProvider keyboardProvider;
 
-  const FunSheetMusicApp({
+  const FunSheetMusic({
     super.key,
     required this.database,
     required this.storageService,

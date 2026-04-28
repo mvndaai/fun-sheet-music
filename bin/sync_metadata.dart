@@ -106,12 +106,11 @@ void main() async {
   // 7. Update main.dart class name and usage
   if (oldClassName.isNotEmpty && oldClassName != className) {
     _updateFile('lib/main.dart', [
-      (RegExp('class $oldClassName'), 'class $className'),
-      (RegExp('runApp\\($oldClassName'), 'runApp($className'),
+      (RegExp('\\b$oldClassName\\b'), className),
     ]);
     // Also update tests
     _updateFile('test/home_screen_test.dart', [
-      (RegExp('await tester.pumpWidget\\($oldClassName'), 'await tester.pumpWidget($className'),
+      (RegExp('\\b$oldClassName\\b'), className),
     ]);
   }
 
