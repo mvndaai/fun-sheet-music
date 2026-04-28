@@ -3,7 +3,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import '../providers/song_provider.dart';
-import '../widgets/tag_chip.dart';
 import 'music_editor_screen.dart';
 
 /// Upload screen: lets the user pick a local MusicXML file or enter a URL.
@@ -17,11 +16,9 @@ class UploadScreen extends StatefulWidget {
 class _UploadScreenState extends State<UploadScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tab;
-  final ScrollController _fileScrollController = ScrollController();
-  final ScrollController _urlScrollController = ScrollController();
+  final ScrollController _importScrollController = ScrollController();
   final ScrollController _libraryScrollController = ScrollController();
   final TextEditingController _urlController = TextEditingController();
-  final List<String> _tags = [];
   bool _loading = false;
   String? _error;
   String? _pickedFileName;
@@ -30,14 +27,13 @@ class _UploadScreenState extends State<UploadScreen>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 4, vsync: this);
+    _tab = TabController(length: 3, vsync: this);
   }
 
   @override
   void dispose() {
     _tab.dispose();
-    _fileScrollController.dispose();
-    _urlScrollController.dispose();
+    _importScrollController.dispose();
     _libraryScrollController.dispose();
     _urlController.dispose();
     super.dispose();
@@ -76,7 +72,6 @@ class _UploadScreenState extends State<UploadScreen>
     final provider = context.read<SongProvider>();
     final song = await provider.addSongFromXml(
       _pickedFileContent!,
-      tags: List.from(_tags),
     );
     if (!mounted) return;
     setState(() => _loading = false);
@@ -98,7 +93,7 @@ class _UploadScreenState extends State<UploadScreen>
       _error = null;
     });
     final provider = context.read<SongProvider>();
-    final song = await provider.addSongFromUrl(url, tags: List.from(_tags));
+    final song = await provider.addSongFromUrl(url);
     if (!mounted) return;
     setState(() => _loading = false);
     if (song != null) {
@@ -118,13 +113,6 @@ class _UploadScreenState extends State<UploadScreen>
     Navigator.pop(context);
   }
 
-  void _addTag(String tag) {
-    tag = tag.trim();
-    if (tag.isNotEmpty && !_tags.contains(tag)) {
-      setState(() => _tags.add(tag));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<SongProvider>();
@@ -137,8 +125,7 @@ class _UploadScreenState extends State<UploadScreen>
           tabs: const [
             Tab(icon: Icon(Icons.library_music), text: 'Libraries'),
             Tab(icon: Icon(Icons.edit), text: 'Create'),
-            Tab(icon: Icon(Icons.upload_file), text: 'Upload File'),
-            Tab(icon: Icon(Icons.cloud_download), text: 'From URL'),
+            Tab(icon: Icon(Icons.add), text: 'Import'),
           ],
         ),
       ),
@@ -152,28 +139,15 @@ class _UploadScreenState extends State<UploadScreen>
                   onSongAdded: (title) => _showSuccess(title),
                 ),
                 const _CreateTab(),
-                _FileUploadTab(
-                  scrollController: _fileScrollController,
+                _ImportTab(
+                  scrollController: _importScrollController,
                   pickedFileName: _pickedFileName,
                   onPickFile: _pickFile,
                   onUpload: _uploadFile,
-                  tags: _tags,
-                  availableTags: provider.allTags,
-                  onAddTag: _addTag,
-                  onRemoveTag: (t) => setState(() => _tags.remove(t)),
-                  error: _tab.index == 1 ? _error : null,
-                ),
-                _UrlTab(
-                  scrollController: _urlScrollController,
-                  controller: _urlController,
+                  urlController: _urlController,
                   onFetch: _fetchUrl,
-                  tags: _tags,
-                  availableTags: provider.allTags,
-                  onAddTag: _addTag,
-                  onRemoveTag: (t) => setState(() => _tags.remove(t)),
                   error: _tab.index == 2 ? _error : null,
                 ),
-
               ],
             ),
     );
@@ -220,117 +194,22 @@ class _CreateTab extends StatelessWidget {
   }
 }
 
-class _TagsSection extends StatefulWidget {
-  final List<String> tags;
-  final List<String> availableTags;
-  final ValueChanged<String> onAddTag;
-  final ValueChanged<String> onRemoveTag;
-
-  const _TagsSection({
-    required this.tags,
-    required this.availableTags,
-    required this.onAddTag,
-    required this.onRemoveTag,
-  });
-
-  @override
-  State<_TagsSection> createState() => _TagsSectionState();
-}
-
-class _TagsSectionState extends State<_TagsSection> {
-  late final TextEditingController _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Tags', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            ...widget.tags.map((t) => TagChip(
-                  tag: t,
-                  onDelete: () => widget.onRemoveTag(t),
-                )),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                decoration: const InputDecoration(
-                  hintText: 'Add tag…',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                onSubmitted: (v) {
-                  widget.onAddTag(v);
-                  _controller.clear();
-                },
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () {
-                widget.onAddTag(_controller.text);
-                _controller.clear();
-              },
-            ),
-          ],
-        ),
-        if (widget.availableTags.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 4,
-            children: widget.availableTags
-                .where((t) => !widget.tags.contains(t))
-                .map((t) => ActionChip(
-                      label: Text(t),
-                      onPressed: () => widget.onAddTag(t),
-                      avatar: const Icon(Icons.add, size: 14),
-                    ))
-                .toList(),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _FileUploadTab extends StatelessWidget {
+class _ImportTab extends StatelessWidget {
   final ScrollController scrollController;
   final String? pickedFileName;
   final VoidCallback onPickFile;
   final VoidCallback onUpload;
-  final List<String> tags;
-  final List<String> availableTags;
-  final ValueChanged<String> onAddTag;
-  final ValueChanged<String> onRemoveTag;
+  final TextEditingController urlController;
+  final VoidCallback onFetch;
   final String? error;
 
-  const _FileUploadTab({
+  const _ImportTab({
     required this.scrollController,
     this.pickedFileName,
     required this.onPickFile,
     required this.onUpload,
-    required this.tags,
-    required this.availableTags,
-    required this.onAddTag,
-    required this.onRemoveTag,
+    required this.urlController,
+    required this.onFetch,
     this.error,
   });
 
@@ -343,10 +222,12 @@ class _FileUploadTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            'Upload a MusicXML file (.xml, .mxl, .musicxml) from your device.',
+            'Upload a MusicXML file from your device OR enter a URL.',
             style: TextStyle(fontSize: 14),
           ),
           const SizedBox(height: 16),
+          
+          // File Picker
           OutlinedButton.icon(
             icon: const Icon(Icons.folder_open),
             label: Text(pickedFileName ?? 'Choose File'),
@@ -371,73 +252,26 @@ class _FileUploadTab extends StatelessWidget {
               ],
             ),
           ],
-          if (error != null) ...[
-            const SizedBox(height: 8),
-            Text(error!, style: const TextStyle(color: Colors.red)),
-          ],
-          const SizedBox(height: 24),
-          _TagsSection(
-            tags: tags,
-            availableTags: availableTags,
-            onAddTag: onAddTag,
-            onRemoveTag: onRemoveTag,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.upload),
-            label: const Text('Add to Library'),
-            onPressed: pickedFileName != null ? onUpload : null,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+          
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Row(
+              children: [
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('OR', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                ),
+                Expanded(child: Divider()),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
 
-class _UrlTab extends StatelessWidget {
-  final ScrollController scrollController;
-  final TextEditingController controller;
-  final VoidCallback onFetch;
-  final List<String> tags;
-  final List<String> availableTags;
-  final ValueChanged<String> onAddTag;
-  final ValueChanged<String> onRemoveTag;
-  final String? error;
-
-  const _UrlTab({
-    required this.scrollController,
-    required this.controller,
-    required this.onFetch,
-    required this.tags,
-    required this.availableTags,
-    required this.onAddTag,
-    required this.onRemoveTag,
-    this.error,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      controller: scrollController,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'Download a MusicXML file from a URL.\n'
-            'Supports public Google Cloud Storage URLs:\n'
-            '  https://storage.googleapis.com/bucket/file.xml\n'
-            '  gs://bucket/file.xml',
-            style: TextStyle(fontSize: 14),
-          ),
-          const SizedBox(height: 16),
+          // URL Entry
           TextField(
-            controller: controller,
+            controller: urlController,
             decoration: const InputDecoration(
-              labelText: 'URL',
+              labelText: 'Enter URL',
               hintText: 'https://storage.googleapis.com/...',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.link),
@@ -445,22 +279,18 @@ class _UrlTab extends StatelessWidget {
             keyboardType: TextInputType.url,
             autocorrect: false,
           ),
+          
           if (error != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Text(error!, style: const TextStyle(color: Colors.red)),
           ],
-          const SizedBox(height: 24),
-          _TagsSection(
-            tags: tags,
-            availableTags: availableTags,
-            onAddTag: onAddTag,
-            onRemoveTag: onRemoveTag,
-          ),
-          const SizedBox(height: 24),
+          
+          const SizedBox(height: 32),
+          
           ElevatedButton.icon(
-            icon: const Icon(Icons.cloud_download),
-            label: const Text('Download & Add'),
-            onPressed: onFetch,
+            icon: Icon(pickedFileName != null ? Icons.upload : Icons.cloud_download),
+            label: Text(pickedFileName != null ? 'Add Uploaded File' : 'Download & Add from URL'),
+            onPressed: (pickedFileName != null) ? onUpload : onFetch,
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
