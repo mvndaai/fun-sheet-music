@@ -1,11 +1,11 @@
 {
-    "name": "Flutter Music",
-    "short_name": "FlutterMusic",
+    "name": "Fun Sheet Music",
+    "short_name": "funsheetmusic",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#1565C0",
     "theme_color": "#1565C0",
-    "description": "Color-coded sheet music for kids – read MusicXML, practice with microphone",
+    "description": "An app for displaying colored sheet music with practice modes.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": []
