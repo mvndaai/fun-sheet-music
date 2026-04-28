@@ -84,11 +84,7 @@ class MusicConstants {
   }
 
   /// List of instrument emojis.
-
   static const List<String> instrumentEmojis = [
     '🎹', '🎸', '🎻', '🎷', '🎺', '🪕', '🥁', '🪘', '🪗', '🪈', '📯', '🔔', '🎵', '🎶', '🎼', '🎤', '🎧', '📻', '🎙️', '🎚️', '🎛️', '🔊', '🔉', '🔈', '🔇', '📣', '📢', '🔕', '🌈', '✨', '⭐', '🌟'
   ];
-
-  /// The application name.
-  static const String appName = 'Flutter Music';
 }

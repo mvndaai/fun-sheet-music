@@ -6,7 +6,7 @@
     <uses-feature android:name="android.hardware.microphone" android:required="false"/>
 
     <application
-        android:label="Flutter Music"
+        android:label="Fun Sheet Music"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

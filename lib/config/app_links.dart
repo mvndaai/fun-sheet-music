@@ -36,7 +36,7 @@ class AppLinks {
   /// Google Play Store listing URL.
   /// Update when the app is published.
   static const String playStoreUrl =
-      'https://play.google.com/store/apps/details?id=com.example.flutter_music';
+      'https://play.google.com/store/apps/details?id=com.example.fun_sheet_music';
 
   /// Set to `true` once the app is live on the Play Store.
   static const bool androidOnPlayStore = false;

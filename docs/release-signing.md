@@ -126,7 +126,7 @@ Once the app is published, update `lib/config/app_links.dart`:
 ```dart
 static const bool androidOnPlayStore = true;
 static const String playStoreUrl =
-    'https://play.google.com/store/apps/details?id=com.example.flutter_music';
+    'https://play.google.com/store/apps/details?id=com.example.fun_sheet_music';
 ```
 
 The in-app QR code and download button will automatically switch to the

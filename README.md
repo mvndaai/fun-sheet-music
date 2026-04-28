@@ -1,6 +1,6 @@
-# flutter-music
+# Fun Sheet Music
 
-A Flutter app that reads MusicXML files and displays color-coded sheet music for kids.
+An app for displaying colored sheet music with practice modes.
 
 ## Features
 

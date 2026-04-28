@@ -9,6 +9,7 @@ import '../models/instrument_profile.dart';
 import '../sheet_music_constants.dart';
 import 'staff_layout_helper.dart';
 import 'music_constants.dart';
+import '../../config/app_config.dart';
 
 class MusicPdfService {
   static Future<void> printSong({
@@ -150,7 +151,7 @@ class MusicPdfService {
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
                         pw.Text(
-                          MusicConstants.appName,
+                          AppConfig.appName,
                           style: const pw.TextStyle(
                             fontSize: 9,
                             color: PdfColors.grey700,

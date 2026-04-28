@@ -8,6 +8,7 @@ import 'providers/keyboard_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/database.dart';
 import 'services/storage_service.dart';
+import 'config/app_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +28,7 @@ void main() async {
   // Ensure Google Fonts can fetch missing characters (like emojis/symbols) at runtime
   GoogleFonts.config.allowRuntimeFetching = true;
 
-  runApp(FlutterMusicApp(
+  runApp(FunSheetMusicApp(
     database: database,
     storageService: storageService,
     instrumentProvider: instrumentProvider,
@@ -35,13 +36,13 @@ void main() async {
   ));
 }
 
-class FlutterMusicApp extends StatelessWidget {
+class FunSheetMusicApp extends StatelessWidget {
   final AppDatabase database;
   final StorageService storageService;
   final InstrumentProvider instrumentProvider;
   final KeyboardProvider keyboardProvider;
 
-  const FlutterMusicApp({
+  const FunSheetMusicApp({
     super.key,
     required this.database,
     required this.storageService,
@@ -66,7 +67,7 @@ class FlutterMusicApp extends StatelessWidget {
       child: Consumer<InstrumentProvider>(
         builder: (context, provider, _) {
           return MaterialApp(
-            title: 'Flutter Music',
+            title: AppConfig.appName,
             debugShowCheckedModeBanner: false,
             themeMode: provider.themeMode,
             theme: ThemeData(

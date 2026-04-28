@@ -1,5 +1,5 @@
-name: flutter_music
-description: A Flutter app for reading MusicXML files, displaying color-coded sheet music for kids, with microphone practice mode.
+name: fun_sheet_music
+description: An app for displaying colored sheet music with practice modes.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -67,6 +67,11 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.14.0
   build_runner: ^2.4.7
+  names_launcher: ^2.0.0
+  yaml: ^3.1.2
+
+names_launcher:
+  name: "Fun Sheet Music"
 
 flutter:
   uses-material-design: true

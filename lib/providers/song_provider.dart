@@ -5,6 +5,7 @@ import '../music_kit/models/song.dart';
 import '../services/musicxml_parser.dart';
 import '../services/storage_service.dart';
 import '../services/cloud_service.dart';
+import '../config/app_config.dart';
 
 /// Manages the list of songs and loading/saving operations.
 class SongProvider extends ChangeNotifier {
@@ -23,7 +24,7 @@ class SongProvider extends ChangeNotifier {
   String? _error;
   String _searchQuery = '';
   final Set<String> _selectedTags = {};
-  final Set<String> _selectedLibraries = {'Flutter Music'};
+  final Set<String> _selectedLibraries = {AppConfig.appName}; // TODO add a second library for user uploads
 
   List<Song>? _filteredSongsCache;
 
@@ -67,13 +68,13 @@ class SongProvider extends ChangeNotifier {
       libs.add(song.library);
     }
     // These are the known "available" libraries.
-    libs.add('Flutter Music');
+    libs.add(AppConfig.appName);
     return libs.toList()..sort();
   }
 
   /// Metadata for bundled songs available in the app.
   static const Map<String, List<Map<String, dynamic>>> bundledSongs = {
-    'Flutter Music': [
+    AppConfig.appName: [
       {'title': 'Twinkle Twinkle Little Star', 'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'tags': [], 'isDefault': true},
       {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': [], 'isDefault': true},
       {'title': 'Row, Row, Row Your Boat', 'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'tags': [], 'isDefault': true},

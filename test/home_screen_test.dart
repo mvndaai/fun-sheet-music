@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_music/providers/song_provider.dart';
-import 'package:flutter_music/providers/instrument_provider.dart';
-import 'package:flutter_music/screens/home_screen.dart';
-import 'package:flutter_music/services/database.dart';
-import 'package:flutter_music/services/storage_service.dart';
+import 'package:fun_sheet_music/providers/song_provider.dart';
+import 'package:fun_sheet_music/providers/instrument_provider.dart';
+import 'package:fun_sheet_music/screens/home_screen.dart';
+import 'package:fun_sheet_music/services/database.dart';
+import 'package:fun_sheet_music/services/storage_service.dart';
 import 'package:drift/native.dart';
 
 void main() {

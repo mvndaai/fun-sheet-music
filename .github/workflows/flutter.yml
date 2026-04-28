@@ -137,7 +137,7 @@ jobs:
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
           make_latest: ${{ !startsWith(github.ref, 'refs/tags/') }}
           body: |
-            ### Flutter Music – Android build
+            ### Fun Sheet Music – Android build
             Built on branch `${{ github.ref_name }}` at `${{ github.sha }}`.
           files: |
             dist/flutter-music.apk

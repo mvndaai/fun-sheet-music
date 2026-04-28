@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:js_interop';
 import 'package:web/web.dart' as web;
+import '../../config/app_config.dart';
 
 /// Stores and retrieves audio samples in IndexedDB for web platform.
 /// 
 /// Uses a simple key-value store where keys are in format "instrumentId:noteName"
 /// and values are audio Blob objects.
 class AudioStorage {
-  static const String _dbName = 'flutter_music_audio';
+  static const String _dbName = '${AppConfig.appName}_audio';
   static const String _storeName = 'samples';
   static const int _dbVersion = 1;
 

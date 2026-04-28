@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/app_links.dart';
+import '../config/app_config.dart';
 
 /// Share / download screen.
 ///
@@ -27,7 +28,7 @@ class ShareScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Share Flutter Music',
+              'Share ${AppConfig.appName}',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
