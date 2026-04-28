@@ -14,7 +14,7 @@ class AppLinks {
   // ── Web ───────────────────────────────────────────────────────────────────
 
   /// Public URL of the hosted web version.
-  static const String webUrl = 'https://mvndaai.com/flutter-music/';
+  static const String webUrl = 'https://funsheetmusic.com/';
 
   // ── Android ───────────────────────────────────────────────────────────────
 
