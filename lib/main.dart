@@ -28,7 +28,7 @@ void main() async {
   // Ensure Google Fonts can fetch missing characters (like emojis/symbols) at runtime
   GoogleFonts.config.allowRuntimeFetching = true;
 
-  runApp(FunSheetMusicApp(
+  runApp(FunSheetMusic(
     database: database,
     storageService: storageService,
     instrumentProvider: instrumentProvider,
@@ -36,7 +36,7 @@ void main() async {
   ));
 }
 
-class FunSheetMusicApp extends StatelessWidget {
+class FunSheetMusic extends StatelessWidget {
   final AppDatabase database;
   final StorageService storageService;
   final InstrumentProvider instrumentProvider;
@@ -67,7 +67,7 @@ class FunSheetMusicApp extends StatelessWidget {
       child: Consumer<InstrumentProvider>(
         builder: (context, provider, _) {
           return MaterialApp(
-            title: AppConfig.appName,
+            title: AppConfig.title,
             debugShowCheckedModeBanner: false,
             themeMode: provider.themeMode,
             theme: ThemeData(

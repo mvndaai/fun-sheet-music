@@ -8,7 +8,7 @@ import '../../config/app_config.dart';
 /// Uses a simple key-value store where keys are in format "instrumentId:noteName"
 /// and values are audio Blob objects.
 class AudioStorage {
-  static const String _dbName = '${AppConfig.appName}_audio';
+  static final String _dbName = '${AppConfig.appName}_audio';
   static const String _storeName = 'samples';
   static const int _dbVersion = 1;
 

@@ -73,7 +73,7 @@ class SongProvider extends ChangeNotifier {
   }
 
   /// Metadata for bundled songs available in the app.
-  static const Map<String, List<Map<String, dynamic>>> bundledSongs = {
+  static final Map<String, List<Map<String, dynamic>>> bundledSongs = {
     AppConfig.appName: [
       {'title': 'Twinkle Twinkle Little Star', 'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'tags': [], 'isDefault': true},
       {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': [], 'isDefault': true},

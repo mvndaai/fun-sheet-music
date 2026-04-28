@@ -13,16 +13,17 @@ void main() async {
   final pubspecContent = pubspecFile.readAsStringSync();
   final pubspec = loadYaml(pubspecContent);
 
-  final String title = pubspec['names_launcher']?['name'] ?? 'Flutter App';
+  final String title = pubspec['names_launcher']?['name'] ?? 'Fun Sheet Music';
   final String description = pubspec['description'] ?? '';
-  final String appName = pubspec['name'] ?? 'flutter_app';
+  final String appName = pubspec['name'] ?? 'fun_sheet_music';
   final String shortName = title.replaceAll(' ', '').toLowerCase();
+  
+  // Generate className without "App" suffix as requested
   final String className = title
           .split(RegExp(r'[\s_-]'))
           .where((s) => s.isNotEmpty)
           .map((s) => s[0].toUpperCase() + s.substring(1).toLowerCase())
-          .join() +
-      'App';
+          .join();
 
   print('Syncing Metadata:');
   print('  Title: $title');
@@ -31,15 +32,28 @@ void main() async {
   print('  ShortName (no spaces): $shortName');
   print('  ClassName: $className');
 
+  // Read current className from AppConfig to handle renaming classes in main.dart
+  final appConfigPath = 'lib/config/app_config.dart';
+  String oldClassName = '';
+  if (File(appConfigPath).existsSync()) {
+    final appConfigContent = File(appConfigPath).readAsStringSync();
+    final match = RegExp(r"static const String title = '(.*?)';").firstMatch(appConfigContent);
+    if (match != null) {
+      final oldTitle = match.group(1)!;
+      oldClassName = oldTitle
+          .split(RegExp(r'[\s_-]'))
+          .where((s) => s.isNotEmpty)
+          .map((s) => s[0].toUpperCase() + s.substring(1).toLowerCase())
+          .join();
+    }
+  }
+
   // 1. Update AppConfig.dart
   _updateFile(
-    'lib/config/app_config.dart',
+    appConfigPath,
     [
       (RegExp(r"static const String title = '.*?';"), "static const String title = '$title';"),
-      (RegExp(r"static const String appName = '.*?';"), "static const String appName = '$appName';"),
-      (RegExp(r"static const String shortName = '.*?';"), "static const String shortName = '$shortName';"),
       (RegExp(r"static const String description = '.*?';"), "static const String description = '$description';"),
-      (RegExp(r"static const String className = '.*?';"), "static const String className = '$className';"),
     ],
   );
 
@@ -90,21 +104,15 @@ void main() async {
   );
 
   // 7. Update main.dart class name and usage
-  // This is a bit more invasive, we look for the old class name by looking at what's currently in AppConfig
-  final appConfigContent = File('lib/config/app_config.dart').readAsStringSync();
-  final oldClassNameMatch = RegExp(r"static const String className = '(.*?)';").firstMatch(appConfigContent);
-  if (oldClassNameMatch != null) {
-    final oldClassName = oldClassNameMatch.group(1)!;
-    if (oldClassName != className) {
-      _updateFile('lib/main.dart', [
-        (RegExp('class $oldClassName'), 'class $className'),
-        (RegExp('runApp\\($oldClassName'), 'runApp($className'),
-      ]);
-      // Also update tests
-      _updateFile('test/home_screen_test.dart', [
-        (RegExp('await tester.pumpWidget\\($oldClassName'), 'await tester.pumpWidget($className'),
-      ]);
-    }
+  if (oldClassName.isNotEmpty && oldClassName != className) {
+    _updateFile('lib/main.dart', [
+      (RegExp('class $oldClassName'), 'class $className'),
+      (RegExp('runApp\\($oldClassName'), 'runApp($className'),
+    ]);
+    // Also update tests
+    _updateFile('test/home_screen_test.dart', [
+      (RegExp('await tester.pumpWidget\\($oldClassName'), 'await tester.pumpWidget($className'),
+    ]);
   }
 
   print('\nMetadata sync complete!');

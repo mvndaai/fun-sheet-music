@@ -28,7 +28,7 @@ class ShareScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Share ${AppConfig.appName}',
+              'Share ${AppConfig.title}',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),

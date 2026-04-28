@@ -151,7 +151,7 @@ class MusicPdfService {
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
                         pw.Text(
-                          AppConfig.appName,
+                          AppConfig.title,
                           style: const pw.TextStyle(
                             fontSize: 9,
                             color: PdfColors.grey700,
