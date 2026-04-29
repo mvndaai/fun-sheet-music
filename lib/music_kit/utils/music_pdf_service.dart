@@ -29,7 +29,7 @@ class MusicPdfService {
     final emojiFont = await PdfGoogleFonts.notoColorEmojiRegular();
 
     await Printing.layoutPdf(
-      name: song.title,
+      name: song.title.replaceAll(RegExp(r'[^\w\s-]'), ''),
       onLayout: (PdfPageFormat format) async {
         final actualFormat = landscape ? format.landscape : format;
 
@@ -351,7 +351,7 @@ class MusicPdfService {
           (measure.beats != currentPrevMeasure.beats ||
               measure.beatType != currentPrevMeasure.beatType);
 
-      final noteHeadWidth = ls * 1.56; // Matching kNRx * 2 / kLS ratio
+      final noteHeadWidth = ls * 1.2; // Match the width in _buildNote
 
       double cumulativeDuration = 0.0;
       for (int ni = 0; ni < displayNotes.length; ni++) {
@@ -572,8 +572,8 @@ class MusicPdfService {
     );
     final pdfColor = PdfColor(color.r, color.g, color.b);
 
-    final noteHeadWidth = ls * 1.56;
-    final noteHeadHeight = ls * 0.88;
+    final noteHeadWidth = ls * 1.2; // Reduced from 1.56 to prevent overlap
+    final noteHeadHeight = ls * 0.9; // Adjusted for better proportions
 
     // Ledger lines
     if (pos < 0) {
@@ -636,17 +636,21 @@ class MusicPdfService {
         top: y - noteHeadHeight / 2,
         child: pw.Transform.rotate(
           angle: -0.20,
-          child: pw.Container(
-            width: noteHeadWidth,
-            height: noteHeadHeight,
-            decoration: pw.BoxDecoration(
-              color: filled ? pdfColor : null,
-              border: filled ? null : pw.Border.all(
-                color: pdfColor,
-                width: 1.5,
-              ),
-              borderRadius: pw.BorderRadius.circular(noteHeadWidth / 2),
-            ),
+          child: pw.CustomPaint(
+            size: PdfPoint(noteHeadWidth, noteHeadHeight),
+            painter: (PdfGraphics canvas, PdfPoint size) {
+              canvas.setStrokeColor(pdfColor);
+              canvas.setFillColor(pdfColor);
+              if (filled) {
+                canvas.drawEllipse(size.x / 2, size.y / 2, size.x / 2, size.y / 2);
+                canvas.fillPath();
+              } else {
+                canvas.setLineWidth(1.5);
+                // Draw clean ellipse for open notes
+                canvas.drawEllipse(size.x / 2, size.y / 2, size.x / 2 - 0.75, size.y / 2 - 0.75);
+                canvas.strokePath();
+              }
+            },
           ),
         ),
       ),
