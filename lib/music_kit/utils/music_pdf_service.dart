@@ -351,10 +351,8 @@ class MusicPdfService {
 
       final displayNotes =
           measure.notes.where((n) => !n.isChordContinuation).toList();
-      
-      final bool hasTimeSig = currentPrevMeasure == null ||
-          (measure.beats != currentPrevMeasure.beats ||
-              measure.beatType != currentPrevMeasure.beatType);
+      final bool hasTimeSig = measure.beats != currentPrevMeasure.beats ||
+          measure.beatType != currentPrevMeasure.beatType;
 
       final noteHeadWidth = ls * 1.2; // Match the width in _buildNote
 

@@ -350,7 +350,7 @@ class _NameIconEmojiDialogState extends State<NameIconEmojiDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<_IconType>(
-                value: _iconType,
+                initialValue: _iconType,
                 decoration: const InputDecoration(
                   labelText: 'Icon Type',
                   border: OutlineInputBorder(),
