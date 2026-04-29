@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/song_provider.dart';
 import '../music_kit/models/song.dart';
 import '../widgets/tag_chip.dart';
+import '../config/app_links.dart';
 import 'sheet_music_screen.dart';
 import 'upload_screen.dart';
 import 'share_screen.dart';
@@ -30,9 +33,74 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchController.addListener(() {
       context.read<SongProvider>().setSearchQuery(_searchController.text);
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SongProvider>().loadSongs();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context.read<SongProvider>().loadSongs();
+      if (mounted) {
+        _handleQueryParameters();
+      }
     });
+  }
+
+  void _handleQueryParameters() async {
+    final uri = Uri.base;
+    // Get the song parameter from the query string
+    final songId = uri.queryParameters['song'];
+    if (songId == null || songId.isEmpty) return;
+
+    final provider = context.read<SongProvider>();
+    // Wait for songs to be loaded if they haven't been
+    if (provider.songs.isEmpty) {
+      await provider.loadSongs();
+    }
+
+    // Try to find by ID first, then by title (case-insensitive)
+    var song = provider.songs.firstWhere(
+      (s) => s.id == songId || s.title.toLowerCase() == songId.toLowerCase(),
+      orElse: () => Song(id: '', title: '', measures: [], createdAt: DateTime.now()),
+    );
+
+    // If not found in library, check bundled songs
+    if (song.id.isEmpty) {
+      for (final entry in SongProvider.bundledSongs.entries) {
+        final bundledMatch = entry.value.where(
+          (s) => (s['title'] as String).toLowerCase() == songId.toLowerCase(),
+        ).firstOrNull;
+
+        if (bundledMatch != null) {
+          try {
+            final xmlContent = await rootBundle.loadString(bundledMatch['asset'] as String);
+            final imported = await provider.addSongFromXml(
+              xmlContent,
+              tags: List<String>.from(bundledMatch['tags'] as List),
+              library: entry.key,
+            );
+            if (imported != null) {
+              song = imported;
+            }
+          } catch (e) {
+            debugPrint('Failed to auto-import song: $e');
+          }
+          break;
+        }
+      }
+    }
+
+    if (song.id.isNotEmpty && mounted) {
+      _openSheet(context, song);
+    }
+  }
+
+  Future<void> _openSheet(BuildContext context, Song song) async {
+    final provider = context.read<SongProvider>();
+    final fullSong = await provider.loadFullSong(song.id);
+    if (fullSong != null && context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SheetMusicScreen(song: fullSong),
+        ),
+      );
+    }
   }
 
   @override
@@ -256,6 +324,8 @@ class _SongCard extends StatelessWidget {
           onSelected: (value) async {
             if (value == 'view') {
               _openSheet(context, song);
+            } else if (value == 'copy_link') {
+              _copySongLink(context, song);
             } else if (value == 'edit') {
               _editSong(context, song);
             } else if (value == 'share') {
@@ -268,6 +338,7 @@ class _SongCard extends StatelessWidget {
           },
           itemBuilder: (_) => [
             const PopupMenuItem(value: 'view', child: Text('View Sheet Music')),
+            const PopupMenuItem(value: 'copy_link', child: Text('Copy Link')),
             const PopupMenuItem(value: 'edit', child: Text('Edit')),
             if (song.library == 'Created')
               const PopupMenuItem(value: 'share', child: Text('Share (GitHub)')),
@@ -277,6 +348,29 @@ class _SongCard extends StatelessWidget {
         ),
         onTap: () => _openSheet(context, song),
       ),
+    );
+  }
+
+  void _copySongLink(BuildContext context, Song song) {
+    String baseUrl;
+    if (kIsWeb) {
+      // Use the current page URL but strip any existing query parameters
+      baseUrl = Uri.base.replace(queryParameters: {}).toString();
+      // Remove trailing question mark if present (happens if original URL had one)
+      if (baseUrl.endsWith('?')) {
+        baseUrl = baseUrl.substring(0, baseUrl.length - 1);
+      }
+    } else {
+      baseUrl = AppLinks.webUrl;
+    }
+
+    // Ensure we don't create double slashes and handle existing parameters
+    final String separator = baseUrl.contains('?') ? '&' : '?';
+    final songUrl = '$baseUrl$separator' 'song=${Uri.encodeComponent(song.title)}';
+
+    Clipboard.setData(ClipboardData(text: songUrl));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Link to "${song.title}" copied!')),
     );
   }
 
