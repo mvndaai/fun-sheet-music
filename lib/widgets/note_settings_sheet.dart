@@ -9,6 +9,7 @@ import '../screens/instruments_screen.dart';
 import '../screens/keyboards_screen.dart';
 import '../music_kit/models/music_display_mode.dart';
 import '../music_kit/models/legend_style.dart';
+import '../platform/platform.dart';
 
 /// A shared settings bottom sheet for music display and playback settings.
 class NoteSettingsSheet extends StatelessWidget {
@@ -64,6 +65,13 @@ class NoteSettingsSheet extends StatelessWidget {
       },
       child: StatefulBuilder(
         builder: (context, setSheetState) {
+          if (kIsWeb) {
+            setOnBeforeInstallPrompt(() {
+              if (context.mounted) {
+                setSheetState(() {});
+              }
+            });
+          }
           return Padding(
             padding: EdgeInsets.only(
               left: 16,
@@ -139,6 +147,24 @@ class NoteSettingsSheet extends StatelessWidget {
                         );
                       },
                     ),
+
+                    // 2.2 Install App (Web PWA)
+                    if (kIsWeb && canInstallApp())
+                      ListTile(
+                        leading: const Icon(Icons.install_mobile),
+                        title: const Text('Install App'),
+                        subtitle: const Text('Add to your home screen for easy access'),
+                        onTap: () async {
+                          final result = await installApp();
+                          if (result == 'accepted' && context.mounted) {
+                            Navigator.pop(context);
+                          } else if (result == 'not_available' && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Installation prompt not ready yet or not supported by this browser.')),
+                            );
+                          }
+                        },
+                      ),
 
                     // 3. Print
                     if (showPrint && onPrint != null)

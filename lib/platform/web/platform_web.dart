@@ -287,3 +287,27 @@ class WebAudioRecorder implements PlatformAudioRecorder {
 }
 
 PlatformAudioRecorder createAudioRecorder() => WebAudioRecorder();
+
+@JS('canInstallApp')
+external bool _canInstallApp();
+
+@JS('installApp')
+external JSPromise<JSString> _installApp();
+
+@JS('onBeforeInstallPrompt')
+external set _onBeforeInstallPrompt(JSFunction? value);
+
+bool canInstallApp() => _canInstallApp();
+
+Future<String> installApp() async {
+  try {
+    final result = await _installApp().toDart;
+    return result.toDart;
+  } catch (e) {
+    return 'error';
+  }
+}
+
+void setOnBeforeInstallPrompt(void Function() callback) {
+  _onBeforeInstallPrompt = callback.toJS;
+}
