@@ -2037,6 +2037,8 @@ limitations under the License.
 cross_file
 flutter_plugin_android_lifecycle
 google_fonts
+in_app_purchase_android
+in_app_purchase_storekit
 path_provider_android
 path_provider_foundation
 shared_preferences
@@ -6254,6 +6256,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------
 flutter_lints
+in_app_purchase
+in_app_purchase_platform_interface
 path_provider
 path_provider_linux
 path_provider_platform_interface
