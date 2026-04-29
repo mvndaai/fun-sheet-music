@@ -19,7 +19,6 @@ import '../music_kit/sheet_music_constants.dart';
 import '../music_kit/widgets/staff_painter.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../widgets/note_settings_sheet.dart';
-import 'instruments_screen.dart';
 
 class SheetMusicScreen extends StatefulWidget {
   final Song song;
@@ -44,7 +43,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   final PitchDetectionService _audio = PitchDetectionService();
   bool _micActive = false;
   String _detectedNote = '';
-  String? _statusMessage;
+  //String? _statusMessage;
   bool _isKeyboardInput = false;
   String _lastPhysicalKey = '';
   final Map<LogicalKeyboardKey, String> _keyToNote = {};
@@ -123,7 +122,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     }
 
     final note = _notes[_activeNoteIndex];
-    final provider = context.read<InstrumentProvider>();
     final keyboardProvider = context.read<KeyboardProvider>();
     final samplePath = keyboardProvider.activeProfile.getSamplePath(note.letterName);
     _tonePlayer.playNote(note.frequency, samplePath: samplePath);
@@ -157,19 +155,19 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   }
 
   Future<void> _startMic() async {
-    setState(() => _statusMessage = 'Starting microphone...');
+    //setState(() => _statusMessage = 'Starting microphone...');
     final success = await _audio.startListening();
     if (!mounted) return;
     if (!success) {
       setState(() {
-        _statusMessage = 'Microphone permission denied.';
+        //_statusMessage = 'Microphone permission denied.';
         _micActive = false;
       });
       return;
     }
     setState(() {
       _micActive = true;
-      _statusMessage = null;
+      //_statusMessage = null;
     });
     _noteSubscription = _audio.noteStream.listen((note) => _onNoteDetected(note, fromKeyboard: false));
   }
@@ -312,7 +310,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
               Navigator.pop(context);
               setState(() {
                 _activeNoteIndex = 0;
-                _statusMessage = null;
+                //_statusMessage = null;
               });
             },
             child: const Text('Play Again'),

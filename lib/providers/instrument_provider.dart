@@ -87,7 +87,7 @@ class InstrumentProvider extends ChangeNotifier {
     _coloredLabels = prefs.getBool(_coloredLabelsKey) ?? false;
     _measuresPerRow = prefs.getInt(_measuresPerRowKey) ?? 4;
     _showLegend = prefs.getBool(_showLegendKey) ?? true;
-    
+
     final legendStyleIndex = prefs.getInt(_legendStyleKey) ?? 0;
     _legendStyle = LegendStyle.values[legendStyleIndex.clamp(0, LegendStyle.values.length - 1)];
 
@@ -287,7 +287,11 @@ class InstrumentProvider extends ChangeNotifier {
   Future<void> importScheme(InstrumentProfile scheme) async {
     final index = _customSchemes.indexWhere((s) => s.id == scheme.id);
     final imported = scheme.copyWith(isImported: true, isBuiltIn: false);
-    if (index >= 0) _customSchemes[index] = imported; else _customSchemes.add(imported);
+    if (index >= 0) {
+      _customSchemes[index] = imported;
+    } else {
+      _customSchemes.add(imported);
+    }
     await _persistCustom();
     await setActive(scheme.id);
     notifyListeners();

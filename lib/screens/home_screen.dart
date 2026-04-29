@@ -12,7 +12,6 @@ import '../config/app_links.dart';
 import 'sheet_music_screen.dart';
 import 'upload_screen.dart';
 import 'share_screen.dart';
-import 'instruments_screen.dart';
 import 'music_editor_screen.dart';
 import '../widgets/note_settings_sheet.dart';
 import '../music_kit/utils/music_xml_generator.dart';

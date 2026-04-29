@@ -153,7 +153,7 @@ class NoteSettingsSheet extends StatelessWidget {
                       ),
 
                     const Divider(height: 24),
-                    _SectionHeader(title: 'Display'),
+                    const _SectionHeader(title: 'Display'),
 
                     // 4. Measures per row
                     _SegmentedSetting<int>(
@@ -258,7 +258,7 @@ class NoteSettingsSheet extends StatelessWidget {
                       ),
 
                     const Divider(height: 24),
-                    _SectionHeader(title: 'Sound'),
+                    const _SectionHeader(title: 'Sound'),
 
                     // 11. Metronome Sound
                     _SegmentedSetting<String>(
@@ -293,7 +293,7 @@ class NoteSettingsSheet extends StatelessWidget {
 
                     if (!kIsWeb) ...[
                       const Divider(height: 24),
-                      _SectionHeader(title: 'Support & Ads'),
+                      const _SectionHeader(title: 'Support & Ads'),
 
                       if (provider.isAdFree)
                         const ListTile(

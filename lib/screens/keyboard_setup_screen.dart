@@ -6,7 +6,6 @@ import '../providers/instrument_provider.dart';
 import '../music_kit/models/instrument_profile.dart'; // For kNoteKeys
 import '../music_kit/models/keyboard_profile.dart';
 import '../providers/keyboard_provider.dart';
-import '../music_kit/utils/music_constants.dart';
 import '../music_kit/utils/keyboard_utils.dart';
 import '../services/tone_player.dart';
 import '../platform/platform.dart' as platform;

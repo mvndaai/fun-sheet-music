@@ -21,7 +21,6 @@ class LegendPiano extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // We'll show one full octave (C to B) of piano keys
-    const octaveNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     final whiteNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
     return Padding(
@@ -87,6 +86,7 @@ class LegendPiano extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(3)),
           boxShadow: [
             if (!isBlack) BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 2, offset: const Offset(0, 1)),
+            //if (!isBlack) BoxShadow(color: Colors.black.withValues(alpha: .1), blurRadius: 2, offset: const Offset(0, 1)),
           ],
         ),
         child: showLabels && !isBlack

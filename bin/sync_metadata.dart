@@ -33,7 +33,7 @@ void main() async {
   print('  ClassName: $className');
 
   // Read current className from AppConfig to handle renaming classes in main.dart
-  final appConfigPath = 'lib/config/app_config.dart';
+  const appConfigPath = 'lib/config/app_config.dart';
   String oldClassName = '';
   if (File(appConfigPath).existsSync()) {
     final appConfigContent = File(appConfigPath).readAsStringSync();

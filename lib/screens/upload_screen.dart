@@ -115,8 +115,6 @@ class _UploadScreenState extends State<UploadScreen>
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<SongProvider>();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Song'),
@@ -339,11 +337,6 @@ class _LibraryTabState extends State<_LibraryTab>
 
   @override
   bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void dispose() {

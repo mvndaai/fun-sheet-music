@@ -5,7 +5,6 @@ import '../music_kit/widgets/sheet_music_renderer.dart';
 import '../music_kit/models/song.dart';
 import '../music_kit/models/music_note.dart';
 import '../music_kit/models/instrument_profile.dart';
-import '../music_kit/utils/music_constants.dart';
 import '../music_kit/models/legend_style.dart';
 import 'legend_circle.dart';
 import 'legend_piano.dart';

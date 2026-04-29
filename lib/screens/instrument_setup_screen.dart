@@ -4,11 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
-import '../music_kit/utils/music_constants.dart';
-import '../music_kit/utils/keyboard_utils.dart';
 import '../services/tone_player.dart';
 import '../services/pitch_detection_service.dart';
-import '../platform/platform.dart' as platform;
 import '../widgets/note_color_picker.dart';
 import 'instruments_screen.dart';
 
