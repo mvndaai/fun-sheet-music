@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:web/web.dart' as web;
 import 'package:drift/drift.dart';
-import 'package:drift/wasm.dart';
+import 'package:drift/web.dart';
 import 'package:record/record.dart';
 import '../platform_stub.dart';
 import 'audio_storage.dart';
@@ -191,13 +191,7 @@ Future<void> saveFile({required String title, required String content}) async {
 
 /// Opens a web-based database connection.
 QueryExecutor openDatabaseConnection() {
-  return DatabaseConnection.delayed(
-    WasmDatabase.open(
-      databaseName: 'app_db',
-      sqlite3Uri: Uri.parse('sqlite3.wasm'),
-      driftWorkerUri: Uri.parse('drift_worker.js'),
-    ).then((result) => result.resolvedExecutor),
-  );
+  return WebDatabase('app_db', logStatements: false);
 }
 
 /// Web doesn't support file system access for audio samples.
