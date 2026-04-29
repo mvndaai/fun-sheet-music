@@ -581,6 +581,8 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             _changeDuration(1);
           } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
             _changeDuration(-1);
+          } else if (event.logicalKey == LogicalKeyboardKey.keyB) {
+            _toggleBeam();
           } else if (event.logicalKey == LogicalKeyboardKey.space) {
             _addCurrentNote();
           } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
@@ -647,7 +649,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                   type: _nextType,
                   dot: _nextIsDotted ? 1 : 0,
                   isRest: _nextIsRest,
-                  beam: _nextBeam,
+                  beam: (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ? _nextBeam : null,
                 ),
               ),
             ),
@@ -699,8 +701,24 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     });
   }
 
+  void _toggleBeam() {
+    if (_nextIsRest || !(_nextType == 'eighth' || _nextType == '16th')) return;
+    setState(() {
+      if (_nextBeam == null) {
+        _nextBeam = 'begin';
+      } else if (_nextBeam == 'begin') {
+        _nextBeam = 'continue';
+      } else if (_nextBeam == 'continue') {
+        _nextBeam = 'end';
+      } else {
+        _nextBeam = null;
+      }
+    });
+  }
+
   void _addCurrentNote() {
-    _addNote(MusicNote(
+    final bool canBeam = !_nextIsRest && (_nextType == 'eighth' || _nextType == '16th');
+    final MusicNote note = MusicNote(
       step: _nextStep,
       octave: _nextOctave,
       alter: _nextAlter,
@@ -708,8 +726,20 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       type: _nextType,
       dot: _nextIsDotted ? 1 : 0,
       isRest: _nextIsRest,
-      beam: _nextBeam,
-    ));
+      beam: canBeam ? _nextBeam : null,
+    );
+    _addNote(note);
+
+    // Auto-advance beam state
+    if (canBeam) {
+      setState(() {
+        if (_nextBeam == 'begin') {
+          _nextBeam = 'continue';
+        } else if (_nextBeam == 'end') {
+          _nextBeam = null;
+        }
+      });
+    }
   }
 
   int _getGlobalActiveIndex() {
@@ -1066,7 +1096,33 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
           onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
           icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
         ),
+        if (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ...[
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 5,
+            child: _buildBeamSegmentedButton(),
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildBeamSegmentedButton() {
+    final style = SegmentedButton.styleFrom(
+      shape: const StadiumBorder(),
+      visualDensity: VisualDensity.compact,
+    );
+    return SegmentedButton<String?>(
+      segments: [
+        const ButtonSegment(value: null, label: Text('None', style: TextStyle(fontSize: 11))),
+        const ButtonSegment(value: 'begin', label: Text('Start', style: TextStyle(fontSize: 11))),
+        const ButtonSegment(value: 'continue', label: Text('Cont.', style: TextStyle(fontSize: 11))),
+        const ButtonSegment(value: 'end', label: Text('End', style: TextStyle(fontSize: 11))),
+      ],
+      selected: {_nextBeam},
+      onSelectionChanged: (val) => setState(() => _nextBeam = val.first),
+      showSelectedIcon: false,
+      style: style,
     );
   }
 
@@ -1170,23 +1226,34 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   }
 
   Widget _buildDurationAndModifierSelectors() {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _buildDurationSegmentedButton(),
+        Row(
+          children: [
+            Expanded(
+              child: _buildDurationSegmentedButton(),
+            ),
+            const SizedBox(width: 8),
+            _buildModifierButton(
+              isSelected: _nextIsDotted,
+              onPressed: () => setState(() => _nextIsDotted = !_nextIsDotted),
+              label: '.',
+            ),
+            const SizedBox(width: 8),
+            _buildModifierButton(
+              isSelected: _nextIsRest,
+              onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
+              icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        _buildModifierButton(
-          isSelected: _nextIsDotted,
-          onPressed: () => setState(() => _nextIsDotted = !_nextIsDotted),
-          label: '.',
-        ),
-        const SizedBox(width: 8),
-        _buildModifierButton(
-          isSelected: _nextIsRest,
-          onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
-          icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
-        ),
+        if (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: _buildBeamSegmentedButton(),
+          ),
+        ],
       ],
     );
   }
