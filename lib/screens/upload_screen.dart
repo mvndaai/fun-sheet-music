@@ -349,7 +349,6 @@ class _LibraryTabState extends State<_LibraryTab>
     try {
       final provider = context.read<SongProvider>();
       String? xmlContent;
-      
       if (entry.assetPath != null) {
         xmlContent = await rootBundle.loadString(entry.assetPath!);
       } else if (entry.url != null) {
@@ -368,9 +367,11 @@ class _LibraryTabState extends State<_LibraryTab>
         }
       }
     } catch (e) {
-       ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
+      }
     } finally {
       if (mounted) setState(() => _adding.remove(entry.uniqueId));
     }

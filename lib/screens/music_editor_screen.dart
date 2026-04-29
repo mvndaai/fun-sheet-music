@@ -425,15 +425,20 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     final songWithRests = _song.copyWith(measures: _fillRests(_song.measures));
     final xml = MusicXmlGenerator.generate(songWithRests);
     final provider = context.read<SongProvider>();
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    
     String id = _song.id;
     if (id.isEmpty) {
       final newSong = await provider.addSongFromXml(xml, library: 'Created');
       if (newSong != null) {
         id = newSong.id;
         // The parser returns a new Song object, update local state
-        setState(() {
-          _song = newSong;
-        });
+        if (mounted) {
+          setState(() {
+            _song = newSong;
+          });
+        }
       }
     } else {
       await provider.updateSongXml(id, xml);
@@ -442,10 +447,10 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     _lastSavedHistoryIndex = _historyIndex;
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Song saved successfully')),
       );
-      Navigator.pop(context);
+      navigator.pop();
     }
   }
 
@@ -564,9 +569,10 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       canPop: !_hasUnsavedChanges,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+        final navigator = Navigator.of(context);
         final shouldPop = await _showBackConfirmationDialog();
         if (shouldPop && mounted) {
-          Navigator.pop(context);
+          navigator.pop();
         }
       },
       child: KeyboardListener(
