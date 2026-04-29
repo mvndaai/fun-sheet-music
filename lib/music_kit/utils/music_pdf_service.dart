@@ -56,11 +56,11 @@ class MusicPdfService {
         // We use the same ratios as kLS but potentially a different base scale for PDF
         const double ls = 10.0; // Standardize PDF line spacing
         const double staffHeight = ls * 4;
-        const double topMargin = ls * 4;
-        const double bottomMargin = ls * 4;
+        const double topMargin = ls * 2.5; // Reduced from 4
+        const double bottomMargin = ls * 2.5; // Reduced from 4
         const double rowHeight = topMargin + staffHeight + bottomMargin;
         const double clefWidth = kClefW * (ls / kLS);
-        const double headerHeight = 80;
+        const double headerHeight = 50; // Reduced from 80
 
         final pageWidth = actualFormat.availableWidth;
         final pageHeight = actualFormat.availableHeight;
@@ -99,21 +99,27 @@ class MusicPdfService {
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           if (pageStart == 0) ...[
-                            pw.Text(
-                              song.title,
-                              style: pw.TextStyle(
-                                fontSize: 20,
-                                fontWeight: pw.FontWeight.bold,
-                              ),
+                            pw.Row(
+                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: pw.CrossAxisAlignment.end,
+                              children: [
+                                pw.Text(
+                                  song.title,
+                                  style: pw.TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: pw.FontWeight.bold,
+                                  ),
+                                ),
+                                if (song.composer.isNotEmpty)
+                                  pw.Text(
+                                    song.composer,
+                                    style: const pw.TextStyle(fontSize: 10),
+                                  ),
+                              ],
                             ),
-                            if (song.composer.isNotEmpty)
-                              pw.Text(
-                                song.composer,
-                                style: const pw.TextStyle(fontSize: 12),
-                              ),
-                            pw.SizedBox(height: 12),
-                            pw.Divider(),
-                            pw.SizedBox(height: 8),
+                            pw.SizedBox(height: 4),
+                            pw.Divider(thickness: 0.5),
+                            pw.SizedBox(height: 4),
                           ],
                           ...pageRows.asMap().entries.map((entry) {
                             final rowIndex = pageStart + entry.key;
