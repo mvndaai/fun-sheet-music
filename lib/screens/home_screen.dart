@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/song_provider.dart';
 import '../providers/instrument_provider.dart';
 import '../music_kit/models/song.dart';
+import '../music_kit/models/instrument_profile.dart';
 import '../widgets/tag_chip.dart';
 import '../widgets/kid_safe_ad_banner.dart';
 import '../config/app_links.dart';
@@ -44,6 +45,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _handleQueryParameters() async {
     final uri = Uri.base;
+    
+    // Handle instrument parameter
+    final instrumentParam = uri.queryParameters['instrument'];
+    if (instrumentParam != null && instrumentParam.isNotEmpty) {
+      final instrumentProvider = context.read<InstrumentProvider>();
+      
+      // Try to find by ID first, then by name (case-insensitive)
+      final instrument = instrumentProvider.allSchemes.firstWhere(
+        (i) => i.id == instrumentParam || i.name.toLowerCase() == instrumentParam.toLowerCase(),
+        orElse: () => InstrumentProfile.black, // Use black as a sentinel value
+      );
+      
+      if (instrument.id != InstrumentProfile.black.id) {
+        await instrumentProvider.setActive(instrument.id);
+      }
+    }
+    
     // Get the song parameter from the query string
     final songId = uri.queryParameters['song'];
     if (songId == null || songId.isEmpty) return;
