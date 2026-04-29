@@ -7,15 +7,18 @@ An app for displaying colored sheet music with practice modes.
 - **MusicXML Support** – Upload `.xml`, `.mxl`, or `.musicxml` files from your device, or download directly from a Google Cloud Storage bucket (or any public URL).
 - **Color-Coded Sheet Music** – Notes are displayed as colored circles matching a children's xylophone (C = Red, D = Orange, E = Yellow, F = Green, G = Teal, A = Blue, B = Purple).
 - **Dual Note Names** – Toggle between letter notation (A, B, C), solfège (Do, Re, Mi), or both simultaneously.
-- **Song Library with Tags** – All uploaded songs are stored locally and can be organized with custom tags for easy filtering.
-- **Practice Mode (Microphone)** – The app listens to the microphone, detects the pitch being played, highlights the current note on the sheet music, and automatically advances when the correct note is heard.
-- **Cross-Platform** – Targets Android, iOS, and Web.
+- **Song Library with Tags** – All uploaded songs are stored locally in a Drift database and can be organized with custom tags for easy filtering.
+- **Practice Mode (Mic & Keyboard)** – The app listens to the microphone or physical keyboard, detects the pitch/key being played, highlights the current note, and automatically advances when the correct note is heard.
+- **Tone Playback** – Play back songs using a built-in synthesizer to hear how they should sound.
+- **PDF Export & Printing** – Export your color-coded sheet music to PDF or print directly from the app.
+- **Sharing** – Share songs via QR codes or direct links.
+- **Cross-Platform** – Targets Android, iOS, and Web with platform-specific optimizations.
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) ≥ 3.0.0
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) ≥ 3.6.0
 
 ### Run
 
@@ -38,55 +41,46 @@ flutter build web          # Web
 ```
 lib/
 ├── main.dart                  # App entry point
+├── config/                    # App configuration and deep links
 ├── music_kit/                 # Core music rendering & logic
-│   ├── models/
-│   │   ├── music_note.dart
-│   │   ├── measure.dart
-│   │   ├── song.dart
-│   │   └── instrument_profile.dart
-│   ├── widgets/
-│   │   ├── note_renderer.dart
-│   │   ├── sheet_music_renderer.dart
-│   │   └── staff_painter.dart
-│   └── utils/
-│       ├── music_constants.dart
-│       └── note_resolver.dart
+│   ├── models/                # Data structures (Song, Note, Measure, etc.)
+│   ├── widgets/               # Visual components (Staff, Note, Renderer)
+│   ├── utils/                 # Music math, PDF export, XML generation
+│   └── sheet_music_constants.dart
 ├── services/
 │   ├── musicxml_parser.dart   # MusicXML → Song parser
-│   ├── storage_service.dart   # SharedPreferences-based local storage
-│   └── pitch_detection_service.dart # Microphone capture + FFT pitch detection
-├── providers/
-│   ├── song_provider.dart     # Songs state management
-│   └── instrument_provider.dart # Active instrument state management
+│   ├── database.dart          # Drift-based local database
+│   ├── storage_service.dart   # File system and preferences storage
+│   ├── pitch_detection_service.dart # Microphone capture + FFT pitch detection
+│   ├── tone_player.dart       # Synthesized note playback
+│   └── cloud_service.dart     # Remote file fetching
+├── providers/                 # State management (Song, Instrument, Keyboard)
 ├── screens/
 │   ├── home_screen.dart       # Song library + tag filtering
-│   ├── sheet_music_screen.dart# Full sheet music display
-│   ├── practice_screen.dart   # Practice mode with microphone/keyboard
-│   ├── instruments_screen.dart # Instrument list & selection
-│   ├── instrument_editor_screen.dart # Edit instrument details
-│   └── keyboard_config_screen.dart # Configure key-to-note mappings
-├── widgets/
-│   ├── note_widget.dart       # App-connected note circle
-│   ├── sheet_music_widget.dart# App-connected sheet music view
-│   └── instrument_setup/      # Multi-step setup wizards
-│       ├── add_key_wizard.dart
-│       └── tuning_wizard.dart
-└── utils/
-    └── note_colors.dart       # Default color palette
+│   ├── sheet_music_screen.dart# Main viewer with playback & practice modes
+│   ├── upload_screen.dart     # File upload and URL import
+│   ├── instruments_screen.dart# Instrument list & selection
+│   ├── instrument_setup_screen.dart # Add/Edit instrument details
+│   └── keyboard_setup_screen.dart   # Configure key-to-note mappings
+├── widgets/                   # Shared UI components
+└── platform/                  # Platform-specific abstractions (Web vs Native)
 ```
 
-## Sample Song
+## Sample Songs
 
-A sample "Twinkle Twinkle Little Star" MusicXML file is included at
-`assets/sample_songs/twinkle_twinkle.xml`.
+Several sample MusicXML files are included in `assets/sample_songs/`, including:
+- Twinkle Twinkle Little Star
+- Old MacDonald Had a Farm
+- Mary Had a Little Lamb
+- Concerning Hobbits
 
-## Microphone Practice Mode
+## Practice Mode
 
 1. Open a song and tap **Practice**.
-2. Tap the microphone button (🎙) to start listening.
-3. The current note to play is highlighted in large format at the top.
-4. Play the note on your instrument – when the app detects the correct pitch it advances automatically.
-5. Use the skip buttons (⏮ / ⏭) to navigate manually.
+2. **Microphone**: Tap the microphone button (🎙) to start listening. Play the note on your instrument – the app advances when the correct pitch is detected.
+3. **Keyboard**: Connect a physical keyboard (or use your laptop keys). The app maps keys to musical notes for silent practice.
+4. The current note is highlighted on the staff, and its name/color is shown at the top.
+5. Use the skip buttons (⏮ / ⏭) or tap notes to navigate manually.
 
 ## Permissions
 
