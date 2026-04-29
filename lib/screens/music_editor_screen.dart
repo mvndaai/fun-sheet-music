@@ -659,7 +659,6 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
               icon: const Icon(Icons.settings),
               onPressed: () => NoteSettingsSheet.show(
                 context,
-                showTempo: true,
                 tempo: _tempo,
                 onTempoChanged: (v) => setState(() => _tempo = v),
                 showPrint: true,

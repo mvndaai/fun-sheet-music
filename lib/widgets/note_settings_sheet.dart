@@ -15,7 +15,6 @@ class NoteSettingsSheet extends StatelessWidget {
   final double? tempo;
   final ValueChanged<double>? onTempoChanged;
   final VoidCallback? onPrint;
-  final bool showTempo;
   final bool showPrint;
   final bool showInstrument;
 
@@ -24,7 +23,6 @@ class NoteSettingsSheet extends StatelessWidget {
     this.tempo,
     this.onTempoChanged,
     this.onPrint,
-    this.showTempo = false,
     this.showPrint = false,
     this.showInstrument = true,
   });
@@ -34,7 +32,6 @@ class NoteSettingsSheet extends StatelessWidget {
     double? tempo,
     ValueChanged<double>? onTempoChanged,
     VoidCallback? onPrint,
-    bool showTempo = false,
     bool showPrint = false,
     bool showInstrument = true,
   }) {
@@ -48,7 +45,6 @@ class NoteSettingsSheet extends StatelessWidget {
         tempo: tempo,
         onTempoChanged: onTempoChanged,
         onPrint: onPrint,
-        showTempo: showTempo,
         showPrint: showPrint,
         showInstrument: showInstrument,
       ),
@@ -287,7 +283,7 @@ class NoteSettingsSheet extends StatelessWidget {
                     ),
 
                     // 12. Tempo
-                    if (showTempo && tempo != null && onTempoChanged != null)
+                    if (tempo != null && onTempoChanged != null)
                       ListTile(
                         title: const Text('Tempo'),
                         subtitle: Text('${localTempo.round()} BPM'),

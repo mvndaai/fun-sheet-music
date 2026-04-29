@@ -365,7 +365,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
         }
       },
       onPrint: _printSong,
-      showTempo: true,
       showPrint: true,
     );
   }
