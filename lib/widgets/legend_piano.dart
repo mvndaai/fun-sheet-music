@@ -85,8 +85,7 @@ class LegendPiano extends StatelessWidget {
           border: Border.all(color: borderColor, width: 0.5),
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(3)),
           boxShadow: [
-            if (!isBlack) BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 2, offset: const Offset(0, 1)),
-            //if (!isBlack) BoxShadow(color: Colors.black.withValues(alpha: .1), blurRadius: 2, offset: const Offset(0, 1)),
+            if (!isBlack) BoxShadow(color: Colors.black.withValues(alpha: .1), blurRadius: 2, offset: const Offset(0, 1)),
           ],
         ),
         child: showLabels && !isBlack

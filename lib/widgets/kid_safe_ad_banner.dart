@@ -51,7 +51,7 @@ class _KidSafeAdBannerState extends State<KidSafeAdBanner> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: 0.5),
         border: Border(
           top: BorderSide(color: Theme.of(context).dividerColor),
         ),

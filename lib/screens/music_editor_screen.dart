@@ -795,10 +795,10 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        border: Border(top: BorderSide(color: colorScheme.outlineVariant.withOpacity(0.5))),
+        border: Border(top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha:0.5))),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha:0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -870,7 +870,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Loop', style: TextStyle(fontSize: 10, color: colorScheme.onSurface.withOpacity(0.6))),
+              Text('Loop', style: TextStyle(fontSize: 10, color: colorScheme.onSurface.withValues(alpha:0.6))),
               SizedBox(
                 height: 24,
                 width: 40,
@@ -943,9 +943,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.3)),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: InkWell(
         onTap: () => _showTimeSigDialog(m),
@@ -1266,7 +1266,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       decoration: BoxDecoration(
         color: isSelected ? colorScheme.secondaryContainer : colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isSelected ? colorScheme.primary : colorScheme.outline.withOpacity(0.2)),
+        border: Border.all(color: isSelected ? colorScheme.primary : colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: InkWell(
         onTap: onPressed,
@@ -1326,7 +1326,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         _buildCircleActionButton(
           icon: _isListening ? Icons.mic : Icons.mic_off,
           onPressed: _toggleListening,
-          color: _isListening ? Colors.red.withOpacity(0.1) : colorScheme.primaryContainer,
+          color: _isListening ? Colors.red.withValues(alpha: 0.1) : colorScheme.primaryContainer,
           iconColor: _isListening ? Colors.red : colorScheme.onPrimaryContainer,
           isListening: _isListening,
         ),
@@ -1347,7 +1347,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(24),
-        border: isListening ? Border.all(color: Colors.red.withOpacity(0.5), width: 2) : null,
+        border: isListening ? Border.all(color: Colors.red.withValues(alpha: 0.5), width: 2) : null,
       ),
       child: IconButton(
         icon: Icon(icon, color: iconColor),
