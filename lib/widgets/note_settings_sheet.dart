@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/instrument_provider.dart';
 import '../providers/keyboard_provider.dart';
+import '../providers/payment_provider.dart';
 import '../screens/instruments_screen.dart';
 import '../screens/keyboards_screen.dart';
 import '../music_kit/models/music_display_mode.dart';
@@ -288,6 +290,47 @@ class NoteSettingsSheet extends StatelessWidget {
                           ),
                         ),
                       ),
+
+                    if (!kIsWeb) ...[
+                      const Divider(height: 24),
+                      _SectionHeader(title: 'Support & Ads'),
+
+                      if (provider.isAdFree)
+                        const ListTile(
+                          leading: Icon(Icons.check_circle, color: Colors.green),
+                          title: Text('Ad-Free Enabled'),
+                          subtitle: Text('Thank you for supporting Fun Sheet Music!'),
+                        )
+                      else ...[
+                        Consumer<PaymentProvider>(
+                          builder: (context, payment, _) => Column(
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.star_outline),
+                                title: const Text('Remove Ads (Yearly)'),
+                                subtitle: const Text('\$1 / year subscription'),
+                                trailing: const Text('\$1.00', style: TextStyle(fontWeight: FontWeight.bold)),
+                                onTap: () async {
+                                  // In production, this would call real IAP
+                                  await payment.simulatePurchase(PaymentProvider.adFreeYearId);
+                                  if (context.mounted) Navigator.pop(context);
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.favorite_border),
+                                title: const Text('Remove Ads (Lifetime)'),
+                                subtitle: const Text('\$5 forever - Best value!'),
+                                trailing: const Text('\$5.00', style: TextStyle(fontWeight: FontWeight.bold)),
+                                onTap: () async {
+                                  await payment.simulatePurchase(PaymentProvider.adFreeForeverId);
+                                  if (context.mounted) Navigator.pop(context);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ],
                 ),
               ),

@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/song_provider.dart';
+import '../providers/instrument_provider.dart';
 import '../music_kit/models/song.dart';
 import '../widgets/tag_chip.dart';
+import '../widgets/kid_safe_ad_banner.dart';
 import '../config/app_links.dart';
 import 'sheet_music_screen.dart';
 import 'upload_screen.dart';
@@ -192,6 +194,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           return _SongCard(song: song);
                         },
                       ),
+              ),
+              // Ad Banner
+              Consumer<InstrumentProvider>(
+                builder: (context, instrProvider, _) {
+                  if (kIsWeb || instrProvider.isAdFree) return const SizedBox.shrink();
+                  return const KidSafeAdBanner();
+                },
               ),
             ],
           );

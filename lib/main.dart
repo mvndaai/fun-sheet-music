@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'providers/song_provider.dart';
 import 'providers/instrument_provider.dart';
 import 'providers/keyboard_provider.dart';
+import 'providers/payment_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/database.dart';
 import 'services/storage_service.dart';
@@ -62,6 +63,9 @@ class FunSheetMusic extends StatelessWidget {
         ),
         ChangeNotifierProvider.value(
           value: keyboardProvider,
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PaymentProvider(instrumentProvider: instrumentProvider),
         ),
       ],
       child: Consumer<InstrumentProvider>(
