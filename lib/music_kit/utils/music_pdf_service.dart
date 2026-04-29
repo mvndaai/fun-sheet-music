@@ -20,6 +20,7 @@ class MusicPdfService {
     required bool labelsBelow,
     required bool coloredLabels,
     required int measuresPerRow,
+    required bool landscape,
   }) async {
     // Load fonts that support Unicode and symbols
     final font = await PdfGoogleFonts.notoSansRegular();
@@ -30,6 +31,8 @@ class MusicPdfService {
     await Printing.layoutPdf(
       name: song.title,
       onLayout: (PdfPageFormat format) async {
+        final actualFormat = landscape ? format.landscape : format;
+
         final doc = pw.Document(
           theme: pw.ThemeData.withFont(
             base: font,
@@ -41,7 +44,7 @@ class MusicPdfService {
         if (song.measures.isEmpty) {
           doc.addPage(
             pw.Page(
-              pageFormat: format,
+              pageFormat: actualFormat,
               build: (_) => pw.Center(
                 child: pw.Text('No notes found in this song.'),
               ),
@@ -59,8 +62,8 @@ class MusicPdfService {
         const double clefWidth = kClefW * (ls / kLS);
         const double headerHeight = 80;
 
-        final pageWidth = format.availableWidth;
-        final pageHeight = format.availableHeight;
+        final pageWidth = actualFormat.availableWidth;
+        final pageHeight = actualFormat.availableHeight;
 
         // Split measures into rows
         final List<List<Measure>> rows = [];
@@ -86,7 +89,7 @@ class MusicPdfService {
 
           doc.addPage(
             pw.Page(
-              pageFormat: format,
+              pageFormat: actualFormat,
               build: (pw.Context ctx) {
                 return pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,

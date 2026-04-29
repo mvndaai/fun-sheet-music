@@ -166,6 +166,17 @@ class NoteSettingsSheet extends StatelessWidget {
                       onChanged: (v) => provider.setMeasuresPerRow(v),
                     ),
 
+                    // 4.1 PDF Orientation
+                    _SegmentedSetting<bool>(
+                      title: 'PDF Orientation',
+                      value: provider.pdfLandscape,
+                      options: const [
+                        (value: false, label: 'Portrait', icon: Icons.portrait),
+                        (value: true, label: 'Landscape', icon: Icons.landscape),
+                      ],
+                      onChanged: (v) => provider.setPdfLandscape(v),
+                    ),
+
                     // 5. Theme
                     _SegmentedSetting<ThemeMode>(
                       title: 'Theme',

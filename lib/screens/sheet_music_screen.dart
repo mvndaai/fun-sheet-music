@@ -351,6 +351,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
       labelsBelow: provider.labelsBelow,
       coloredLabels: provider.coloredLabels,
       measuresPerRow: provider.measuresPerRow,
+      landscape: provider.pdfLandscape,
     );
   }
 

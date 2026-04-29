@@ -22,6 +22,7 @@ class InstrumentProvider extends ChangeNotifier {
   static const String _themeModeKey = 'app_theme_mode';
   static const String _metronomeSoundKey = 'settings_metronome_sound';
   static const String _displayModeKey = 'settings_display_mode';
+  static const String _pdfLandscapeKey = 'settings_pdf_landscape';
   static const String _builtInTuningOverridesKey = 'color_scheme_builtin_tuning';
 
   final Uuid _uuid = const Uuid();
@@ -41,6 +42,7 @@ class InstrumentProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   String _metronomeSound = 'tick';
   MusicDisplayMode _displayMode = MusicDisplayMode.view;
+  bool _pdfLandscape = false;
 
   bool get showNoteLabels => _showNoteLabels;
   bool get showLetter => _showLetter;
@@ -54,6 +56,7 @@ class InstrumentProvider extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   String get metronomeSound => _metronomeSound;
   MusicDisplayMode get displayMode => _displayMode;
+  bool get pdfLandscape => _pdfLandscape;
 
   List<InstrumentProfile> get allSchemes => [
         ..._builtInSchemes,
@@ -86,6 +89,7 @@ class InstrumentProvider extends ChangeNotifier {
     _legendStyle = LegendStyle.values[legendStyleIndex.clamp(0, LegendStyle.values.length - 1)];
 
     _metronomeSound = prefs.getString(_metronomeSoundKey) ?? 'tick';
+    _pdfLandscape = prefs.getBool(_pdfLandscapeKey) ?? false;
 
     final modeIndex = prefs.getInt(_displayModeKey) ?? 0;
     _displayMode = MusicDisplayMode.values[modeIndex.clamp(0, MusicDisplayMode.values.length - 1)];
@@ -206,6 +210,11 @@ class InstrumentProvider extends ChangeNotifier {
   Future<void> setDisplayMode(MusicDisplayMode mode) async {
     _displayMode = mode; notifyListeners();
     final prefs = await SharedPreferences.getInstance(); await prefs.setInt(_displayModeKey, mode.index);
+  }
+
+  Future<void> setPdfLandscape(bool value) async {
+    _pdfLandscape = value; notifyListeners();
+    final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_pdfLandscapeKey, value);
   }
 
   Future<InstrumentProfile> createCustom({String? name, String? icon, String? emoji}) async {
