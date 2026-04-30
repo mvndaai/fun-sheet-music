@@ -24,6 +24,7 @@ class InstrumentProvider extends ChangeNotifier {
   static const String _displayModeKey = 'settings_display_mode';
   static const String _pdfLandscapeKey = 'settings_pdf_landscape';
   static const String _isAdFreeKey = 'settings_is_ad_free';
+  static const String _tempoKey = 'settings_tempo';
   static const String _builtInTuningOverridesKey = 'color_scheme_builtin_tuning';
 
   final Uuid _uuid = const Uuid();
@@ -45,6 +46,7 @@ class InstrumentProvider extends ChangeNotifier {
   MusicDisplayMode _displayMode = MusicDisplayMode.view;
   bool _pdfLandscape = false;
   bool _isAdFree = false;
+  double _tempo = 120.0;
 
   bool get showNoteLabels => _showNoteLabels;
   bool get showLetter => _showLetter;
@@ -60,6 +62,7 @@ class InstrumentProvider extends ChangeNotifier {
   MusicDisplayMode get displayMode => _displayMode;
   bool get pdfLandscape => _pdfLandscape;
   bool get isAdFree => _isAdFree;
+  double get tempo => _tempo;
 
   List<InstrumentProfile> get allSchemes => [
         ..._builtInSchemes,
@@ -94,6 +97,7 @@ class InstrumentProvider extends ChangeNotifier {
     _metronomeSound = prefs.getString(_metronomeSoundKey) ?? 'tick';
     _pdfLandscape = prefs.getBool(_pdfLandscapeKey) ?? false;
     _isAdFree = prefs.getBool(_isAdFreeKey) ?? false;
+    _tempo = prefs.getDouble(_tempoKey) ?? 120.0;
 
     final modeIndex = prefs.getInt(_displayModeKey) ?? 0;
     _displayMode = MusicDisplayMode.values[modeIndex.clamp(0, MusicDisplayMode.values.length - 1)];
@@ -224,6 +228,11 @@ class InstrumentProvider extends ChangeNotifier {
   Future<void> setAdFree(bool value) async {
     _isAdFree = value; notifyListeners();
     final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_isAdFreeKey, value);
+  }
+
+  Future<void> setTempo(double value) async {
+    _tempo = value; notifyListeners();
+    final prefs = await SharedPreferences.getInstance(); await prefs.setDouble(_tempoKey, value);
   }
 
   Future<InstrumentProfile> createCustom({String? name, String? icon, String? emoji}) async {
