@@ -230,11 +230,15 @@ class InstrumentProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_isAdFreeKey, value);
   }
 
-  Future<void> setTempo(double value) async {
+  Future<void> setTempo(double value, {bool persist = true}) async {
     _tempo = value; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setDouble(_tempoKey, value);
+    if (!persist) return;
+    await persistTempo();
   }
 
+  Future<void> persistTempo() async {
+    final prefs = await SharedPreferences.getInstance(); await prefs.setDouble(_tempoKey, _tempo);
+  }
   Future<InstrumentProfile> createCustom({String? name, String? icon, String? emoji}) async {
     final base = activeScheme;
     final scheme = InstrumentProfile(

@@ -307,7 +307,10 @@ class _NoteSettingsSheetState extends State<NoteSettingsSheet> {
                         setState(() => _localTempo = v);
                         if (widget.onTempoChanged != null) {
                           widget.onTempoChanged!(v);
-                        } else {
+                        }
+                      },
+                      onChangeEnd: (v) {
+                        if (widget.onTempoChanged == null) {
                           provider.setTempo(v);
                         }
                       },
