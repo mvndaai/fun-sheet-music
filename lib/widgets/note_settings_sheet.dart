@@ -66,26 +66,20 @@ class _NoteSettingsSheetState extends State<NoteSettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      autofocus: true,
-      onKeyEvent: (node, event) {
-        if (event.logicalKey == LogicalKeyboardKey.escape && event is KeyDownEvent) {
-          Navigator.pop(context);
-          return KeyEventResult.handled;
-        }
-
-        final isP = event.logicalKey == LogicalKeyboardKey.keyP;
-        final isControlOrMeta = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
-
-        if (widget.showPrint && widget.onPrint != null && isP && isControlOrMeta) {
-          if (event is KeyDownEvent) {
-            widget.onPrint!();
-          }
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): () =>
+            Navigator.pop(context),
+        if (widget.showPrint && widget.onPrint != null) ...{
+          const SingleActivator(LogicalKeyboardKey.keyP, control: true):
+              widget.onPrint!,
+          const SingleActivator(LogicalKeyboardKey.keyP, meta: true):
+              widget.onPrint!,
+        },
       },
-      child: Padding(
+      child: Focus(
+        autofocus: true,
+        child: Padding(
         padding: EdgeInsets.only(
           left: 16,
           right: 16,
@@ -363,8 +357,9 @@ class _NoteSettingsSheetState extends State<NoteSettingsSheet> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _SegmentedSetting<T> extends StatelessWidget {

@@ -596,20 +596,19 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
           navigator.pop();
         }
       },
-      child: Focus(
-      focusNode: _focusNode,
-      autofocus: true,
-      onKeyEvent: (node, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyP, control: true):
+              _printSong,
+          const SingleActivator(LogicalKeyboardKey.keyP, meta: true): _printSong,
+        },
+        child: Focus(
+          focusNode: _focusNode,
+          autofocus: true,
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-        final isP = event.logicalKey == LogicalKeyboardKey.keyP;
-        final isControlOrMeta = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
-        if (isP && isControlOrMeta) {
-          _printSong();
-          return KeyEventResult.handled;
-        }
-
-        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
           _changePitch(1);
         } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
           _changePitch(-1);
@@ -697,7 +696,8 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         ),
       ),
     ),
-  );
+  ),
+);
 }
 
   void _changePitch(int delta) {

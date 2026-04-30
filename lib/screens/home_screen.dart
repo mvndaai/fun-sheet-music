@@ -134,22 +134,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      focusNode: _focusNode,
-      autofocus: true,
-      onKeyEvent: (node, event) {
-        final isP = event.logicalKey == LogicalKeyboardKey.keyP;
-        final isControlOrMeta = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
-        
-        if (isP && isControlOrMeta) {
-          if (event is KeyDownEvent) {
-            BatchPrintDialog.show(context);
-          }
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyP, control: true): () =>
+            BatchPrintDialog.show(context),
+        const SingleActivator(LogicalKeyboardKey.keyP, meta: true): () =>
+            BatchPrintDialog.show(context),
       },
-      child: Scaffold(
+      child: Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        child: Scaffold(
           appBar: AppBar(
           title: const Text('🎵 My Songs'),
           actions: [
@@ -247,8 +242,9 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _SearchAndFilterBar extends StatelessWidget {
