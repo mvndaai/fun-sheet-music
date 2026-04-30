@@ -58,9 +58,24 @@ class NoteSettingsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     double localTempo = tempo ?? 140.0;
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.pop(context),
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (event.logicalKey == LogicalKeyboardKey.escape && event is KeyDownEvent) {
+          Navigator.pop(context);
+          return KeyEventResult.handled;
+        }
+        
+        final isP = event.logicalKey == LogicalKeyboardKey.keyP;
+        final isControlOrMeta = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+        
+        if (showPrint && onPrint != null && isP && isControlOrMeta) {
+          if (event is KeyDownEvent) {
+            onPrint!();
+          }
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
       },
       child: StatefulBuilder(
         builder: (context, setSheetState) {

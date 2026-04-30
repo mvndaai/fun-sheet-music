@@ -21,6 +21,28 @@ class MusicPdfService {
     required int measuresPerRow,
     required bool landscape,
   }) async {
+    await printSongs(
+      songs: [song],
+      colorScheme: colorScheme,
+      showSolfege: showSolfege,
+      showLetter: showLetter,
+      labelsBelow: labelsBelow,
+      coloredLabels: coloredLabels,
+      measuresPerRow: measuresPerRow,
+      landscape: landscape,
+    );
+  }
+
+  static Future<void> printSongs({
+    required List<Song> songs,
+    required InstrumentProfile colorScheme,
+    required bool showSolfege,
+    required bool showLetter,
+    required bool labelsBelow,
+    required bool coloredLabels,
+    required int measuresPerRow,
+    required bool landscape,
+  }) async {
     // Load fonts that support Unicode and symbols
     final font = await PdfGoogleFonts.notoSansRegular();
     final boldFont = await PdfGoogleFonts.notoSansBold();
@@ -28,7 +50,9 @@ class MusicPdfService {
     final emojiFont = await PdfGoogleFonts.notoColorEmojiRegular();
 
     await Printing.layoutPdf(
-      name: song.title.replaceAll(RegExp(r'[^\w\s-]'), ''),
+      name: songs.length == 1
+          ? songs.first.title.replaceAll(RegExp(r'[^\w\s-]'), '')
+          : 'Batch_Print_${DateTime.now().millisecondsSinceEpoch}',
       onLayout: (PdfPageFormat format) async {
         final actualFormat = landscape ? format.landscape : format;
 
@@ -40,152 +64,157 @@ class MusicPdfService {
           ),
         );
 
-        if (song.measures.isEmpty) {
+        bool hasPages = false;
+        for (final song in songs) {
+          if (song.measures.isEmpty) continue;
+
+          hasPages = true;
+          // We use the same ratios as kLS but potentially a different base scale for PDF
+          const double ls = 10.0; // Standardize PDF line spacing
+          const double staffHeight = ls * 4;
+          const double topMargin = ls * 2.5; // Reduced from 4
+          const double bottomMargin = ls * 2.5; // Reduced from 4
+          const double rowHeight = topMargin + staffHeight + bottomMargin;
+          const double clefWidth = kClefW * (ls / kLS);
+          const double headerHeight = 50; // Reduced from 80
+
+          final pageWidth = actualFormat.availableWidth;
+          final pageHeight = actualFormat.availableHeight;
+
+          // Split measures into rows
+          final List<List<Measure>> rows = [];
+          for (int i = 0; i < song.measures.length; i += measuresPerRow) {
+            rows.add(
+              song.measures.sublist(
+                i,
+                (i + measuresPerRow).clamp(0, song.measures.length),
+              ),
+            );
+          }
+
+          final rowsPerPage =
+              ((pageHeight - headerHeight) / rowHeight).floor().clamp(1, rows.length);
+
+          for (int pageStart = 0;
+              pageStart < rows.length;
+              pageStart += rowsPerPage) {
+            final pageRows = rows.sublist(
+              pageStart,
+              (pageStart + rowsPerPage).clamp(0, rows.length),
+            );
+
+            doc.addPage(
+              pw.Page(
+                pageFormat: actualFormat,
+                build: (pw.Context ctx) {
+                  return pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Expanded(
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            if (pageStart == 0) ...[
+                              pw.Row(
+                                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                                children: [
+                                  pw.Text(
+                                    song.title,
+                                    style: pw.TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: pw.FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (song.composer.isNotEmpty)
+                                    pw.Text(
+                                      song.composer,
+                                      style: const pw.TextStyle(fontSize: 10),
+                                    ),
+                                ],
+                              ),
+                              pw.SizedBox(height: 4),
+                              pw.Divider(thickness: 0.5),
+                              pw.SizedBox(height: 4),
+                            ],
+                            ...pageRows.asMap().entries.map((entry) {
+                              final rowIndex = pageStart + entry.key;
+                              final rowMeasures = entry.value;
+                              final isFirstRow = rowIndex == 0;
+                              final isLastRow = rowIndex == rows.length - 1;
+
+                              return pw.Padding(
+                                padding: const pw.EdgeInsets.only(bottom: 16),
+                                child: _buildStaffRow(
+                                  measures: rowMeasures,
+                                  colorScheme: colorScheme,
+                                  width: pageWidth,
+                                  ls: ls,
+                                  topMargin: topMargin,
+                                  staffHeight: staffHeight,
+                                  clefWidth: clefWidth,
+                                  isFirstRow: isFirstRow,
+                                  isLastRow: isLastRow,
+                                  measuresPerRow: measuresPerRow,
+                                  musicFont: musicFont,
+                                  previousMeasure: rowIndex > 0 ? rows[rowIndex - 1].last : null,
+                                  showSolfege: showSolfege,
+                                  showLetter: showLetter,
+                                  labelsBelow: labelsBelow,
+                                  coloredLabels: coloredLabels,
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                      // Footer
+                      pw.Divider(),
+                      pw.SizedBox(height: 4),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.Text(
+                            AppConfig.title,
+                            style: const pw.TextStyle(
+                              fontSize: 9,
+                              color: PdfColors.grey700,
+                            ),
+                          ),
+                          pw.Row(
+                            children: [
+                              pw.Text(
+                                'Instrument: ${colorScheme.name} ',
+                                style: const pw.TextStyle(
+                                  fontSize: 9,
+                                  color: PdfColors.grey700,
+                                ),
+                              ),
+                              if (colorScheme.emoji != null)
+                                pw.Text(
+                                  colorScheme.emoji!,
+                                  style: const pw.TextStyle(fontSize: 9),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+          }
+        }
+
+        if (!hasPages) {
           doc.addPage(
             pw.Page(
               pageFormat: actualFormat,
               build: (_) => pw.Center(
-                child: pw.Text('No notes found in this song.'),
+                child: pw.Text('No notes found in selected songs.'),
               ),
-            ),
-          );
-          return doc.save();
-        }
-
-        // We use the same ratios as kLS but potentially a different base scale for PDF
-        const double ls = 10.0; // Standardize PDF line spacing
-        const double staffHeight = ls * 4;
-        const double topMargin = ls * 2.5; // Reduced from 4
-        const double bottomMargin = ls * 2.5; // Reduced from 4
-        const double rowHeight = topMargin + staffHeight + bottomMargin;
-        const double clefWidth = kClefW * (ls / kLS);
-        const double headerHeight = 50; // Reduced from 80
-
-        final pageWidth = actualFormat.availableWidth;
-        final pageHeight = actualFormat.availableHeight;
-
-        // Split measures into rows
-        final List<List<Measure>> rows = [];
-        for (int i = 0; i < song.measures.length; i += measuresPerRow) {
-          rows.add(
-            song.measures.sublist(
-              i,
-              (i + measuresPerRow).clamp(0, song.measures.length),
-            ),
-          );
-        }
-
-        final rowsPerPage =
-            ((pageHeight - headerHeight) / rowHeight).floor().clamp(1, rows.length);
-
-        for (int pageStart = 0;
-            pageStart < rows.length;
-            pageStart += rowsPerPage) {
-          final pageRows = rows.sublist(
-            pageStart,
-            (pageStart + rowsPerPage).clamp(0, rows.length),
-          );
-
-          doc.addPage(
-            pw.Page(
-              pageFormat: actualFormat,
-              build: (pw.Context ctx) {
-                return pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Expanded(
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          if (pageStart == 0) ...[
-                            pw.Row(
-                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: pw.CrossAxisAlignment.end,
-                              children: [
-                                pw.Text(
-                                  song.title,
-                                  style: pw.TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: pw.FontWeight.bold,
-                                  ),
-                                ),
-                                if (song.composer.isNotEmpty)
-                                  pw.Text(
-                                    song.composer,
-                                    style: const pw.TextStyle(fontSize: 10),
-                                  ),
-                              ],
-                            ),
-                            pw.SizedBox(height: 4),
-                            pw.Divider(thickness: 0.5),
-                            pw.SizedBox(height: 4),
-                          ],
-                          ...pageRows.asMap().entries.map((entry) {
-                            final rowIndex = pageStart + entry.key;
-                            final rowMeasures = entry.value;
-                            final isFirstRow = rowIndex == 0;
-                            final isLastRow = rowIndex == rows.length - 1;
-
-                            return pw.Padding(
-                              padding: const pw.EdgeInsets.only(bottom: 16),
-                              child: _buildStaffRow(
-                                measures: rowMeasures,
-                                colorScheme: colorScheme,
-                                width: pageWidth,
-                                ls: ls,
-                                topMargin: topMargin,
-                                staffHeight: staffHeight,
-                                clefWidth: clefWidth,
-                                isFirstRow: isFirstRow,
-                                isLastRow: isLastRow,
-                                measuresPerRow: measuresPerRow,
-                                musicFont: musicFont,
-                                previousMeasure: rowIndex > 0 ? rows[rowIndex - 1].last : null,
-                                showSolfege: showSolfege,
-                                showLetter: showLetter,
-                                labelsBelow: labelsBelow,
-                                coloredLabels: coloredLabels,
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                    // Footer
-                    pw.Divider(),
-                    pw.SizedBox(height: 4),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text(
-                          AppConfig.title,
-                          style: const pw.TextStyle(
-                            fontSize: 9,
-                            color: PdfColors.grey700,
-                          ),
-                        ),
-                        pw.Row(
-                          children: [
-                            pw.Text(
-                              'Instrument: ${colorScheme.name} ',
-                              style: const pw.TextStyle(
-                                fontSize: 9,
-                                color: PdfColors.grey700,
-                              ),
-                            ),
-                            if (colorScheme.emoji != null)
-                              pw.Text(
-                                colorScheme.emoji!,
-                                style: const pw.TextStyle(fontSize: 9),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
             ),
           );
         }
