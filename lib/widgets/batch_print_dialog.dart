@@ -27,7 +27,25 @@ class _BatchPrintDialogState extends State<BatchPrintDialog> {
     final songs = context.watch<SongProvider>().songs;
 
     return AlertDialog(
-      title: const Text('Batch Print Songs'),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('Batch Print Songs'),
+          if (songs.isNotEmpty)
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  if (_selectedSongIds.length == songs.length) {
+                    _selectedSongIds.clear();
+                  } else {
+                    _selectedSongIds.addAll(songs.map((s) => s.id));
+                  }
+                });
+              },
+              child: Text(_selectedSongIds.length == songs.length ? 'Deselect All' : 'Select All'),
+            ),
+        ],
+      ),
       content: SizedBox(
         width: double.maxFinite,
         child: songs.isEmpty

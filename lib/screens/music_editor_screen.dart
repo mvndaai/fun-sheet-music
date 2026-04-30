@@ -13,6 +13,7 @@ import '../providers/instrument_provider.dart';
 import 'instruments_screen.dart';
 import '../widgets/note_settings_sheet.dart';
 import '../widgets/sheet_music_widget.dart';
+import '../music_kit/utils/music_pdf_service.dart';
 import '../services/pitch_detection_service.dart';
 import '../services/tone_player.dart';
 import '../music_kit/utils/music_constants.dart';
@@ -28,6 +29,7 @@ class MusicEditorScreen extends StatefulWidget {
 class _MusicEditorScreenState extends State<MusicEditorScreen> {
   late Song _song;
   int _selectedMeasureIndex = 0;
+  final FocusNode _focusNode = FocusNode();
 
   // New note attributes
   String _nextStep = 'C';
@@ -77,6 +79,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     }
     _saveToHistory();
     _lastSavedHistoryIndex = _historyIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
   }
 
   void _saveToHistory() {
@@ -114,6 +119,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _noteSubscription?.cancel();
     _audio.stopListening();
     _playbackTimer?.cancel();
@@ -454,6 +460,21 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     }
   }
 
+  Future<void> _printSong() async {
+    final songWithRests = _song.copyWith(measures: _fillRests(_song.measures));
+    final instrumentProvider = context.read<InstrumentProvider>();
+    await MusicPdfService.printSong(
+      song: songWithRests,
+      colorScheme: instrumentProvider.activeScheme,
+      showSolfege: instrumentProvider.showSolfege,
+      showLetter: instrumentProvider.showLetter,
+      labelsBelow: instrumentProvider.labelsBelow,
+      coloredLabels: instrumentProvider.coloredLabels,
+      measuresPerRow: instrumentProvider.measuresPerRow,
+      landscape: instrumentProvider.pdfLandscape,
+    );
+  }
+
   void _showMetadataEditor() {
     final titleController = TextEditingController(text: _song.title);
     final composerController = TextEditingController(text: _song.composer);
@@ -575,26 +596,37 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
           navigator.pop();
         }
       },
-      child: KeyboardListener(
-      focusNode: FocusNode()..requestFocus(),
-      onKeyEvent: (event) {
-        if (event is KeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            _changePitch(1);
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-            _changePitch(-1);
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-            _changeDuration(1);
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-            _changeDuration(-1);
-          } else if (event.logicalKey == LogicalKeyboardKey.keyB) {
-            _toggleBeam();
-          } else if (event.logicalKey == LogicalKeyboardKey.space) {
-            _addCurrentNote();
-          } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
-            _deleteLastNote();
-          }
+      child: Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+        final isP = event.logicalKey == LogicalKeyboardKey.keyP;
+        final isControlOrMeta = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+        if (isP && isControlOrMeta) {
+          _printSong();
+          return KeyEventResult.handled;
         }
+
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          _changePitch(1);
+        } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          _changePitch(-1);
+        } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+          _changeDuration(1);
+        } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+          _changeDuration(-1);
+        } else if (event.logicalKey == LogicalKeyboardKey.keyB) {
+          _toggleBeam();
+        } else if (event.logicalKey == LogicalKeyboardKey.space) {
+          _addCurrentNote();
+        } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
+          _deleteLastNote();
+        } else {
+          return KeyEventResult.ignored;
+        }
+        return KeyEventResult.handled;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -630,6 +662,8 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                 showTempo: true,
                 tempo: _tempo,
                 onTempoChanged: (v) => setState(() => _tempo = v),
+                showPrint: true,
+                onPrint: _printSong,
               ),
             ),
             IconButton(icon: const Icon(Icons.undo), onPressed: _historyIndex > 0 ? _undo : null),

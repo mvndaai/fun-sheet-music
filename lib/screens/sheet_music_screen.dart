@@ -389,15 +389,20 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     final current = _currentNote;
     final progress = _notes.isEmpty ? 0.0 : (_activeNoteIndex / _notes.length).clamp(0.0, 1.0);
 
-    return CallbackShortcuts(
-      bindings: <ShortcutActivator, VoidCallback>{
-        const SingleActivator(LogicalKeyboardKey.keyP, control: true): _printSong,
-        const SingleActivator(LogicalKeyboardKey.keyP, meta: true): _printSong,
-      },
-      child: Focus(
-        focusNode: _focusNode,
-        autofocus: true,
-        onKeyEvent: (node, event) {
+    return Focus(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        final isP = event.logicalKey == LogicalKeyboardKey.keyP;
+        final isControlOrMeta = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+        
+        if (isP && isControlOrMeta) {
+          if (event is KeyDownEvent) {
+            _printSong();
+          }
+          return KeyEventResult.handled;
+        }
+
         if (mode == MusicDisplayMode.view) return KeyEventResult.ignored;
         if (event is KeyRepeatEvent) return KeyEventResult.handled;
         final mapping = KeyboardUtils.getMappingName(event);
@@ -534,9 +539,8 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _GameView extends StatelessWidget {
