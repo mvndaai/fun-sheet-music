@@ -11,11 +11,10 @@ import '../music_kit/models/music_display_mode.dart';
 import '../music_kit/models/legend_style.dart';
 
 /// A shared settings bottom sheet for music display and playback settings.
-class NoteSettingsSheet extends StatelessWidget {
+class NoteSettingsSheet extends StatefulWidget {
   final double? tempo;
   final ValueChanged<double>? onTempoChanged;
   final VoidCallback? onPrint;
-  final bool showTempo;
   final bool showPrint;
   final bool showInstrument;
 
@@ -24,7 +23,6 @@ class NoteSettingsSheet extends StatelessWidget {
     this.tempo,
     this.onTempoChanged,
     this.onPrint,
-    this.showTempo = false,
     this.showPrint = false,
     this.showInstrument = true,
   });
@@ -34,7 +32,6 @@ class NoteSettingsSheet extends StatelessWidget {
     double? tempo,
     ValueChanged<double>? onTempoChanged,
     VoidCallback? onPrint,
-    bool showTempo = false,
     bool showPrint = false,
     bool showInstrument = true,
   }) {
@@ -48,7 +45,6 @@ class NoteSettingsSheet extends StatelessWidget {
         tempo: tempo,
         onTempoChanged: onTempoChanged,
         onPrint: onPrint,
-        showTempo: showTempo,
         showPrint: showPrint,
         showInstrument: showInstrument,
       ),
@@ -56,8 +52,20 @@ class NoteSettingsSheet extends StatelessWidget {
   }
 
   @override
+  State<NoteSettingsSheet> createState() => _NoteSettingsSheetState();
+}
+
+class _NoteSettingsSheetState extends State<NoteSettingsSheet> {
+  late double _localTempo;
+
+  @override
+  void initState() {
+    super.initState();
+    _localTempo = widget.tempo ?? context.read<InstrumentProvider>().tempo;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    double localTempo = tempo ?? 140.0;
     return Focus(
       autofocus: true,
       onKeyEvent: (node, event) {
@@ -65,293 +73,295 @@ class NoteSettingsSheet extends StatelessWidget {
           Navigator.pop(context);
           return KeyEventResult.handled;
         }
-        
+
         final isP = event.logicalKey == LogicalKeyboardKey.keyP;
         final isControlOrMeta = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
-        
-        if (showPrint && onPrint != null && isP && isControlOrMeta) {
+
+        if (widget.showPrint && widget.onPrint != null && isP && isControlOrMeta) {
           if (event is KeyDownEvent) {
-            onPrint!();
+            widget.onPrint!();
           }
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
       },
-      child: StatefulBuilder(
-        builder: (context, setSheetState) {
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 12,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-            ),
-            child: Consumer2<InstrumentProvider, KeyboardProvider>(
-              builder: (context, provider, keyboardProvider, _) => SingleChildScrollView(
-                primary: true,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Handle bar
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 12,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Consumer2<InstrumentProvider, KeyboardProvider>(
+          builder: (context, provider, keyboardProvider, _) => SingleChildScrollView(
+            primary: true,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Handle bar
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    Text(
-                      'Settings',
-                      style: Theme.of(context).textTheme.titleLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                    const Divider(height: 24),
+                  ),
+                ),
+                Text(
+                  'Settings',
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const Divider(height: 24),
 
-                    // 1. Display Mode
-                    _SegmentedSetting<MusicDisplayMode>(
-                      title: 'Display Mode',
-                      value: provider.displayMode,
-                      options: const [
-                        (value: MusicDisplayMode.view, label: 'View', icon: Icons.visibility),
-                        (value: MusicDisplayMode.practice, label: 'Practice', icon: Icons.mic),
-                        (value: MusicDisplayMode.game, label: 'Game', icon: Icons.sports_esports),
-                      ],
-                      onChanged: (v) => provider.setDisplayMode(v),
-                    ),
+                // 1. Display Mode
+                _SegmentedSetting<MusicDisplayMode>(
+                  title: 'Display Mode',
+                  value: provider.displayMode,
+                  options: const [
+                    (value: MusicDisplayMode.view, label: 'View', icon: Icons.visibility),
+                    (value: MusicDisplayMode.practice, label: 'Practice', icon: Icons.mic),
+                    (value: MusicDisplayMode.game, label: 'Game', icon: Icons.sports_esports),
+                  ],
+                  onChanged: (v) => provider.setDisplayMode(v),
+                ),
 
-                    // 2. Instrument
-                    if (showInstrument)
-                      ListTile(
-                        leading: const Icon(Icons.palette),
-                        title: const Text('Instrument (Visuals)'),
-                        subtitle: Text(provider.activeScheme.name),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const InstrumentsScreen()),
-                          );
-                        },
-                      ),
+                // 2. Instrument
+                if (widget.showInstrument)
+                  ListTile(
+                    leading: const Icon(Icons.palette),
+                    title: const Text('Instrument (Visuals)'),
+                    subtitle: Text(provider.activeScheme.name),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const InstrumentsScreen()),
+                      );
+                    },
+                  ),
 
-                    // 2.1 Keyboard
-                    ListTile(
-                      leading: const Icon(Icons.keyboard),
-                      title: const Text('Keyboard & Sounds'),
-                      subtitle: Text(keyboardProvider.activeProfile.name),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const KeyboardsScreen()),
-                        );
+                // 2.1 Keyboard
+                ListTile(
+                  leading: const Icon(Icons.keyboard),
+                  title: const Text('Keyboard & Sounds'),
+                  subtitle: Text(keyboardProvider.activeProfile.name),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const KeyboardsScreen()),
+                    );
+                  },
+                ),
+
+                // 3. Print
+                if (widget.showPrint && widget.onPrint != null)
+                  ListTile(
+                    leading: const Icon(Icons.print),
+                    title: const Text('Print'),
+                    subtitle: const Text('Generate a PDF of this song'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onPrint!();
+                    },
+                  ),
+
+                const Divider(height: 24),
+                const _SectionHeader(title: 'Display'),
+
+                // 4. Measures per row
+                _SegmentedSetting<int>(
+                  title: 'Measures per row',
+                  value: provider.measuresPerRow,
+                  options: const [
+                    (value: 2, label: '2', icon: null),
+                    (value: 3, label: '3', icon: null),
+                    (value: 4, label: '4', icon: null),
+                    (value: 6, label: '6', icon: null),
+                  ],
+                  onChanged: (v) => provider.setMeasuresPerRow(v),
+                ),
+
+                // 4.1 PDF Orientation
+                _SegmentedSetting<bool>(
+                  title: 'PDF Orientation',
+                  value: provider.pdfLandscape,
+                  options: const [
+                    (value: false, label: 'Portrait', icon: Icons.portrait),
+                    (value: true, label: 'Landscape', icon: Icons.landscape),
+                  ],
+                  onChanged: (v) => provider.setPdfLandscape(v),
+                ),
+
+                // 5. Theme
+                _SegmentedSetting<ThemeMode>(
+                  title: 'Theme',
+                  value: provider.themeMode,
+                  options: const [
+                    (value: ThemeMode.system, label: 'System', icon: Icons.brightness_auto),
+                    (value: ThemeMode.light, label: 'Light', icon: Icons.light_mode),
+                    (value: ThemeMode.dark, label: 'Dark', icon: Icons.dark_mode),
+                  ],
+                  onChanged: (v) => provider.setThemeMode(v),
+                ),
+
+                // 6. Note Letters (A, B, C…)
+                _SegmentedSetting<bool>(
+                  title: 'Note Letters (A, B, C…)',
+                  value: provider.showLetter,
+                  options: const [
+                    (value: true, label: 'Show', icon: null),
+                    (value: false, label: 'Hide', icon: null),
+                  ],
+                  onChanged: (v) => provider.setShowLetter(v),
+                ),
+
+                // 7. Solfège Names (Do, Re, Mi…)
+                _SegmentedSetting<bool>(
+                  title: 'Solfège Names (Do, Re, Mi…)',
+                  value: provider.showSolfege,
+                  options: const [
+                    (value: true, label: 'Show', icon: null),
+                    (value: false, label: 'Hide', icon: null),
+                  ],
+                  onChanged: (v) => provider.setShowSolfege(v),
+                ),
+
+                // 8. Label Position
+                _SegmentedSetting<bool>(
+                  title: 'Label Position',
+                  value: provider.labelsBelow,
+                  options: const [
+                    (value: true, label: 'Below Note', icon: null),
+                    (value: false, label: 'Inside Note', icon: null),
+                  ],
+                  onChanged: (v) => provider.setLabelsBelow(v),
+                ),
+
+                // 9. Label Color
+                _SegmentedSetting<bool>(
+                  title: 'Label Color',
+                  value: provider.coloredLabels,
+                  options: const [
+                    (value: true, label: 'Match Note', icon: null),
+                    (value: false, label: 'Standard', icon: null),
+                  ],
+                  onChanged: (v) => provider.setColoredLabels(v),
+                ),
+
+                // 10. Top Color Legend
+                _SegmentedSetting<bool>(
+                  title: 'Top Color Legend',
+                  value: provider.showLegend,
+                  options: const [
+                    (value: true, label: 'Show', icon: null),
+                    (value: false, label: 'Hide', icon: null),
+                  ],
+                  onChanged: (v) => provider.setShowLegend(v),
+                ),
+
+                if (provider.showLegend)
+                  _SegmentedSetting<LegendStyle>(
+                    title: 'Legend Style',
+                    value: provider.legendStyle,
+                    options: const [
+                      (value: LegendStyle.circles, label: 'Circles', icon: Icons.circle),
+                      (value: LegendStyle.piano, label: 'Piano', icon: Icons.piano),
+                    ],
+                    onChanged: (v) => provider.setLegendStyle(v),
+                  ),
+
+                const Divider(height: 24),
+                const _SectionHeader(title: 'Sound'),
+
+                // 11. Metronome Sound
+                _SegmentedSetting<String>(
+                  title: 'Metronome Sound',
+                  value: provider.metronomeSound,
+                  options: const [
+                    (value: 'tick', label: 'Tick', icon: null),
+                    (value: 'beep', label: 'Beep', icon: null),
+                  ],
+                  onChanged: (v) => provider.setMetronomeSound(v),
+                ),
+
+                // 12. Tempo
+                ListTile(
+                  title: const Text('Tempo'),
+                  subtitle: Text('${_localTempo.round()} BPM'),
+                  trailing: SizedBox(
+                    width: 200, // Increased width for better dragging
+                    child: Slider(
+                      value: _localTempo,
+                      min: 40,
+                      max: 240,
+                      divisions: 200, // Smoother 1-BPM increments
+                      onChanged: (v) {
+                        setState(() => _localTempo = v);
+                        if (widget.onTempoChanged != null) {
+                          widget.onTempoChanged!(v);
+                        }
+                      },
+                      onChangeEnd: (v) {
+                        if (widget.onTempoChanged == null) {
+                          provider.setTempo(v);
+                        }
                       },
                     ),
+                  ),
+                ),
 
-                    // 3. Print
-                    if (showPrint && onPrint != null)
-                      ListTile(
-                        leading: const Icon(Icons.print),
-                        title: const Text('Print'),
-                        subtitle: const Text('Generate a PDF of this song'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          onPrint!();
-                        },
-                      ),
+                if (!kIsWeb) ...[
+                  const Divider(height: 24),
+                  const _SectionHeader(title: 'Support & Ads'),
 
-                    const Divider(height: 24),
-                    const _SectionHeader(title: 'Display'),
-
-                    // 4. Measures per row
-                    _SegmentedSetting<int>(
-                      title: 'Measures per row',
-                      value: provider.measuresPerRow,
-                      options: const [
-                        (value: 2, label: '2', icon: null),
-                        (value: 3, label: '3', icon: null),
-                        (value: 4, label: '4', icon: null),
-                        (value: 6, label: '6', icon: null),
-                      ],
-                      onChanged: (v) => provider.setMeasuresPerRow(v),
-                    ),
-
-                    // 4.1 PDF Orientation
-                    _SegmentedSetting<bool>(
-                      title: 'PDF Orientation',
-                      value: provider.pdfLandscape,
-                      options: const [
-                        (value: false, label: 'Portrait', icon: Icons.portrait),
-                        (value: true, label: 'Landscape', icon: Icons.landscape),
-                      ],
-                      onChanged: (v) => provider.setPdfLandscape(v),
-                    ),
-
-                    // 5. Theme
-                    _SegmentedSetting<ThemeMode>(
-                      title: 'Theme',
-                      value: provider.themeMode,
-                      options: const [
-                        (value: ThemeMode.system, label: 'System', icon: Icons.brightness_auto),
-                        (value: ThemeMode.light, label: 'Light', icon: Icons.light_mode),
-                        (value: ThemeMode.dark, label: 'Dark', icon: Icons.dark_mode),
-                      ],
-                      onChanged: (v) => provider.setThemeMode(v),
-                    ),
-
-                    // 6. Note Letters (A, B, C…)
-                    _SegmentedSetting<bool>(
-                      title: 'Note Letters (A, B, C…)',
-                      value: provider.showLetter,
-                      options: const [
-                        (value: true, label: 'Show', icon: null),
-                        (value: false, label: 'Hide', icon: null),
-                      ],
-                      onChanged: (v) => provider.setShowLetter(v),
-                    ),
-
-                    // 7. Solfège Names (Do, Re, Mi…)
-                    _SegmentedSetting<bool>(
-                      title: 'Solfège Names (Do, Re, Mi…)',
-                      value: provider.showSolfege,
-                      options: const [
-                        (value: true, label: 'Show', icon: null),
-                        (value: false, label: 'Hide', icon: null),
-                      ],
-                      onChanged: (v) => provider.setShowSolfege(v),
-                    ),
-
-                    // 8. Label Position
-                    _SegmentedSetting<bool>(
-                      title: 'Label Position',
-                      value: provider.labelsBelow,
-                      options: const [
-                        (value: true, label: 'Below Note', icon: null),
-                        (value: false, label: 'Inside Note', icon: null),
-                      ],
-                      onChanged: (v) => provider.setLabelsBelow(v),
-                    ),
-
-                    // 9. Label Color
-                    _SegmentedSetting<bool>(
-                      title: 'Label Color',
-                      value: provider.coloredLabels,
-                      options: const [
-                        (value: true, label: 'Match Note', icon: null),
-                        (value: false, label: 'Standard', icon: null),
-                      ],
-                      onChanged: (v) => provider.setColoredLabels(v),
-                    ),
-
-                    // 10. Top Color Legend
-                    _SegmentedSetting<bool>(
-                      title: 'Top Color Legend',
-                      value: provider.showLegend,
-                      options: const [
-                        (value: true, label: 'Show', icon: null),
-                        (value: false, label: 'Hide', icon: null),
-                      ],
-                      onChanged: (v) => provider.setShowLegend(v),
-                    ),
-
-                    if (provider.showLegend)
-                      _SegmentedSetting<LegendStyle>(
-                        title: 'Legend Style',
-                        value: provider.legendStyle,
-                        options: const [
-                          (value: LegendStyle.circles, label: 'Circles', icon: Icons.circle),
-                          (value: LegendStyle.piano, label: 'Piano', icon: Icons.piano),
-                        ],
-                        onChanged: (v) => provider.setLegendStyle(v),
-                      ),
-
-                    const Divider(height: 24),
-                    const _SectionHeader(title: 'Sound'),
-
-                    // 11. Metronome Sound
-                    _SegmentedSetting<String>(
-                      title: 'Metronome Sound',
-                      value: provider.metronomeSound,
-                      options: const [
-                        (value: 'tick', label: 'Tick', icon: null),
-                        (value: 'beep', label: 'Beep', icon: null),
-                      ],
-                      onChanged: (v) => provider.setMetronomeSound(v),
-                    ),
-
-                    // 12. Tempo
-                    if (showTempo && tempo != null && onTempoChanged != null)
-                      ListTile(
-                        title: const Text('Tempo'),
-                        subtitle: Text('${localTempo.round()} BPM'),
-                        trailing: SizedBox(
-                          width: 200, // Increased width for better dragging
-                          child: Slider(
-                            value: localTempo,
-                            min: 40,
-                            max: 240,
-                            divisions: 200, // Smoother 1-BPM increments
-                            onChanged: (v) {
-                              setSheetState(() => localTempo = v);
-                              onTempoChanged!(v);
+                  if (provider.isAdFree)
+                    const ListTile(
+                      leading: Icon(Icons.check_circle, color: Colors.green),
+                      title: Text('Ad-Free Enabled'),
+                      subtitle: Text('Thank you for supporting Fun Sheet Music!'),
+                    )
+                  else ...[
+                    Consumer<PaymentProvider>(
+                      builder: (context, payment, _) => Column(
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.star_outline),
+                            title: const Text('Remove Ads (Yearly)'),
+                            subtitle: const Text('\$1 / year subscription'),
+                            trailing: const Text('\$1.00', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onTap: () async {
+                              // In production, this would call real IAP
+                              await payment.simulatePurchase(PaymentProvider.adFreeYearId);
+                              if (context.mounted) Navigator.pop(context);
                             },
                           ),
-                        ),
-                      ),
-
-                    if (!kIsWeb) ...[
-                      const Divider(height: 24),
-                      const _SectionHeader(title: 'Support & Ads'),
-
-                      if (provider.isAdFree)
-                        const ListTile(
-                          leading: Icon(Icons.check_circle, color: Colors.green),
-                          title: Text('Ad-Free Enabled'),
-                          subtitle: Text('Thank you for supporting Fun Sheet Music!'),
-                        )
-                      else ...[
-                        Consumer<PaymentProvider>(
-                          builder: (context, payment, _) => Column(
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.star_outline),
-                                title: const Text('Remove Ads (Yearly)'),
-                                subtitle: const Text('\$1 / year subscription'),
-                                trailing: const Text('\$1.00', style: TextStyle(fontWeight: FontWeight.bold)),
-                                onTap: () async {
-                                  // In production, this would call real IAP
-                                  await payment.simulatePurchase(PaymentProvider.adFreeYearId);
-                                  if (context.mounted) Navigator.pop(context);
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.favorite_border),
-                                title: const Text('Remove Ads (Lifetime)'),
-                                subtitle: const Text('\$5 forever - Best value!'),
-                                trailing: const Text('\$5.00', style: TextStyle(fontWeight: FontWeight.bold)),
-                                onTap: () async {
-                                  await payment.simulatePurchase(PaymentProvider.adFreeForeverId);
-                                  if (context.mounted) Navigator.pop(context);
-                                },
-                              ),
-                            ],
+                          ListTile(
+                            leading: const Icon(Icons.favorite_border),
+                            title: const Text('Remove Ads (Lifetime)'),
+                            subtitle: const Text('\$5 forever - Best value!'),
+                            trailing: const Text('\$5.00', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onTap: () async {
+                              await payment.simulatePurchase(PaymentProvider.adFreeForeverId);
+                              if (context.mounted) Navigator.pop(context);
+                            },
                           ),
-                        ),
-                      ],
-                    ],
+                        ],
+                      ),
+                    ),
                   ],
-                ),
-              ),
+                ],
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
