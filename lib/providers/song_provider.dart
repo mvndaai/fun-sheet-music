@@ -79,6 +79,7 @@ class SongProvider extends ChangeNotifier {
       {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': [], 'isDefault': true},
       {'title': 'Row, Row, Row Your Boat', 'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'tags': [], 'isDefault': true},
       {'title': 'Old MacDonald Had A Farm', 'asset': 'assets/sample_songs/old_macdonald.xml', 'tags': [], 'isDefault': true},
+      {'title': 'Silent Night', 'asset': 'assets/sample_songs/silent_night.xml', 'tags': [], 'isDefault': false},
       // {'title': 'Itsy Bitsy Spider', 'asset': 'assets/sample_songs/itsy_bitsy_spider.xml', 'tags': [], 'isDefault': true},
       {'title': 'Concerning Hobbits', 'asset': 'assets/sample_songs/concerning_hobbits.xml', 'tags': ['Movie'], 'isDefault': false},
       {'title': 'Formatting', 'asset': 'assets/sample_songs/formatting.xml', 'tags': ['Testing'], 'isDefault': false},

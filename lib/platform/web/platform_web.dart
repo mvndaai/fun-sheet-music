@@ -180,7 +180,7 @@ Future<void> saveFile({required String title, required String content}) async {
   final url = web.URL.createObjectURL(blob);
   final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
   anchor.href = url;
-  anchor.setAttribute('download', '${title.replaceAll(' ', '_')}.musicxml');
+  anchor.setAttribute('download', '${title.replaceAll(' ', '_')}.xml');
   
   web.document.body!.append(anchor);
   anchor.click();
