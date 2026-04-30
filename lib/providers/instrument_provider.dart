@@ -152,7 +152,10 @@ class InstrumentProvider extends ChangeNotifier {
       final content = await rootBundle.loadString('assets/instruments/library.json');
       final List<dynamic> list = jsonDecode(content);
       return list.map((e) => InstrumentProfile.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (e) { return []; }
+    } catch (e) {
+      debugPrint('Error loading instrument library: $e');
+      return [];
+    }
   }
 
   Future<void> setActive(String id) async {
