@@ -54,3 +54,12 @@ abstract class PlatformAudioRecorder {
 PlatformAudioRecorder createAudioRecorder() {
   throw UnsupportedError('Cannot create audio recorder without platform implementation');
 }
+
+/// Checks if the app can be installed (PWA).
+bool canInstallApp() => false; // Default to false so button doesn't show on native
+
+/// Triggers the PWA install prompt.
+Future<String> installApp() async => 'not_available';
+
+/// Callback for when PWA install is ready.
+void setOnBeforeInstallPrompt(void Function() callback) {}
