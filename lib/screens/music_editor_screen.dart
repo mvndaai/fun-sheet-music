@@ -11,8 +11,9 @@ import '../services/musicxml_parser.dart';
 import '../providers/song_provider.dart';
 import '../providers/instrument_provider.dart';
 import 'instruments_screen.dart';
-import '../widgets/note_settings_sheet.dart';
+import '../widgets/music_settings_sheet.dart';
 import '../widgets/sheet_music_widget.dart';
+import '../music_kit/utils/music_pdf_service.dart';
 import '../services/pitch_detection_service.dart';
 import '../services/tone_player.dart';
 import '../music_kit/utils/music_constants.dart';
@@ -28,6 +29,7 @@ class MusicEditorScreen extends StatefulWidget {
 class _MusicEditorScreenState extends State<MusicEditorScreen> {
   late Song _song;
   int _selectedMeasureIndex = 0;
+  final FocusNode _focusNode = FocusNode();
 
   // New note attributes
   String _nextStep = 'C';
@@ -77,6 +79,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     }
     _saveToHistory();
     _lastSavedHistoryIndex = _historyIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
   }
 
   void _saveToHistory() {
@@ -114,6 +119,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _noteSubscription?.cancel();
     _audio.stopListening();
     _playbackTimer?.cancel();
@@ -425,15 +431,20 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     final songWithRests = _song.copyWith(measures: _fillRests(_song.measures));
     final xml = MusicXmlGenerator.generate(songWithRests);
     final provider = context.read<SongProvider>();
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    
     String id = _song.id;
     if (id.isEmpty) {
       final newSong = await provider.addSongFromXml(xml, library: 'Created');
       if (newSong != null) {
         id = newSong.id;
         // The parser returns a new Song object, update local state
-        setState(() {
-          _song = newSong;
-        });
+        if (mounted) {
+          setState(() {
+            _song = newSong;
+          });
+        }
       }
     } else {
       await provider.updateSongXml(id, xml);
@@ -442,11 +453,26 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     _lastSavedHistoryIndex = _historyIndex;
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Song saved successfully')),
       );
-      Navigator.pop(context);
+      navigator.pop();
     }
+  }
+
+  Future<void> _printSong() async {
+    final songWithRests = _song.copyWith(measures: _fillRests(_song.measures));
+    final instrumentProvider = context.read<InstrumentProvider>();
+    await MusicPdfService.printSong(
+      song: songWithRests,
+      colorScheme: instrumentProvider.activeScheme,
+      showSolfege: instrumentProvider.showSolfege,
+      showLetter: instrumentProvider.showLetter,
+      labelsBelow: instrumentProvider.labelsBelow,
+      coloredLabels: instrumentProvider.coloredLabels,
+      measuresPerRow: instrumentProvider.measuresPerRow,
+      landscape: instrumentProvider.pdfLandscape,
+    );
   }
 
   void _showMetadataEditor() {
@@ -564,29 +590,42 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       canPop: !_hasUnsavedChanges,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+        final navigator = Navigator.of(context);
         final shouldPop = await _showBackConfirmationDialog();
         if (shouldPop && mounted) {
-          Navigator.pop(context);
+          navigator.pop();
         }
       },
-      child: KeyboardListener(
-      focusNode: FocusNode()..requestFocus(),
-      onKeyEvent: (event) {
-        if (event is KeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            _changePitch(1);
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-            _changePitch(-1);
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-            _changeDuration(1);
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-            _changeDuration(-1);
-          } else if (event.logicalKey == LogicalKeyboardKey.space) {
-            _addCurrentNote();
-          } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
-            _deleteLastNote();
-          }
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyP, control: true):
+              _printSong,
+          const SingleActivator(LogicalKeyboardKey.keyP, meta: true): _printSong,
+        },
+        child: Focus(
+          focusNode: _focusNode,
+          autofocus: true,
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          _changePitch(1);
+        } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          _changePitch(-1);
+        } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+          _changeDuration(1);
+        } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+          _changeDuration(-1);
+        } else if (event.logicalKey == LogicalKeyboardKey.keyB) {
+          _toggleBeam();
+        } else if (event.logicalKey == LogicalKeyboardKey.space) {
+          _addCurrentNote();
+        } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
+          _deleteLastNote();
+        } else {
+          return KeyEventResult.ignored;
         }
+        return KeyEventResult.handled;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -617,11 +656,12 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.settings),
-              onPressed: () => NoteSettingsSheet.show(
+              onPressed: () => MusicSettingsSheet.show(
                 context,
-                showTempo: true,
                 tempo: _tempo,
                 onTempoChanged: (v) => setState(() => _tempo = v),
+                showPrint: true,
+                onPrint: _printSong,
               ),
             ),
             IconButton(icon: const Icon(Icons.undo), onPressed: _historyIndex > 0 ? _undo : null),
@@ -647,7 +687,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                   type: _nextType,
                   dot: _nextIsDotted ? 1 : 0,
                   isRest: _nextIsRest,
-                  beam: _nextBeam,
+                  beam: (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ? _nextBeam : null,
                 ),
               ),
             ),
@@ -656,7 +696,8 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         ),
       ),
     ),
-  );
+  ),
+);
 }
 
   void _changePitch(int delta) {
@@ -699,8 +740,24 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     });
   }
 
+  void _toggleBeam() {
+    if (_nextIsRest || !(_nextType == 'eighth' || _nextType == '16th')) return;
+    setState(() {
+      if (_nextBeam == null) {
+        _nextBeam = 'begin';
+      } else if (_nextBeam == 'begin') {
+        _nextBeam = 'continue';
+      } else if (_nextBeam == 'continue') {
+        _nextBeam = 'end';
+      } else {
+        _nextBeam = null;
+      }
+    });
+  }
+
   void _addCurrentNote() {
-    _addNote(MusicNote(
+    final bool canBeam = !_nextIsRest && (_nextType == 'eighth' || _nextType == '16th');
+    final MusicNote note = MusicNote(
       step: _nextStep,
       octave: _nextOctave,
       alter: _nextAlter,
@@ -708,8 +765,20 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       type: _nextType,
       dot: _nextIsDotted ? 1 : 0,
       isRest: _nextIsRest,
-      beam: _nextBeam,
-    ));
+      beam: canBeam ? _nextBeam : null,
+    );
+    _addNote(note);
+
+    // Auto-advance beam state
+    if (canBeam) {
+      setState(() {
+        if (_nextBeam == 'begin') {
+          _nextBeam = 'continue';
+        } else if (_nextBeam == 'end') {
+          _nextBeam = null;
+        }
+      });
+    }
   }
 
   int _getGlobalActiveIndex() {
@@ -765,10 +834,10 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        border: Border(top: BorderSide(color: colorScheme.outlineVariant.withOpacity(0.5))),
+        border: Border(top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha:0.5))),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha:0.1),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -840,7 +909,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Loop', style: TextStyle(fontSize: 10, color: colorScheme.onSurface.withOpacity(0.6))),
+              Text('Loop', style: TextStyle(fontSize: 10, color: colorScheme.onSurface.withValues(alpha:0.6))),
               SizedBox(
                 height: 24,
                 width: 40,
@@ -913,9 +982,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.3)),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
       ),
       child: InkWell(
         onTap: () => _showTimeSigDialog(m),
@@ -1066,7 +1135,33 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
           onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
           icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
         ),
+        if (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ...[
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 5,
+            child: _buildBeamSegmentedButton(),
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildBeamSegmentedButton() {
+    final style = SegmentedButton.styleFrom(
+      shape: const StadiumBorder(),
+      visualDensity: VisualDensity.compact,
+    );
+    return SegmentedButton<String?>(
+      segments: [
+        const ButtonSegment(value: null, label: Text('None', style: TextStyle(fontSize: 11))),
+        const ButtonSegment(value: 'begin', label: Text('Start', style: TextStyle(fontSize: 11))),
+        const ButtonSegment(value: 'continue', label: Text('Cont.', style: TextStyle(fontSize: 11))),
+        const ButtonSegment(value: 'end', label: Text('End', style: TextStyle(fontSize: 11))),
+      ],
+      selected: {_nextBeam},
+      onSelectionChanged: (val) => setState(() => _nextBeam = val.first),
+      showSelectedIcon: false,
+      style: style,
     );
   }
 
@@ -1170,23 +1265,34 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   }
 
   Widget _buildDurationAndModifierSelectors() {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _buildDurationSegmentedButton(),
+        Row(
+          children: [
+            Expanded(
+              child: _buildDurationSegmentedButton(),
+            ),
+            const SizedBox(width: 8),
+            _buildModifierButton(
+              isSelected: _nextIsDotted,
+              onPressed: () => setState(() => _nextIsDotted = !_nextIsDotted),
+              label: '.',
+            ),
+            const SizedBox(width: 8),
+            _buildModifierButton(
+              isSelected: _nextIsRest,
+              onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
+              icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        _buildModifierButton(
-          isSelected: _nextIsDotted,
-          onPressed: () => setState(() => _nextIsDotted = !_nextIsDotted),
-          label: '.',
-        ),
-        const SizedBox(width: 8),
-        _buildModifierButton(
-          isSelected: _nextIsRest,
-          onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
-          icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
-        ),
+        if (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: _buildBeamSegmentedButton(),
+          ),
+        ],
       ],
     );
   }
@@ -1199,7 +1305,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       decoration: BoxDecoration(
         color: isSelected ? colorScheme.secondaryContainer : colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isSelected ? colorScheme.primary : colorScheme.outline.withOpacity(0.2)),
+        border: Border.all(color: isSelected ? colorScheme.primary : colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: InkWell(
         onTap: onPressed,
@@ -1259,7 +1365,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         _buildCircleActionButton(
           icon: _isListening ? Icons.mic : Icons.mic_off,
           onPressed: _toggleListening,
-          color: _isListening ? Colors.red.withOpacity(0.1) : colorScheme.primaryContainer,
+          color: _isListening ? Colors.red.withValues(alpha: 0.1) : colorScheme.primaryContainer,
           iconColor: _isListening ? Colors.red : colorScheme.onPrimaryContainer,
           isListening: _isListening,
         ),
@@ -1280,7 +1386,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(24),
-        border: isListening ? Border.all(color: Colors.red.withOpacity(0.5), width: 2) : null,
+        border: isListening ? Border.all(color: Colors.red.withValues(alpha: 0.5), width: 2) : null,
       ),
       child: IconButton(
         icon: Icon(icon, color: iconColor),

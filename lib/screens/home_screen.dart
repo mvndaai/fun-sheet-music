@@ -6,15 +6,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/song_provider.dart';
 import '../providers/instrument_provider.dart';
 import '../music_kit/models/song.dart';
+import '../music_kit/models/instrument_profile.dart';
 import '../widgets/tag_chip.dart';
 import '../widgets/kid_safe_ad_banner.dart';
 import '../config/app_links.dart';
 import 'sheet_music_screen.dart';
 import 'upload_screen.dart';
 import 'share_screen.dart';
-import 'instruments_screen.dart';
 import 'music_editor_screen.dart';
-import '../widgets/note_settings_sheet.dart';
+import '../widgets/music_settings_sheet.dart';
+import '../widgets/batch_print_dialog.dart';
 import '../music_kit/utils/music_xml_generator.dart';
 import '../platform/platform.dart';
 
@@ -28,6 +29,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
@@ -39,12 +41,30 @@ class _HomeScreenState extends State<HomeScreen> {
       await context.read<SongProvider>().loadSongs();
       if (mounted) {
         _handleQueryParameters();
+        _focusNode.requestFocus();
       }
     });
   }
 
   void _handleQueryParameters() async {
     final uri = Uri.base;
+    
+    // Handle instrument parameter
+    final instrumentParam = uri.queryParameters['instrument'];
+    if (instrumentParam != null && instrumentParam.isNotEmpty) {
+      final instrumentProvider = context.read<InstrumentProvider>();
+      
+      // Try to find by ID first, then by name (case-insensitive)
+      final instrument = instrumentProvider.allSchemes.firstWhere(
+        (i) => i.id == instrumentParam || i.name.toLowerCase() == instrumentParam.toLowerCase(),
+        orElse: () => InstrumentProfile.black, // Use black as a sentinel value
+      );
+      
+      if (instrument.id != InstrumentProfile.black.id) {
+        await instrumentProvider.setActive(instrument.id);
+      }
+    }
+    
     // Get the song parameter from the query string
     final songId = uri.queryParameters['song'];
     if (songId == null || songId.isEmpty) return;
@@ -108,106 +128,123 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('🎵 My Songs'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Add Song',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const UploadScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.bug_report_outlined),
-            tooltip: 'Report issue / feedback',
-            onPressed: () async {
-              final uri = Uri.parse('https://github.com/mvndaai/flutter-music/issues');
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.ios_share),
-            tooltip: 'Get the app / share',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ShareScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            onPressed: () => NoteSettingsSheet.show(context),
-          ),
-        ],
-      ),
-      body: Consumer<SongProvider>(
-        builder: (context, provider, _) {
-          if (provider.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (provider.error != null) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error, color: Colors.red, size: 48),
-                  const SizedBox(height: 8),
-                  Text(provider.error!),
-                  TextButton(
-                    onPressed: () => provider.loadSongs(),
-                    child: const Text('Retry'),
-                  ),
-                ],
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyP, control: true): () =>
+            BatchPrintDialog.show(context),
+        const SingleActivator(LogicalKeyboardKey.keyP, meta: true): () =>
+            BatchPrintDialog.show(context),
+      },
+      child: Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        child: Scaffold(
+          appBar: AppBar(
+          title: const Text('🎵 My Songs'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add),
+              tooltip: 'Add Song',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const UploadScreen()),
               ),
-            );
-          }
+            ),
+            IconButton(
+              icon: const Icon(Icons.bug_report_outlined),
+              tooltip: 'Report issue / feedback',
+              onPressed: () async {
+                final uri = Uri.parse('https://github.com/mvndaai/flutter-music/issues');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.ios_share),
+              tooltip: 'Get the app / share',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ShareScreen()),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: 'Settings',
+              onPressed: () => MusicSettingsSheet.show(
+                context,
+                showPrint: true,
+                onPrint: () => BatchPrintDialog.show(context),
+              ),
+            ),
+          ],
+        ),
+        body: Consumer<SongProvider>(
+          builder: (context, provider, _) {
+            if (provider.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (provider.error != null) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error, color: Colors.red, size: 48),
+                    const SizedBox(height: 8),
+                    Text(provider.error!),
+                    TextButton(
+                      onPressed: () => provider.loadSongs(),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-          return Column(
-            children: [
-              // Search and Filter bar
-              _SearchAndFilterBar(
-                provider: provider,
-                searchController: _searchController,
-              ),
-              // Song list
-              Expanded(
-                child: provider.filteredSongs.isEmpty
-                    ? _EmptyState(
-                        hasFilter: provider.selectedTags.isNotEmpty || provider.searchQuery.isNotEmpty,
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: provider.filteredSongs.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final song = provider.filteredSongs[index];
-                          return _SongCard(song: song);
-                        },
-                      ),
-              ),
-              // Ad Banner
-              Consumer<InstrumentProvider>(
-                builder: (context, instrProvider, _) {
-                  if (kIsWeb || instrProvider.isAdFree) return const SizedBox.shrink();
-                  return const KidSafeAdBanner();
-                },
-              ),
-            ],
-          );
-        },
+            return Column(
+              children: [
+                // Search and Filter bar
+                _SearchAndFilterBar(
+                  provider: provider,
+                  searchController: _searchController,
+                ),
+                // Song list
+                Expanded(
+                  child: provider.filteredSongs.isEmpty
+                      ? _EmptyState(
+                          hasFilter: provider.selectedTags.isNotEmpty || provider.searchQuery.isNotEmpty,
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: provider.filteredSongs.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            final song = provider.filteredSongs[index];
+                            return _SongCard(song: song);
+                          },
+                        ),
+                ),
+                // Ad Banner
+                Consumer<InstrumentProvider>(
+                  builder: (context, instrProvider, _) {
+                    if (kIsWeb || instrProvider.isAdFree) return const SizedBox.shrink();
+                    return const KidSafeAdBanner();
+                  },
+                ),
+              ],
+            );
+          },
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _SearchAndFilterBar extends StatelessWidget {
@@ -300,10 +337,6 @@ class _SongCard extends StatelessWidget {
 
     return Card(
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          child: const Icon(Icons.music_note),
-        ),
         title: Text(
           song.title,
           style: const TextStyle(fontWeight: FontWeight.w600),

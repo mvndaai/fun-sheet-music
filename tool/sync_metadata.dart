@@ -6,7 +6,7 @@ import 'package:yaml/yaml.dart';
 void main() async {
   final pubspecFile = File('pubspec.yaml');
   if (!pubspecFile.existsSync()) {
-    print('Error: pubspec.yaml not found.');
+    stderr.writeln('Error: pubspec.yaml not found.');
     return;
   }
 
@@ -25,15 +25,15 @@ void main() async {
           .map((s) => s[0].toUpperCase() + s.substring(1).toLowerCase())
           .join();
 
-  print('Syncing Metadata:');
-  print('  Title: $title');
-  print('  Description: $description');
-  print('  AppName (underscore): $appName');
-  print('  ShortName (no spaces): $shortName');
-  print('  ClassName: $className');
+  stdout.writeln('Syncing Metadata:');
+  stdout.writeln('  Title: $title');
+  stdout.writeln('  Description: $description');
+  stdout.writeln('  AppName (underscore): $appName');
+  stdout.writeln('  ShortName (no spaces): $shortName');
+  stdout.writeln('  ClassName: $className');
 
   // Read current className from AppConfig to handle renaming classes in main.dart
-  final appConfigPath = 'lib/config/app_config.dart';
+  const appConfigPath = 'lib/config/app_config.dart';
   String oldClassName = '';
   if (File(appConfigPath).existsSync()) {
     final appConfigContent = File(appConfigPath).readAsStringSync();
@@ -114,13 +114,13 @@ void main() async {
     ]);
   }
 
-  print('\nMetadata sync complete!');
+  stdout.writeln('\nMetadata sync complete!');
 }
 
 void _updateFile(String path, List<(RegExp, String)> replacements) {
   final file = File(path);
   if (!file.existsSync()) {
-    print('  Skipping $path: File not found.');
+    stdout.writeln('  Skipping $path: File not found.');
     return;
   }
 
@@ -135,8 +135,8 @@ void _updateFile(String path, List<(RegExp, String)> replacements) {
 
   if (changed) {
     file.writeAsStringSync(content);
-    print('  Updated $path');
+    stdout.writeln('  Updated $path');
   } else {
-    print('  No changes needed for $path');
+    stdout.writeln('  No changes needed for $path');
   }
 }

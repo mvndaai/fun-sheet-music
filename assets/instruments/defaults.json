@@ -4,36 +4,7 @@
     "name": "Standard",
     "emoji": "🎹",
     "isBuiltIn": true,
-    "colors": {},
-    "keyboardOverrides": {
-      "C4": "KeyA",
-      "C#4": "KeyW",
-      "D4": "KeyS",
-      "D#4": "KeyE",
-      "E4": "KeyD",
-      "F4": "KeyF",
-      "F#4": "KeyT",
-      "G4": "KeyG",
-      "G#4": "KeyY",
-      "A4": "KeyH",
-      "A#4": "KeyU",
-      "B4": "KeyJ",
-      "C5": "Shift+KeyA",
-      "C#5": "Shift+KeyW",
-      "D5": "Shift+KeyS",
-      "D#5": "Shift+KeyE",
-      "E5": "Shift+KeyD",
-      "F5": "Shift+KeyF",
-      "F#5": "Shift+KeyT",
-      "G5": "Shift+KeyG",
-      "G#5": "Shift+KeyY",
-      "A5": "Shift+KeyH",
-      "A#5": "Shift+KeyU",
-      "B5": "Shift+KeyJ",
-      "C6": "Alt+KeyA",
-      "D6": "Alt+KeyS",
-      "E6": "Alt+KeyD"
-    }
+    "colors": {}
   },
   {
     "id": "builtin_rainbow",
@@ -43,17 +14,17 @@
     "isBuiltIn": true,
     "colors": {
       "C": 4294907716,
-      "C#": 4294937856,
-      "D": 4294953728,
-      "D#": 4294961664,
-      "E": 4285988611,
-      "F": 4278314614,
-      "F#": 4279659958,
-      "G": 4278235391,
-      "G#": 4280908287,
-      "A": 4284817407,
-      "A#": 4292157689,
-      "B": 4294907716
+      "C#": 4292149248,
+      "D": 4294938368,
+      "D#": 4294956544,
+      "E": 4294967040,
+      "F": 4282622023,
+      "F#": 4278234305,
+      "G": 4279592384,
+      "G#": 4279060385,
+      "A": 4283045004,
+      "A#": 4288423856,
+      "B": 4292149497
     }
   }
 ]

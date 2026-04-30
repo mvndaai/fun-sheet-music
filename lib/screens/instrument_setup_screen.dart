@@ -1,14 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
-import '../music_kit/utils/music_constants.dart';
-import '../music_kit/utils/keyboard_utils.dart';
 import '../services/tone_player.dart';
 import '../services/pitch_detection_service.dart';
-import '../platform/platform.dart' as platform;
 import '../widgets/note_color_picker.dart';
 import 'instruments_screen.dart';
 
@@ -140,8 +136,8 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> {
     final picked = await showNoteColorPicker(context, current: currentColor, label: note);
     if (picked != null) {
       setState(() {
-        if (_selectedOctave != null) _octaveOverrides['$note$_selectedOctave'] = picked;
-        else _colors[note] = picked;
+        if (_selectedOctave != null) {_octaveOverrides['$note$_selectedOctave'] = picked; }
+        else { _colors[note] = picked; }
       });
       _save();
     }
@@ -149,8 +145,8 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> {
 
   void _toggleVisibility(String step) {
     setState(() {
-      if (_hiddenKeys.contains(step)) _hiddenKeys.remove(step);
-      else _hiddenKeys.add(step);
+      if (_hiddenKeys.contains(step)) {_hiddenKeys.remove(step); }
+      else { _hiddenKeys.add(step); }
     });
     _save();
   }
@@ -197,8 +193,8 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> {
                       setState(() {
                         _mode = val.first;
                         _pendingNote = null;
-                        if (_mode == SetupMode.visibility) _selectedOctave = null;
-                        else if (_selectedOctave == null && _mode != SetupMode.visuals) _selectedOctave = 4;
+                        if (_mode == SetupMode.visibility) { _selectedOctave = null; }
+                        else if (_selectedOctave == null && _mode != SetupMode.visuals) {_selectedOctave = 4; }
                       });
                     },
                   ),
@@ -247,9 +243,9 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> {
                   child: ListTile(
                     onTap: widget.scheme.isBuiltIn ? null : () {
                       if (_isActionActive) return;
-                      if (_mode == SetupMode.visuals) _pickColor(step, currentColor);
-                      else if (_mode == SetupMode.visibility) _toggleVisibility(step);
-                      else setState(() => _pendingNote = _pendingNote == step ? null : step);
+                      if (_mode == SetupMode.visuals) {_pickColor(step, currentColor);}
+                      else if (_mode == SetupMode.visibility) {_toggleVisibility(step);}
+                      else { setState(() => _pendingNote = _pendingNote == step ? null : step); }
                     },
                     leading: Container(
                       width: 40, height: 40,

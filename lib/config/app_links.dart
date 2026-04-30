@@ -25,7 +25,6 @@ class AppLinks {
   /// on every merge to `main`.  The APK is signed with the debug key and
   /// is suitable for personal use / sideloading.
   ///
-  // TODO(deploy): update 'mvndaai/flutter-music' to match your actual
   // repository path if you fork or rename the repo.
   ///
   /// Once you publish to the Play Store, set [androidOnPlayStore] to `true`

@@ -45,7 +45,7 @@ jobs:
       - name: Build web for PR preview
         run: >
           flutter build web --release
-          --base-href /${{ github.event.repository.name }}/${{ env.PR_PATH }}/
+          --base-href /${{ env.PR_PATH }}/
 
       - name: Deploy PR preview to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
@@ -59,8 +59,7 @@ jobs:
         with:
           script: |
             const previewUrl =
-              `https://${{ github.repository_owner }}.github.io` +
-              `/${{ github.event.repository.name }}/${{ env.PR_PATH }}/`;
+              `https://funsheetmusic.com/${{ env.PR_PATH }}/`;
             const marker = '<!-- pr-preview-comment -->';
             const body = `${marker}\n🚀 **PR Preview deployed:** ${previewUrl}`;
 

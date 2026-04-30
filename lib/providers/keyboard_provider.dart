@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../music_kit/models/keyboard_profile.dart';
@@ -8,13 +7,12 @@ import '../music_kit/models/keyboard_profile.dart';
 class KeyboardProvider extends ChangeNotifier {
   static const String _activeIdKey = 'keyboard_active_id';
   static const String _customKey = 'keyboard_custom';
-  static const String _builtInOverridesKey = 'keyboard_builtin_overrides';
 
   final Uuid _uuid = const Uuid();
 
   String _activeId = KeyboardProfile.standard.id;
   List<KeyboardProfile> _customProfiles = [];
-  List<KeyboardProfile> _builtInProfiles = [KeyboardProfile.standard];
+  final List<KeyboardProfile> _builtInProfiles = [KeyboardProfile.standard];
 
   String get activeId => _activeId;
   List<KeyboardProfile> get allProfiles => [..._builtInProfiles, ..._customProfiles];
