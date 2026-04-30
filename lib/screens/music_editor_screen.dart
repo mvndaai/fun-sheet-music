@@ -11,7 +11,7 @@ import '../services/musicxml_parser.dart';
 import '../providers/song_provider.dart';
 import '../providers/instrument_provider.dart';
 import 'instruments_screen.dart';
-import '../widgets/note_settings_sheet.dart';
+import '../widgets/music_settings_sheet.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../music_kit/utils/music_pdf_service.dart';
 import '../services/pitch_detection_service.dart';
@@ -656,7 +656,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             ),
             IconButton(
               icon: const Icon(Icons.settings),
-              onPressed: () => NoteSettingsSheet.show(
+              onPressed: () => MusicSettingsSheet.show(
                 context,
                 tempo: _tempo,
                 onTempoChanged: (v) => setState(() => _tempo = v),

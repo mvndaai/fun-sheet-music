@@ -18,7 +18,7 @@ import '../music_kit/utils/note_resolver.dart';
 import '../music_kit/sheet_music_constants.dart';
 import '../music_kit/widgets/staff_painter.dart';
 import '../widgets/sheet_music_widget.dart';
-import '../widgets/note_settings_sheet.dart';
+import '../widgets/music_settings_sheet.dart';
 
 class SheetMusicScreen extends StatefulWidget {
   final Song song;
@@ -354,7 +354,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   }
 
   void _openSettings() {
-    NoteSettingsSheet.show(
+    MusicSettingsSheet.show(
       context,
       tempo: _tempo,
       onTempoChanged: (v) {

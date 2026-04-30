@@ -11,14 +11,14 @@ import '../music_kit/models/music_display_mode.dart';
 import '../music_kit/models/legend_style.dart';
 
 /// A shared settings bottom sheet for music display and playback settings.
-class NoteSettingsSheet extends StatefulWidget {
+class MusicSettingsSheet extends StatefulWidget {
   final double? tempo;
   final ValueChanged<double>? onTempoChanged;
   final VoidCallback? onPrint;
   final bool showPrint;
   final bool showInstrument;
 
-  const NoteSettingsSheet({
+  const MusicSettingsSheet({
     super.key,
     this.tempo,
     this.onTempoChanged,
@@ -41,7 +41,7 @@ class NoteSettingsSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => NoteSettingsSheet(
+      builder: (context) => MusicSettingsSheet(
         tempo: tempo,
         onTempoChanged: onTempoChanged,
         onPrint: onPrint,
@@ -52,34 +52,49 @@ class NoteSettingsSheet extends StatefulWidget {
   }
 
   @override
-  State<NoteSettingsSheet> createState() => _NoteSettingsSheetState();
+  State<MusicSettingsSheet> createState() => _MusicSettingsSheetState();
 }
 
-class _NoteSettingsSheetState extends State<NoteSettingsSheet> {
+class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
   late double _localTempo;
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _localTempo = widget.tempo ?? context.read<InstrumentProvider>().tempo;
+    // Ensure focus is requested for keyboard shortcuts (esc key)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.escape): () =>
-            Navigator.pop(context),
-        if (widget.showPrint && widget.onPrint != null) ...{
-          const SingleActivator(LogicalKeyboardKey.keyP, control: true):
-              widget.onPrint!,
-          const SingleActivator(LogicalKeyboardKey.keyP, meta: true):
-              widget.onPrint!,
+    return PopScope(
+      canPop: true,
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.escape): () {
+            if (context.mounted) Navigator.of(context).maybePop();
+          },
+          if (widget.showPrint && widget.onPrint != null) ...{
+            const SingleActivator(LogicalKeyboardKey.keyP, control: true):
+                widget.onPrint!,
+            const SingleActivator(LogicalKeyboardKey.keyP, meta: true):
+                widget.onPrint!,
+          },
         },
-      },
-      child: Focus(
-        autofocus: true,
-        child: Padding(
+        child: Focus(
+          focusNode: _focusNode,
+          autofocus: true,
+          child: Padding(
         padding: EdgeInsets.only(
           left: 16,
           right: 16,
@@ -358,7 +373,8 @@ class _NoteSettingsSheetState extends State<NoteSettingsSheet> {
         ),
       ),
     ),
-  );
+  ),
+);
 }
 }
 

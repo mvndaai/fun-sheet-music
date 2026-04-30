@@ -14,7 +14,7 @@ import 'sheet_music_screen.dart';
 import 'upload_screen.dart';
 import 'share_screen.dart';
 import 'music_editor_screen.dart';
-import '../widgets/note_settings_sheet.dart';
+import '../widgets/music_settings_sheet.dart';
 import '../widgets/batch_print_dialog.dart';
 import '../music_kit/utils/music_xml_generator.dart';
 import '../platform/platform.dart';
@@ -177,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
             IconButton(
               icon: const Icon(Icons.settings_outlined),
               tooltip: 'Settings',
-              onPressed: () => NoteSettingsSheet.show(
+              onPressed: () => MusicSettingsSheet.show(
                 context,
                 showPrint: true,
                 onPrint: () => BatchPrintDialog.show(context),
