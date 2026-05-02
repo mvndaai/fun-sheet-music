@@ -78,7 +78,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/music/defaults/
-    - assets/music/hidden_defaults/
+    - assets/music/defaults/auto-add/
     - assets/music/testing/
     - assets/music/shared_by_users/
     - assets/instruments/

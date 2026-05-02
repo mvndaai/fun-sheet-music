@@ -29,8 +29,8 @@ class Song {
     required this.createdAt,
   });
 
-  bool get isDefault => localPath?.contains('/defaults/') ?? false;
-  bool get isHidden => localPath?.contains('/hidden_defaults/') ?? false;
+  bool get isAutoAdd => localPath?.contains('/auto-add/') ?? false;
+  bool get isDefaultLibrary => localPath?.contains('/defaults/') ?? false;
   bool get isTesting => localPath?.contains('/testing/') ?? false;
   bool get isShared => localPath?.contains('/shared_by_users/') ?? false;
 
@@ -65,6 +65,11 @@ class Song {
   /// Returns all playable notes (non-rest, non-chord-continuation) in order.
   List<MusicNote> get allNotes {
     return measures.expand((m) => m.playableNotes).toList();
+  }
+
+  /// Returns all notes including rests for playback.
+  List<MusicNote> get playbackNotes {
+    return measures.expand((m) => m.allDisplayNotes).toList();
   }
 
   Map<String, dynamic> toJson() => {

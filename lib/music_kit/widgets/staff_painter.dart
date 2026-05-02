@@ -260,6 +260,16 @@ class StaffPainter extends CustomPainter {
       } else {
         bool isBeamed = false;
         if (note.beam != null) {
+          // Find the direction for this entire beam group
+          int startOfBeam = ni;
+          while (startOfBeam > 0 && displayNotes[startOfBeam].beam != 'begin') {
+            startOfBeam--;
+          }
+          final beamStartNote = displayNotes[startOfBeam];
+          // Determine stem direction based on the first note of the beam
+          // Standard rule: furthest from middle line, but first-note is a good simple proxy
+          final beamStemUp = staffPos(beamStartNote.step, beamStartNote.octave) < 4;
+
           if (note.beam == 'begin' || note.beam == 'continue') {
             int nextNi = ni + 1;
             MusicNote? nextNote;
@@ -285,16 +295,14 @@ class StaffPainter extends CustomPainter {
                 nextNoteOffset: nextNoteOffset,
                 displayNotes: displayNotes,
               );
-              final pos = staffPos(note.step, note.octave);
-              final stemUp = pos < 5;
-              final y = posToY(pos);
-              final nextPos = staffPos(nextNote.step, nextNote.octave);
-              final nextY = posToY(nextPos);
-              final stemTipY = y + (stemUp ? -kStem : kStem);
-              final nextStemTipY = nextY + (stemUp ? -kStem : kStem);
+              
+              final y = posToY(staffPos(note.step, note.octave));
+              final nextY = posToY(staffPos(nextNote.step, nextNote.octave));
+              final stemTipY = y + (beamStemUp ? -kStem : kStem);
+              final nextStemTipY = nextY + (beamStemUp ? -kStem : kStem);
 
               _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
-                forcedStemUp: stemUp, 
+                forcedStemUp: beamStemUp, 
                 noFlags: true, 
                 stemTipY: stemTipY
               );
@@ -310,26 +318,15 @@ class StaffPainter extends CustomPainter {
                 ..color = noteColor.withValues(alpha: isPast ? 0.3 : 0.7)
                 ..strokeWidth = 3.5;
               
-              final beamStartX = noteX + (stemUp ? kNRx : -kNRx);
-              final beamEndX = nextX + (stemUp ? kNRx : -kNRx);
+              final beamStartX = noteX + (beamStemUp ? kNRx : -kNRx);
+              final beamEndX = nextX + (beamStemUp ? kNRx : -kNRx);
               canvas.drawLine(Offset(beamStartX, stemTipY), Offset(beamEndX, nextStemTipY), beamPaint);
             }
-          } else if (note.beam == 'end' || note.beam == 'continue') {
-            int prevNi = ni - 1;
-            MusicNote? startNote;
-            while (prevNi >= 0) {
-              final candidate = displayNotes[prevNi];
-              if (!candidate.isRest && candidate.beam == 'begin') {
-                startNote = candidate;
-                break;
-              }
-              prevNi--;
-            }
-            final stemUp = startNote != null ? staffPos(startNote.step, startNote.octave) < 5 : staffPos(note.step, note.octave) < 5;
+          } else if (note.beam == 'end') {
             final y = posToY(staffPos(note.step, note.octave));
-            final stemTipY = y + (stemUp ? -kStem : kStem);
+            final stemTipY = y + (beamStemUp ? -kStem : kStem);
             _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
-              forcedStemUp: stemUp, 
+              forcedStemUp: beamStemUp,
               noFlags: true, 
               stemTipY: stemTipY
             );

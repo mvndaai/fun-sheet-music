@@ -12,7 +12,7 @@ import '../main.dart'; // Import to use showToast
 
 /// Manages the list of songs and loading/saving operations.
 class SongProvider extends ChangeNotifier {
-  static const String builtinLibraryName = AppConfig.title;
+  static const String builtinLibraryName = 'Fun Sheet Music';
   final StorageService _storage;
   final CloudService _cloud;
   final Uuid _uuid = const Uuid();
@@ -75,8 +75,10 @@ class SongProvider extends ChangeNotifier {
     }
     // These are the known "available" libraries.
     libs.add(builtinLibraryName);
-    libs.addAll(_bundledSongsMetadata.keys);
-    return libs.toList()..sort();
+    for (final libName in _bundledSongsMetadata.keys) {
+      libs.add(libName);
+    }
+    return libs.where((l) => l.isNotEmpty).toList()..sort();
   }
 
   Future<void> loadSongs() async {
@@ -160,12 +162,27 @@ class SongProvider extends ChangeNotifier {
       final Map<String, List<Song>> results = {};
       for (final assetPath in songAssets) {
         try {
+          // Determine library name from folder
           String libraryName = builtinLibraryName;
-          if (assetPath.contains('/shared_by_users/')) {
-            libraryName = 'Shared by Users';
-          } else if (assetPath.contains('/testing/')) {
-            if (!isTestingEnabled) continue;
-            libraryName = 'Testing';
+          final parts = assetPath.split('/');
+          final musicIndex = parts.indexOf('music');
+          
+          if (musicIndex != -1 && musicIndex + 1 < parts.length) {
+            final folderName = parts[musicIndex + 1];
+            if (folderName == 'shared_by_users') {
+              libraryName = 'Shared by Users';
+            } else if (folderName == 'testing') {
+              if (!isTestingEnabled) continue;
+              libraryName = 'Testing';
+            } else if (folderName == 'defaults') {
+              libraryName = builtinLibraryName;
+            } else {
+              // Capitalize folder name: my_folder -> My Folder
+              libraryName = folderName
+                  .split('_')
+                  .map((s) => s.isNotEmpty ? s[0].toUpperCase() + s.substring(1) : '')
+                  .join(' ');
+            }
           }
 
           final xmlContent = await rootBundle.loadString(assetPath);
@@ -248,7 +265,7 @@ class SongProvider extends ChangeNotifier {
           final assetPath = metadata.localPath;
           if (assetPath == null) continue; // Skip remote songs
           
-          if (onlyDefaults && !assetPath.contains('/defaults/')) continue;
+          if (onlyDefaults && !assetPath.contains('/auto-add/')) continue;
 
           // Check if this specific asset is already imported
           final alreadyExists = _songs.any((s) => s.localPath == assetPath && s.library == libraryName);

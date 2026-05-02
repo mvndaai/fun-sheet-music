@@ -535,7 +535,7 @@ class _LibraryTabState extends State<_LibraryTab>
                     
                     // Check if song is already in local provider
                     final bool isAlreadyAdded = provider.songs.any((s) {
-                      String normalize(String t) => t
+                      String normalize(String? t) => (t ?? '')
                           .toLowerCase()
                           .replaceAll(RegExp(r'[^\w\s]'), '')
                           .replaceAll(RegExp(r'\s+'), ' ')

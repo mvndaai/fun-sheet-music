@@ -53,7 +53,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   final FocusNode _focusNode = FocusNode();
   MusicDisplayMode? _lastMode;
 
-  List<MusicNote> get _notes => widget.song.allNotes;
+  List<MusicNote> get _notes => widget.song.playbackNotes;
   MusicNote? get _currentNote => _activeNoteIndex < _notes.length ? _notes[_activeNoteIndex] : null;
 
   @override
@@ -65,6 +65,25 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
         _focusNode.requestFocus();
       }
     });
+
+    // Practice/Game mode: jump past initial rests
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final mode = context.read<InstrumentProvider>().displayMode;
+        if (mode != MusicDisplayMode.view) {
+          _jumpPastRests();
+        }
+      }
+    });
+  }
+
+  void _jumpPastRests() {
+    while (_activeNoteIndex < _notes.length && _notes[_activeNoteIndex].isRest) {
+      _activeNoteIndex++;
+    }
+    if (_activeNoteIndex >= _notes.length) {
+      _activeNoteIndex = 0; // Reset if all are rests
+    }
   }
 
   @override
@@ -226,7 +245,13 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
 
   void _advance() {
     if (_activeNoteIndex < _notes.length - 1) {
-      setState(() => _activeNoteIndex++);
+      setState(() {
+        _activeNoteIndex++;
+        final mode = context.read<InstrumentProvider>().displayMode;
+        if (mode != MusicDisplayMode.view) {
+          _jumpPastRests();
+        }
+      });
       _scrollToCurrentNoteSmooth();
     } else {
       _onSongComplete();
@@ -235,7 +260,15 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
 
   void _previous() {
     if (_activeNoteIndex > 0) {
-      setState(() => _activeNoteIndex--);
+      setState(() {
+        _activeNoteIndex--;
+        final mode = context.read<InstrumentProvider>().displayMode;
+        if (mode != MusicDisplayMode.view) {
+          while (_activeNoteIndex > 0 && _notes[_activeNoteIndex].isRest) {
+            _activeNoteIndex--;
+          }
+        }
+      });
       _scrollToCurrentNoteSmooth();
     }
   }
@@ -251,7 +284,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     
     int count = 0;
     for (int i = 0; i < widget.song.measures.length; i++) {
-      final playable = widget.song.measures[i].playableNotes.length;
+      final playable = widget.song.measures[i].allDisplayNotes.length;
       if (noteIndex < count + playable) {
         measureIdx = i;
         noteInMeasureIdx = noteIndex - count;
