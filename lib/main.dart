@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -11,8 +12,39 @@ import 'services/database.dart';
 import 'services/storage_service.dart';
 import 'config/app_config.dart';
 
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+void showToast(String message, {bool isError = false}) {
+  scaffoldMessengerKey.currentState?.clearSnackBars();
+  scaffoldMessengerKey.currentState?.showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? Colors.red.shade700 : null,
+      behavior: SnackBarBehavior.floating,
+      duration: Duration(seconds: isError ? 4 : 2),
+    ),
+  );
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Global error handling for the Flutter framework
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('FLUTTER ERROR: ${details.exception}\n${details.stack}');
+    // Avoid spamming snackbars for layout overflow errors
+    if (details.exception is! FlutterError || !(details.exception as FlutterError).message.contains('A RenderFlex overflowed')) {
+      showToast('App Error: ${details.exception}', isError: true);
+    }
+  };
+
+  // Global error handling for asynchronous errors
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    debugPrint('ASYNC ERROR: $error\n$stack');
+    showToast('Async Error: $error', isError: true);
+    return true; // Error was handled
+  };
 
   // Increase lifecycle channel buffer to prevent messages from being discarded during async initialization
   ServicesBinding.instance.channelBuffers.resize('flutter/lifecycle', 10);
@@ -71,6 +103,7 @@ class FunSheetMusic extends StatelessWidget {
       child: Consumer<InstrumentProvider>(
         builder: (context, provider, _) {
           return MaterialApp(
+            scaffoldMessengerKey: scaffoldMessengerKey,
             title: AppConfig.title,
             debugShowCheckedModeBanner: false,
             themeMode: provider.themeMode,

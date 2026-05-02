@@ -435,7 +435,8 @@ class _LibraryTabState extends State<_LibraryTab>
             title: song.title,
             library: song.library,
             icon: song.icon,
-            assetPath: song.localPath,
+            assetPath: song.localPath?.startsWith('assets/') == true ? song.localPath : null,
+            url: song.localPath?.startsWith('http') == true ? song.localPath : song.sourceUrl,
           ));
         }
       }

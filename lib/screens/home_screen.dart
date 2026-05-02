@@ -88,7 +88,9 @@ class _HomeScreenState extends State<HomeScreen> {
         for (final metadata in entry.value) {
           if (metadata.title.toLowerCase() == songId.toLowerCase()) {
             try {
-              final assetPath = metadata.localPath!;
+              final assetPath = metadata.localPath;
+              if (assetPath == null) continue; // Skip remote songs for auto-import
+
               final xmlContent = await rootBundle.loadString(assetPath);
               
               final imported = await provider.addSongFromXml(

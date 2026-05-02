@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import '../music_kit/models/song.dart';
 import '../services/musicxml_parser.dart';
 import '../services/storage_service.dart';
 import '../services/cloud_service.dart';
 import '../config/app_config.dart';
+import '../main.dart'; // Import to use showToast
 
 /// Manages the list of songs and loading/saving operations.
 class SongProvider extends ChangeNotifier {
@@ -86,35 +88,43 @@ class SongProvider extends ChangeNotifier {
 
       // Migration & Icon Repair
       for (int i = 0; i < _songs.length; i++) {
-        final song = _songs[i];
-        bool needsUpdate = false;
-        String? newLibrary;
-        String? newIcon;
+        try {
+          final song = _songs[i];
+          bool needsUpdate = false;
+          String? newLibrary;
+          String? newIcon;
 
-        if (song.library == AppConfig.appName || song.library == 'Built In') {
-          newLibrary = builtinLibraryName;
-          needsUpdate = true;
-        }
+          if (song.library == AppConfig.appName || song.library == 'Built In') {
+            newLibrary = builtinLibraryName;
+            needsUpdate = true;
+          }
 
-        if (needsUpdate) {
-          _songs[i] = song.copyWith(
-            library: newLibrary ?? song.library,
-            icon: newIcon ?? song.icon,
-          );
-          await _storage.updateMetadata(
-            _songs[i].id,
-            library: newLibrary,
-            icon: newIcon,
-          );
+          if (needsUpdate) {
+            _songs[i] = song.copyWith(
+              library: newLibrary ?? song.library,
+              icon: newIcon ?? song.icon,
+            );
+            await _storage.updateMetadata(
+              _songs[i].id,
+              library: newLibrary,
+              icon: newIcon,
+            );
+          }
+        } catch (e) {
+          debugPrint('Migration error for song at index $i: $e');
         }
       }
 
       // Repair: detect songs with empty XML content and remove them so they can be re-imported
       final List<String> corruptedIds = [];
       for (final song in _songs) {
-        final xml = await _storage.getXmlContent(song.id);
-        if (xml == null || xml.trim().isEmpty) {
-          corruptedIds.add(song.id);
+        try {
+          final xml = await _storage.getXmlContent(song.id);
+          if (xml == null || xml.trim().isEmpty) {
+            corruptedIds.add(song.id);
+          }
+        } catch (e) {
+          debugPrint('Repair check error for song ${song.id}: $e');
         }
       }
       for (final id in corruptedIds) {
@@ -125,10 +135,13 @@ class SongProvider extends ChangeNotifier {
       _invalidateCache();
       // Load bundled song metadata for the "Add Song" screen
       await _loadBundledMetadata();
+      // Load remote samples if in testing mode
+      await _loadRemoteTestingMetadata();
       // Ensure all default bundled songs are present in the library
       await _loadSampleSongs(onlyDefaults: true);
     } catch (e) {
       _error = e.toString();
+      showToast('Error loading library: $e', isError: true);
     } finally {
       _loading = false;
       notifyListeners();
@@ -178,6 +191,51 @@ class SongProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading asset manifest: $e');
+      showToast('Error discovering bundled music: $e', isError: true);
+    }
+  }
+
+  /// Loads remote MusicXML samples for testing purposes.
+  Future<void> _loadRemoteTestingMetadata() async {
+    final uri = Uri.base;
+    final isTestingEnabled = kDebugMode || (kIsWeb && (uri.host == 'localhost' || uri.queryParameters.containsKey('testing')));
+    if (!isTestingEnabled) return;
+
+    const libraryName = 'W3C Samples';
+    try {
+      final List<Song> remoteSongs = [];
+      
+      // We use a reliable mirror for the official W3C samples since raw.githubusercontent 
+      // can be inconsistent with branch names (master vs main vs v3.1)
+      const samplesBaseUrl = 'https://raw.githubusercontent.com/kddeisz/musicxml/master/samples/';
+      
+      // These are confirmed working URLs in the kddeisz mirror
+      final standardSamples = [
+        'ActorPreludeSample.xml',
+        'Dichterliebe01.xml',
+        'Binchois.xml',
+        'Moza545.xml',
+        'Saltorel.xml',
+        'Schubert_AnDieMusik.xml',
+      ];
+
+      for (final name in standardSamples) {
+        remoteSongs.add(Song(
+          id: '$samplesBaseUrl$name',
+          title: name.replaceAll('.xml', '').replaceAll('_', ' '),
+          library: libraryName,
+          sourceUrl: '$samplesBaseUrl$name',
+          createdAt: DateTime.now(),
+          measures: const [],
+        ));
+      }
+
+      _bundledSongsMetadata[libraryName] = remoteSongs;
+      _selectedLibraries.add(libraryName);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to load remote testing samples: $e');
+      showToast('Failed to load remote test samples: $e', isError: true);
     }
   }
 
@@ -186,15 +244,16 @@ class SongProvider extends ChangeNotifier {
     for (final entry in _bundledSongsMetadata.entries) {
       final libraryName = entry.key;
       for (final metadata in entry.value) {
-        final assetPath = metadata.localPath!;
-        
-        if (onlyDefaults && !assetPath.contains('/defaults/')) continue;
-
-        // Check if this specific asset is already imported
-        final alreadyExists = _songs.any((s) => s.localPath == assetPath && s.library == libraryName);
-        if (alreadyExists) continue;
-
         try {
+          final assetPath = metadata.localPath;
+          if (assetPath == null) continue; // Skip remote songs
+          
+          if (onlyDefaults && !assetPath.contains('/defaults/')) continue;
+
+          // Check if this specific asset is already imported
+          final alreadyExists = _songs.any((s) => s.localPath == assetPath && s.library == libraryName);
+          if (alreadyExists) continue;
+
           // Double check by title if localPath wasn't set correctly in previous versions
           if (_songs.any((s) => s.title == metadata.title && s.library == libraryName)) {
             final existing = _songs.firstWhere((s) => s.title == metadata.title && s.library == libraryName);
@@ -211,7 +270,7 @@ class SongProvider extends ChangeNotifier {
             localPath: assetPath, // Store asset path to avoid re-imports
           );
         } catch (e) {
-          debugPrint('Failed to load sample song ($assetPath): $e');
+          debugPrint('Failed to load sample song (${metadata.title}): $e');
         }
       }
     }
@@ -286,20 +345,25 @@ class SongProvider extends ChangeNotifier {
       return song;
     } catch (e) {
       _error = 'Failed to parse MusicXML: $e';
+      showToast(_error!, isError: true);
       notifyListeners();
       return null;
     }
   }
 
   Future<void> updateSongXml(String songId, String xmlContent) async {
-    final meta = _songs.firstWhere((s) => s.id == songId);
-    await addSongFromXml(
-      xmlContent,
-      id: meta.id,
-      tags: meta.tags,
-      library: meta.library,
-      sourceUrl: meta.sourceUrl,
-    );
+    try {
+      final meta = _songs.firstWhere((s) => s.id == songId);
+      await addSongFromXml(
+        xmlContent,
+        id: meta.id,
+        tags: meta.tags,
+        library: meta.library,
+        sourceUrl: meta.sourceUrl,
+      );
+    } catch (e) {
+      showToast('Failed to update song: $e', isError: true);
+    }
   }
 
   /// Downloads and adds a song from a URL.
@@ -315,6 +379,7 @@ class SongProvider extends ChangeNotifier {
       return await addSongFromXml(xmlContent, tags: tags, library: library, sourceUrl: url);
     } catch (e) {
       _error = 'Failed to download song: $e';
+      showToast(_error!, isError: true);
       return null;
     } finally {
       _loading = false;
@@ -324,21 +389,18 @@ class SongProvider extends ChangeNotifier {
 
   /// Loads full MusicXML (re-parses) for a stored song.
   Future<Song?> loadFullSong(String songId) async {
-    final meta = _songs.firstWhere(
-      (s) => s.id == songId,
-      orElse: () => Song(
-        id: '',
-        title: '',
-        measures: [],
-        createdAt: DateTime.now(),
-      ),
-    );
-    if (meta.id.isEmpty) return null;
-
-    final xmlContent = await _storage.getXmlContent(songId);
-    if (xmlContent == null) return meta;
-
     try {
+      final meta = _songs.firstWhere(
+        (s) => s.id == songId,
+        orElse: () => Song(
+          id: '',
+          title: '',
+          measures: [],
+          createdAt: DateTime.now(),
+        ),
+      );
+      if (meta.id.isEmpty) return null;
+
       final xmlContent = await _storage.getXmlContent(songId);
       if (xmlContent == null) return meta;
 
@@ -354,26 +416,35 @@ class SongProvider extends ChangeNotifier {
       });
     } catch (e) {
       _error = 'Failed to load song: $e';
+      showToast(_error!, isError: true);
       notifyListeners();
       return null;
     }
   }
 
   Future<void> updateTags(String songId, List<String> tags) async {
-    await _storage.updateTags(songId, tags);
-    final index = _songs.indexWhere((s) => s.id == songId);
-    if (index >= 0) {
-      _songs[index] = _songs[index].copyWith(tags: tags);
-      _invalidateCache();
-      notifyListeners();
+    try {
+      await _storage.updateTags(songId, tags);
+      final index = _songs.indexWhere((s) => s.id == songId);
+      if (index >= 0) {
+        _songs[index] = _songs[index].copyWith(tags: tags);
+        _invalidateCache();
+        notifyListeners();
+      }
+    } catch (e) {
+      showToast('Failed to update tags: $e', isError: true);
     }
   }
 
   Future<void> deleteSong(String songId) async {
-    await _storage.deleteSong(songId);
-    _songs.removeWhere((s) => s.id == songId);
-    _invalidateCache();
-    notifyListeners();
+    try {
+      await _storage.deleteSong(songId);
+      _songs.removeWhere((s) => s.id == songId);
+      _invalidateCache();
+      notifyListeners();
+    } catch (e) {
+      showToast('Failed to delete song: $e', isError: true);
+    }
   }
 }
 
