@@ -76,15 +76,9 @@ class SongProvider extends ChangeNotifier {
   static final Map<String, List<Map<String, dynamic>>> bundledSongs = {
     AppConfig.appName: [
       {'title': 'Twinkle Twinkle Little Star', 'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'tags': [], 'isDefault': true},
-      {'title': 'The Wheels on the Bus', 'asset': 'assets/sample_songs/the_wheels_on_the_bus.xml', 'tags': [], 'isDefault': true},
       {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': [], 'isDefault': true},
       {'title': 'Row, Row, Row Your Boat', 'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'tags': [], 'isDefault': true},
       {'title': 'Old MacDonald Had A Farm', 'asset': 'assets/sample_songs/old_macdonald.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Bingo', 'asset': 'assets/sample_songs/bingo.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Happy Birthday', 'asset': 'assets/sample_songs/happy_birthday.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Hey Diddle Diddle', 'asset': 'assets/sample_songs/hey_diddle_diddle.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Humpty Dumpty', 'asset': 'assets/sample_songs/humpty_dumpty.xml', 'tags': [], 'isDefault': true},
-
       {'title': 'Silent Night', 'asset': 'assets/sample_songs/silent_night.xml', 'tags': [], 'isDefault': false},
       // {'title': 'Itsy Bitsy Spider', 'asset': 'assets/sample_songs/itsy_bitsy_spider.xml', 'tags': [], 'isDefault': true},
       {'title': 'Concerning Hobbits', 'asset': 'assets/sample_songs/concerning_hobbits.xml', 'tags': ['Movie'], 'isDefault': false},
