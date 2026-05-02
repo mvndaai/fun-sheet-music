@@ -21,6 +21,7 @@ class SongProvider extends ChangeNotifier {
         _cloud = cloud ?? CloudService();
 
   List<Song> _songs = [];
+  Map<String, List<Song>> _bundledSongsMetadata = {};
   bool _loading = false;
   String? _error;
   String _searchQuery = '';
@@ -30,6 +31,7 @@ class SongProvider extends ChangeNotifier {
   List<Song>? _filteredSongsCache;
 
   List<Song> get songs => _songs;
+  Map<String, List<Song>> get bundledSongsMetadata => _bundledSongsMetadata;
   bool get loading => _loading;
   String? get error => _error;
   Set<String> get selectedTags => _selectedTags;
@@ -76,20 +78,19 @@ class SongProvider extends ChangeNotifier {
   /// Metadata for bundled songs available in the app.
   static final Map<String, List<Map<String, dynamic>>> bundledSongs = {
     builtinLibraryName: [
-      {'title': 'Twinkle Twinkle Little Star', 'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'icon': '⭐', 'tags': [], 'isDefault': true},
-      {'title': 'The Wheels on the Bus', 'asset': 'assets/sample_songs/the_wheels_on_the_bus.xml', 'icon': '🚌', 'tags': [], 'isDefault': true},
-      {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'icon': '🐑', 'tags': [], 'isDefault': true},
-      {'title': 'Row, Row, Row Your Boat', 'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'icon': '🚣', 'tags': [], 'isDefault': true},
-      {'title': 'Old MacDonald Had A Farm', 'asset': 'assets/sample_songs/old_macdonald.xml', 'icon': '🚜', 'tags': [], 'isDefault': true},
-      {'title': 'Bingo', 'asset': 'assets/sample_songs/bingo.xml', 'icon': '🐶', 'tags': [], 'isDefault': true},
-      {'title': 'Happy Birthday', 'asset': 'assets/sample_songs/happy_birthday.xml', 'icon': '🎂', 'tags': [], 'isDefault': true},
-      {'title': 'Hey Diddle Diddle', 'asset': 'assets/sample_songs/hey_diddle_diddle.xml', 'icon': '🎻', 'tags': [], 'isDefault': true},
-      {'title': 'Humpty Dumpty', 'asset': 'assets/sample_songs/humpty_dumpty.xml', 'icon': '🥚', 'tags': [], 'isDefault': true},
+      {'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'tags': [], 'isDefault': true},
+      {'asset': 'assets/sample_songs/the_wheels_on_the_bus.xml', 'tags': [], 'isDefault': true},
+      {'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': [], 'isDefault': true},
+      {'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'tags': [], 'isDefault': true},
+      {'asset': 'assets/sample_songs/old_macdonald.xml', 'tags': [], 'isDefault': true},
+      {'asset': 'assets/sample_songs/bingo.xml', 'tags': [], 'isDefault': true},
+      {'asset': 'assets/sample_songs/happy_birthday.xml', 'tags': [], 'isDefault': true},
+      {'asset': 'assets/sample_songs/hey_diddle_diddle.xml', 'tags': [], 'isDefault': true},
+      {'asset': 'assets/sample_songs/humpty_dumpty.xml', 'tags': [], 'isDefault': true},
 
-      {'title': 'Silent Night', 'asset': 'assets/sample_songs/silent_night.xml', 'icon': '👼', 'tags': ['Religious'], 'isDefault': false},
-      {'title': 'Concerning Hobbits', 'asset': 'assets/sample_songs/concerning_hobbits.xml', 'icon': '💍', 'tags': ['Movie'], 'isDefault': false},
-      {'title': 'Formatting', 'asset': 'assets/sample_songs/formatting.xml', 'icon': '📝', 'tags': ['Testing'], 'isDefault': false},
-      // {'title': 'Itsy Bitsy Spider', 'asset': 'assets/sample_songs/itsy_bitsy_spider.xml', 'tags': [], 'isDefault': true},
+      {'asset': 'assets/sample_songs/silent_night.xml', 'tags': ['Religious'], 'isDefault': false},
+      {'asset': 'assets/sample_songs/concerning_hobbits.xml', 'tags': ['Movie'], 'isDefault': false},
+      {'asset': 'assets/sample_songs/formatting.xml', 'tags': ['Testing'], 'isDefault': false},
     ],
   };
 
@@ -114,12 +115,12 @@ class SongProvider extends ChangeNotifier {
 
         // If it's a built-in song and missing an icon, try to recover it from metadata
         if (song.library == builtinLibraryName && song.icon.isEmpty) {
-          final metadata = bundledSongs[builtinLibraryName]?.firstWhere(
-            (s) => s['title'] == song.title,
-            orElse: () => {},
+          final metadata = _bundledSongsMetadata[builtinLibraryName]?.firstWhere(
+            (s) => s.title == song.title,
+            orElse: () => Song(id: '', title: '', measures: [], createdAt: DateTime.now()),
           );
-          if (metadata != null && metadata['icon'] != null) {
-            newIcon = metadata['icon'] as String;
+          if (metadata != null && metadata.icon.isNotEmpty) {
+            newIcon = metadata.icon;
             needsUpdate = true;
           }
         }
@@ -152,6 +153,8 @@ class SongProvider extends ChangeNotifier {
       }
 
       _invalidateCache();
+      // Load bundled song metadata for the "Add Song" screen
+      await _loadBundledMetadata();
       // Ensure all default bundled songs are present in the library
       await _loadSampleSongs(onlyDefaults: true);
     } catch (e) {
@@ -162,6 +165,34 @@ class SongProvider extends ChangeNotifier {
     }
   }
 
+  /// Loads metadata for all bundled songs from assets.
+  Future<void> _loadBundledMetadata() async {
+    final Map<String, List<Song>> results = {};
+    for (final entry in bundledSongs.entries) {
+      final libraryName = entry.key;
+      final List<Song> librarySongs = [];
+      for (final songData in entry.value) {
+        try {
+          final assetPath = songData['asset'] as String;
+          final xmlContent = await rootBundle.loadString(assetPath);
+          final metadata = MusicXmlParser.parseMetadata(
+            xmlContent,
+            id: assetPath, // Use asset path as temp ID
+            tags: List<String>.from(songData['tags'] as List),
+            library: libraryName,
+            localPath: assetPath,
+          );
+          librarySongs.add(metadata);
+        } catch (e) {
+          debugPrint('Failed to load metadata for bundled song: $e');
+        }
+      }
+      results[libraryName] = librarySongs;
+    }
+    _bundledSongsMetadata = results;
+    notifyListeners();
+  }
+
   /// Loads sample songs from the assets folder into the library if they are missing.
   Future<void> _loadSampleSongs({bool onlyDefaults = false}) async {
     for (final entry in bundledSongs.entries) {
@@ -169,21 +200,37 @@ class SongProvider extends ChangeNotifier {
       for (final songData in entry.value) {
         if (onlyDefaults && songData['isDefault'] != true) continue;
 
-        final title = songData['title'] as String;
-        final alreadyExists = _songs.any((s) => s.title == title && s.library == libraryName);
+        final assetPath = songData['asset'] as String;
+        // Check if this specific asset is already imported
+        final alreadyExists = _songs.any((s) => s.localPath == assetPath && s.library == libraryName);
         if (alreadyExists) continue;
 
         try {
-          final assetPath = songData['asset'] as String;
+          // If we already have metadata cached, we can use it to check by title as well
+          final metadata = _bundledSongsMetadata[libraryName]?.firstWhere(
+            (s) => s.localPath == assetPath,
+            orElse: () => Song(id: '', title: '', measures: [], createdAt: DateTime.now()),
+          );
+          
+          if (metadata != null && metadata.title.isNotEmpty) {
+            // Double check by title if localPath wasn't set correctly in previous versions
+            if (_songs.any((s) => s.title == metadata.title && s.library == libraryName)) {
+              final existing = _songs.firstWhere((s) => s.title == metadata.title && s.library == libraryName);
+              await _storage.updateMetadata(existing.id, localPath: assetPath);
+              continue;
+            }
+          }
+
           final xmlContent = await rootBundle.loadString(assetPath);
+          // Fully add the song (this parses the whole thing in an isolate)
           await addSongFromXml(
             xmlContent,
             tags: List<String>.from(songData['tags'] as List),
             library: libraryName,
-            icon: songData['icon'] as String?,
+            localPath: assetPath, // Store asset path to avoid re-imports
           );
         } catch (e) {
-          debugPrint('Failed to load sample song: $e');
+          debugPrint('Failed to load sample song ($assetPath): $e');
         }
       }
     }
@@ -228,6 +275,7 @@ class SongProvider extends ChangeNotifier {
     List<String> tags = const [],
     String library = 'Default',
     String? icon,
+    String? localPath,
     String? sourceUrl,
     String? id,
   }) async {
@@ -240,6 +288,7 @@ class SongProvider extends ChangeNotifier {
         'tags': tags,
         'library': library,
         'icon': icon,
+        'localPath': localPath,
         'sourceUrl': sourceUrl,
       });
 

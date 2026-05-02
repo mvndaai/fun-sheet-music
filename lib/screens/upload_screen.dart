@@ -429,13 +429,13 @@ class _LibraryTabState extends State<_LibraryTab>
     
     // 1. Add bundled songs if selected
     for (final libName in provider.selectedLibraries) {
-      if (SongProvider.bundledSongs.containsKey(libName)) {
-        for (final songData in SongProvider.bundledSongs[libName]!) {
+      if (provider.bundledSongsMetadata.containsKey(libName)) {
+        for (final song in provider.bundledSongsMetadata[libName]!) {
           allAvailable.add(_LibraryEntry(
-            title: songData['title']!,
-            library: libName,
-            icon: songData['icon'] ?? '',
-            assetPath: songData['asset'],
+            title: song.title,
+            library: song.library,
+            icon: song.icon,
+            assetPath: song.localPath,
           ));
         }
       }

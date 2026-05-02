@@ -46,8 +46,8 @@ class StorageService {
   }
 
   /// Updates metadata without touching XML content.
-  Future<void> updateMetadata(String songId, {String? title, String? library, String? icon}) async {
-    await _db.updateSongMetadata(songId, title: title, library: library, icon: icon);
+  Future<void> updateMetadata(String songId, {String? title, String? library, String? icon, String? localPath}) async {
+    await _db.updateSongMetadata(songId, title: title, library: library, icon: icon, localPath: localPath);
   }
 
   Song _mapToSong(SongDbEntity row) {

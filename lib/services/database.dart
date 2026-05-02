@@ -69,12 +69,13 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<void> updateSongMetadata(String id, {String? title, String? library, String? icon}) {
+  Future<void> updateSongMetadata(String id, {String? title, String? library, String? icon, String? localPath}) {
     return (update(songs)..where((t) => t.id.equals(id))).write(
       SongsCompanion(
         title: title != null ? Value(title) : const Value.absent(),
         library: library != null ? Value(library) : const Value.absent(),
         icon: icon != null ? Value(icon) : const Value.absent(),
+        localPath: localPath != null ? Value(localPath) : const Value.absent(),
       ),
     );
   }

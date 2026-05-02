@@ -83,27 +83,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // If not found in library, check bundled songs
     if (song.id.isEmpty) {
-      for (final entry in SongProvider.bundledSongs.entries) {
-        final bundledMatch = entry.value.where(
-          (s) => (s['title'] as String).toLowerCase() == songId.toLowerCase(),
-        ).firstOrNull;
-
-        if (bundledMatch != null) {
-          try {
-            final xmlContent = await rootBundle.loadString(bundledMatch['asset'] as String);
-            final imported = await provider.addSongFromXml(
-              xmlContent,
-              tags: List<String>.from(bundledMatch['tags'] as List),
-              library: entry.key,
-            );
-            if (imported != null) {
-              song = imported;
+      for (final entry in provider.bundledSongsMetadata.entries) {
+        final libraryName = entry.key;
+        for (final metadata in entry.value) {
+          if (metadata.title.toLowerCase() == songId.toLowerCase()) {
+            try {
+              final assetPath = metadata.localPath!;
+              final xmlContent = await rootBundle.loadString(assetPath);
+              
+              final imported = await provider.addSongFromXml(
+                xmlContent,
+                tags: metadata.tags,
+                library: libraryName,
+                localPath: assetPath,
+              );
+              if (imported != null) {
+                song = imported;
+              }
+              break;
+            } catch (e) {
+              debugPrint('Failed to auto-import song: $e');
             }
-          } catch (e) {
-            debugPrint('Failed to auto-import song: $e');
           }
-          break;
         }
+        if (song.id.isNotEmpty) break;
       }
     }
 

@@ -18,13 +18,7 @@ class MusicXmlParser {
     DateTime? createdAt,
   }) {
     final document = XmlDocument.parse(content);
-
-    final scorePartwise = document.findElements('score-partwise').firstOrNull;
-    final scoreTimewise = document.findElements('score-timewise').firstOrNull;
-    final root = scorePartwise ?? scoreTimewise;
-    if (root == null) {
-      throw const FormatException('Not a valid MusicXML file');
-    }
+    final root = _getRoot(document);
 
     final title = _getTitle(root);
     final icon = _getMiscellaneousField(root, 'icon');
@@ -43,6 +37,48 @@ class MusicXmlParser {
       sourceUrl: sourceUrl,
       createdAt: createdAt ?? DateTime.now(),
     );
+  }
+
+  /// Parses only metadata (title, icon, composer) from MusicXML.
+  /// This is much faster than full parsing for large files.
+  static Song parseMetadata(
+    String content, {
+    required String id,
+    List<String> tags = const [],
+    String library = 'Default',
+    String? localPath,
+    String? sourceUrl,
+    DateTime? createdAt,
+  }) {
+    final document = XmlDocument.parse(content);
+    final root = _getRoot(document);
+
+    final title = _getTitle(root);
+    final icon = _getMiscellaneousField(root, 'icon');
+    final composer = _getComposer(root);
+
+    return Song(
+      id: id,
+      title: title.isNotEmpty ? title : 'Untitled',
+      icon: icon,
+      composer: composer,
+      measures: const [], // No measures for metadata-only
+      tags: tags,
+      library: library,
+      localPath: localPath,
+      sourceUrl: sourceUrl,
+      createdAt: createdAt ?? DateTime.now(),
+    );
+  }
+
+  static XmlElement _getRoot(XmlDocument document) {
+    final scorePartwise = document.findElements('score-partwise').firstOrNull;
+    final scoreTimewise = document.findElements('score-timewise').firstOrNull;
+    final root = scorePartwise ?? scoreTimewise;
+    if (root == null) {
+      throw const FormatException('Not a valid MusicXML file');
+    }
+    return root;
   }
 
   static String _getMiscellaneousField(XmlElement root, String fieldName) {
