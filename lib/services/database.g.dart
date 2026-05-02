@@ -21,16 +21,19 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongDbEntity> {
           GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 255),
       type: DriftSqlType.string,
       requiredDuringInsert: true);
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<String> icon = GeneratedColumn<String>(
+      'icon', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _composerMeta =
       const VerificationMeta('composer');
   @override
   late final GeneratedColumn<String> composer = GeneratedColumn<String>(
-      'composer', aliasedName, false,
-      additionalChecks:
-          GeneratedColumn.checkTextLength(minTextLength: 0, maxTextLength: 255),
-      type: DriftSqlType.string,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(''));
+      'composer', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   late final GeneratedColumnWithTypeConverter<List<String>, String> tags =
       GeneratedColumn<String>('tags', aliasedName, false,
@@ -41,9 +44,7 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongDbEntity> {
   @override
   late final GeneratedColumn<String> library = GeneratedColumn<String>(
       'library', aliasedName, false,
-      type: DriftSqlType.string,
-      requiredDuringInsert: false,
-      defaultValue: const Constant('Default'));
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _localPathMeta =
       const VerificationMeta('localPath');
   @override
@@ -61,9 +62,7 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongDbEntity> {
   @override
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
-      type: DriftSqlType.dateTime,
-      requiredDuringInsert: false,
-      defaultValue: currentDateAndTime);
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
   static const VerificationMeta _xmlContentMeta =
       const VerificationMeta('xmlContent');
   @override
@@ -74,6 +73,7 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongDbEntity> {
   List<GeneratedColumn> get $columns => [
         id,
         title,
+        icon,
         composer,
         tags,
         library,
@@ -103,6 +103,10 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongDbEntity> {
     } else if (isInserting) {
       context.missing(_titleMeta);
     }
+    if (data.containsKey('icon')) {
+      context.handle(
+          _iconMeta, icon.isAcceptableOrUnknown(data['icon']!, _iconMeta));
+    }
     if (data.containsKey('composer')) {
       context.handle(_composerMeta,
           composer.isAcceptableOrUnknown(data['composer']!, _composerMeta));
@@ -110,6 +114,8 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongDbEntity> {
     if (data.containsKey('library')) {
       context.handle(_libraryMeta,
           library.isAcceptableOrUnknown(data['library']!, _libraryMeta));
+    } else if (isInserting) {
+      context.missing(_libraryMeta);
     }
     if (data.containsKey('local_path')) {
       context.handle(_localPathMeta,
@@ -122,6 +128,8 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongDbEntity> {
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
     }
     if (data.containsKey('xml_content')) {
       context.handle(
@@ -144,8 +152,10 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongDbEntity> {
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       title: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      icon: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}icon'])!,
       composer: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}composer'])!,
+          .read(DriftSqlType.string, data['${effectivePrefix}composer']),
       tags: $SongsTable.$convertertags.fromSql(attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}tags'])!),
       library: attachedDatabase.typeMapping
@@ -173,7 +183,8 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, SongDbEntity> {
 class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
   final String id;
   final String title;
-  final String composer;
+  final String icon;
+  final String? composer;
   final List<String> tags;
   final String library;
   final String? localPath;
@@ -183,7 +194,8 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
   const SongDbEntity(
       {required this.id,
       required this.title,
-      required this.composer,
+      required this.icon,
+      this.composer,
       required this.tags,
       required this.library,
       this.localPath,
@@ -195,7 +207,10 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['title'] = Variable<String>(title);
-    map['composer'] = Variable<String>(composer);
+    map['icon'] = Variable<String>(icon);
+    if (!nullToAbsent || composer != null) {
+      map['composer'] = Variable<String>(composer);
+    }
     {
       map['tags'] = Variable<String>($SongsTable.$convertertags.toSql(tags));
     }
@@ -215,7 +230,10 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
     return SongsCompanion(
       id: Value(id),
       title: Value(title),
-      composer: Value(composer),
+      icon: Value(icon),
+      composer: composer == null && nullToAbsent
+          ? const Value.absent()
+          : Value(composer),
       tags: Value(tags),
       library: Value(library),
       localPath: localPath == null && nullToAbsent
@@ -235,7 +253,8 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
     return SongDbEntity(
       id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
-      composer: serializer.fromJson<String>(json['composer']),
+      icon: serializer.fromJson<String>(json['icon']),
+      composer: serializer.fromJson<String?>(json['composer']),
       tags: serializer.fromJson<List<String>>(json['tags']),
       library: serializer.fromJson<String>(json['library']),
       localPath: serializer.fromJson<String?>(json['localPath']),
@@ -250,7 +269,8 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'title': serializer.toJson<String>(title),
-      'composer': serializer.toJson<String>(composer),
+      'icon': serializer.toJson<String>(icon),
+      'composer': serializer.toJson<String?>(composer),
       'tags': serializer.toJson<List<String>>(tags),
       'library': serializer.toJson<String>(library),
       'localPath': serializer.toJson<String?>(localPath),
@@ -263,7 +283,8 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
   SongDbEntity copyWith(
           {String? id,
           String? title,
-          String? composer,
+          String? icon,
+          Value<String?> composer = const Value.absent(),
           List<String>? tags,
           String? library,
           Value<String?> localPath = const Value.absent(),
@@ -273,7 +294,8 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
       SongDbEntity(
         id: id ?? this.id,
         title: title ?? this.title,
-        composer: composer ?? this.composer,
+        icon: icon ?? this.icon,
+        composer: composer.present ? composer.value : this.composer,
         tags: tags ?? this.tags,
         library: library ?? this.library,
         localPath: localPath.present ? localPath.value : this.localPath,
@@ -285,6 +307,7 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
     return SongDbEntity(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
+      icon: data.icon.present ? data.icon.value : this.icon,
       composer: data.composer.present ? data.composer.value : this.composer,
       tags: data.tags.present ? data.tags.value : this.tags,
       library: data.library.present ? data.library.value : this.library,
@@ -301,6 +324,7 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
     return (StringBuffer('SongDbEntity(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('icon: $icon, ')
           ..write('composer: $composer, ')
           ..write('tags: $tags, ')
           ..write('library: $library, ')
@@ -313,14 +337,15 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
   }
 
   @override
-  int get hashCode => Object.hash(id, title, composer, tags, library, localPath,
-      sourceUrl, createdAt, xmlContent);
+  int get hashCode => Object.hash(id, title, icon, composer, tags, library,
+      localPath, sourceUrl, createdAt, xmlContent);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SongDbEntity &&
           other.id == this.id &&
           other.title == this.title &&
+          other.icon == this.icon &&
           other.composer == this.composer &&
           other.tags == this.tags &&
           other.library == this.library &&
@@ -333,7 +358,8 @@ class SongDbEntity extends DataClass implements Insertable<SongDbEntity> {
 class SongsCompanion extends UpdateCompanion<SongDbEntity> {
   final Value<String> id;
   final Value<String> title;
-  final Value<String> composer;
+  final Value<String> icon;
+  final Value<String?> composer;
   final Value<List<String>> tags;
   final Value<String> library;
   final Value<String?> localPath;
@@ -344,6 +370,7 @@ class SongsCompanion extends UpdateCompanion<SongDbEntity> {
   const SongsCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
+    this.icon = const Value.absent(),
     this.composer = const Value.absent(),
     this.tags = const Value.absent(),
     this.library = const Value.absent(),
@@ -356,21 +383,25 @@ class SongsCompanion extends UpdateCompanion<SongDbEntity> {
   SongsCompanion.insert({
     required String id,
     required String title,
+    this.icon = const Value.absent(),
     this.composer = const Value.absent(),
     required List<String> tags,
-    this.library = const Value.absent(),
+    required String library,
     this.localPath = const Value.absent(),
     this.sourceUrl = const Value.absent(),
-    this.createdAt = const Value.absent(),
+    required DateTime createdAt,
     required String xmlContent,
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         title = Value(title),
         tags = Value(tags),
+        library = Value(library),
+        createdAt = Value(createdAt),
         xmlContent = Value(xmlContent);
   static Insertable<SongDbEntity> custom({
     Expression<String>? id,
     Expression<String>? title,
+    Expression<String>? icon,
     Expression<String>? composer,
     Expression<String>? tags,
     Expression<String>? library,
@@ -383,6 +414,7 @@ class SongsCompanion extends UpdateCompanion<SongDbEntity> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (title != null) 'title': title,
+      if (icon != null) 'icon': icon,
       if (composer != null) 'composer': composer,
       if (tags != null) 'tags': tags,
       if (library != null) 'library': library,
@@ -397,7 +429,8 @@ class SongsCompanion extends UpdateCompanion<SongDbEntity> {
   SongsCompanion copyWith(
       {Value<String>? id,
       Value<String>? title,
-      Value<String>? composer,
+      Value<String>? icon,
+      Value<String?>? composer,
       Value<List<String>>? tags,
       Value<String>? library,
       Value<String?>? localPath,
@@ -408,6 +441,7 @@ class SongsCompanion extends UpdateCompanion<SongDbEntity> {
     return SongsCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
+      icon: icon ?? this.icon,
       composer: composer ?? this.composer,
       tags: tags ?? this.tags,
       library: library ?? this.library,
@@ -427,6 +461,9 @@ class SongsCompanion extends UpdateCompanion<SongDbEntity> {
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
+    }
+    if (icon.present) {
+      map['icon'] = Variable<String>(icon.value);
     }
     if (composer.present) {
       map['composer'] = Variable<String>(composer.value);
@@ -461,6 +498,7 @@ class SongsCompanion extends UpdateCompanion<SongDbEntity> {
     return (StringBuffer('SongsCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('icon: $icon, ')
           ..write('composer: $composer, ')
           ..write('tags: $tags, ')
           ..write('library: $library, ')
@@ -488,19 +526,21 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$SongsTableCreateCompanionBuilder = SongsCompanion Function({
   required String id,
   required String title,
-  Value<String> composer,
+  Value<String> icon,
+  Value<String?> composer,
   required List<String> tags,
-  Value<String> library,
+  required String library,
   Value<String?> localPath,
   Value<String?> sourceUrl,
-  Value<DateTime> createdAt,
+  required DateTime createdAt,
   required String xmlContent,
   Value<int> rowid,
 });
 typedef $$SongsTableUpdateCompanionBuilder = SongsCompanion Function({
   Value<String> id,
   Value<String> title,
-  Value<String> composer,
+  Value<String> icon,
+  Value<String?> composer,
   Value<List<String>> tags,
   Value<String> library,
   Value<String?> localPath,
@@ -523,6 +563,9 @@ class $$SongsTableFilterComposer extends Composer<_$AppDatabase, $SongsTable> {
 
   ColumnFilters<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get icon => $composableBuilder(
+      column: $table.icon, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get composer => $composableBuilder(
       column: $table.composer, builder: (column) => ColumnFilters(column));
@@ -563,6 +606,9 @@ class $$SongsTableOrderingComposer
   ColumnOrderings<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get icon => $composableBuilder(
+      column: $table.icon, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get composer => $composableBuilder(
       column: $table.composer, builder: (column) => ColumnOrderings(column));
 
@@ -599,6 +645,9 @@ class $$SongsTableAnnotationComposer
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
 
   GeneratedColumn<String> get composer =>
       $composableBuilder(column: $table.composer, builder: (column) => column);
@@ -647,7 +696,8 @@ class $$SongsTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> id = const Value.absent(),
             Value<String> title = const Value.absent(),
-            Value<String> composer = const Value.absent(),
+            Value<String> icon = const Value.absent(),
+            Value<String?> composer = const Value.absent(),
             Value<List<String>> tags = const Value.absent(),
             Value<String> library = const Value.absent(),
             Value<String?> localPath = const Value.absent(),
@@ -659,6 +709,7 @@ class $$SongsTableTableManager extends RootTableManager<
               SongsCompanion(
             id: id,
             title: title,
+            icon: icon,
             composer: composer,
             tags: tags,
             library: library,
@@ -671,18 +722,20 @@ class $$SongsTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             required String id,
             required String title,
-            Value<String> composer = const Value.absent(),
+            Value<String> icon = const Value.absent(),
+            Value<String?> composer = const Value.absent(),
             required List<String> tags,
-            Value<String> library = const Value.absent(),
+            required String library,
             Value<String?> localPath = const Value.absent(),
             Value<String?> sourceUrl = const Value.absent(),
-            Value<DateTime> createdAt = const Value.absent(),
+            required DateTime createdAt,
             required String xmlContent,
             Value<int> rowid = const Value.absent(),
           }) =>
               SongsCompanion.insert(
             id: id,
             title: title,
+            icon: icon,
             composer: composer,
             tags: tags,
             library: library,

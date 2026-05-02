@@ -299,10 +299,13 @@ class _NameIconEmojiDialogState extends State<NameIconEmojiDialog> {
       TextEditingController(text: widget.initialIcon);
   late final TextEditingController _characterController =
       TextEditingController(text: widget.initialEmoji);
-  late String _selectedEmoji = MusicConstants.instrumentEmojis.contains(widget.initialEmoji)
+  late final TextEditingController _emojiSearchController = TextEditingController();
+  late final ScrollController _emojiScrollController = ScrollController();
+  late String _selectedEmoji = MusicConstants.allEmojis.any((e) => e.char == widget.initialEmoji)
       ? widget.initialEmoji!
       : '🎹';
   late _IconType _iconType;
+  String _emojiQuery = '';
 
   @override
   void initState() {
@@ -310,7 +313,7 @@ class _NameIconEmojiDialogState extends State<NameIconEmojiDialog> {
     if (widget.initialIcon != null && widget.initialIcon!.isNotEmpty) {
       _iconType = _IconType.url;
     } else if (widget.initialEmoji != null && widget.initialEmoji!.isNotEmpty) {
-      if (MusicConstants.instrumentEmojis.contains(widget.initialEmoji)) {
+      if (MusicConstants.allEmojis.any((e) => e.char == widget.initialEmoji)) {
         _iconType = _IconType.emoji;
       } else {
         _iconType = _IconType.character;
@@ -325,11 +328,17 @@ class _NameIconEmojiDialogState extends State<NameIconEmojiDialog> {
     _nameController.dispose();
     _iconController.dispose();
     _characterController.dispose();
+    _emojiSearchController.dispose();
+    _emojiScrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final filteredEmojis = MusicConstants.allEmojis
+        .where((e) => e.name.toLowerCase().contains(_emojiQuery.toLowerCase()))
+        .toList();
+
     return AlertDialog(
       title: const Text('Instrument info'),
       content: SizedBox(
@@ -350,7 +359,7 @@ class _NameIconEmojiDialogState extends State<NameIconEmojiDialog> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<_IconType>(
-                initialValue: _iconType,
+                value: _iconType,
                 decoration: const InputDecoration(
                   labelText: 'Icon Type',
                   border: OutlineInputBorder(),
@@ -364,8 +373,23 @@ class _NameIconEmojiDialogState extends State<NameIconEmojiDialog> {
               ),
               const SizedBox(height: 16),
               if (_iconType == _IconType.emoji) ...[
-                const Text('Choose an Emoji:',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    const Text('Emoji', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _emojiSearchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Search...',
+                          isDense: true,
+                          prefixIcon: Icon(Icons.search, size: 16),
+                        ),
+                        onChanged: (v) => setState(() => _emojiQuery = v),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 Container(
                   height: 190,
@@ -374,35 +398,40 @@ class _NameIconEmojiDialogState extends State<NameIconEmojiDialog> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Scrollbar(
+                    controller: _emojiScrollController,
                     thumbVisibility: true,
                     child: SingleChildScrollView(
-                      primary: true,
+                      controller: _emojiScrollController,
                       padding: const EdgeInsets.all(8),
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: MusicConstants.instrumentEmojis.map((emoji) {
+                        children: filteredEmojis.map((emojiRecord) {
+                          final emoji = emojiRecord.char;
                           final isSelected = _selectedEmoji == emoji;
                           return GestureDetector(
                             onTap: () => setState(() => _selectedEmoji = emoji),
-                            child: Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? Theme.of(context).colorScheme.primaryContainer
-                                    : null,
-                                border: Border.all(
+                            child: Tooltip(
+                              message: emojiRecord.name,
+                              child: Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
                                   color: isSelected
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Colors.transparent,
-                                  width: 2,
+                                      ? Theme.of(context).colorScheme.primaryContainer
+                                      : null,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Center(
-                                child: Text(emoji,
-                                    style: const TextStyle(fontSize: 24)),
+                                child: Center(
+                                  child: Text(emoji,
+                                      style: const TextStyle(fontSize: 24)),
+                                ),
                               ),
                             ),
                           );

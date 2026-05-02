@@ -27,12 +27,14 @@ class MusicXmlParser {
     }
 
     final title = _getTitle(root);
+    final icon = _getMiscellaneousField(root, 'icon');
     final composer = _getComposer(root);
     final measures = _parseMeasures(root);
 
     return Song(
       id: id,
       title: title.isNotEmpty ? title : 'Untitled',
+      icon: icon,
       composer: composer,
       measures: measures,
       tags: tags,
@@ -41,6 +43,15 @@ class MusicXmlParser {
       sourceUrl: sourceUrl,
       createdAt: createdAt ?? DateTime.now(),
     );
+  }
+
+  static String _getMiscellaneousField(XmlElement root, String fieldName) {
+    for (final field in root.findAllElements('miscellaneous-field')) {
+      if (field.getAttribute('name') == fieldName) {
+        return field.innerText.trim();
+      }
+    }
+    return '';
   }
 
   static String _getTitle(XmlElement root) {

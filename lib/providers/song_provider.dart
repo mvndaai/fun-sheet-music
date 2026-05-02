@@ -76,19 +76,19 @@ class SongProvider extends ChangeNotifier {
   /// Metadata for bundled songs available in the app.
   static final Map<String, List<Map<String, dynamic>>> bundledSongs = {
     builtinLibraryName: [
-      {'title': 'Twinkle Twinkle Little Star', 'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'tags': [], 'isDefault': true},
-      {'title': 'The Wheels on the Bus', 'asset': 'assets/sample_songs/the_wheels_on_the_bus.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Row, Row, Row Your Boat', 'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Old MacDonald Had A Farm', 'asset': 'assets/sample_songs/old_macdonald.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Bingo', 'asset': 'assets/sample_songs/bingo.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Happy Birthday', 'asset': 'assets/sample_songs/happy_birthday.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Hey Diddle Diddle', 'asset': 'assets/sample_songs/hey_diddle_diddle.xml', 'tags': [], 'isDefault': true},
-      {'title': 'Humpty Dumpty', 'asset': 'assets/sample_songs/humpty_dumpty.xml', 'tags': [], 'isDefault': true},
+      {'title': 'Twinkle Twinkle Little Star', 'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'icon': '⭐', 'tags': [], 'isDefault': true},
+      {'title': 'The Wheels on the Bus', 'asset': 'assets/sample_songs/the_wheels_on_the_bus.xml', 'icon': '🚌', 'tags': [], 'isDefault': true},
+      {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'icon': '🐑', 'tags': [], 'isDefault': true},
+      {'title': 'Row, Row, Row Your Boat', 'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'icon': '🚣', 'tags': [], 'isDefault': true},
+      {'title': 'Old MacDonald Had A Farm', 'asset': 'assets/sample_songs/old_macdonald.xml', 'icon': '🚜', 'tags': [], 'isDefault': true},
+      {'title': 'Bingo', 'asset': 'assets/sample_songs/bingo.xml', 'icon': '🐶', 'tags': [], 'isDefault': true},
+      {'title': 'Happy Birthday', 'asset': 'assets/sample_songs/happy_birthday.xml', 'icon': '🎂', 'tags': [], 'isDefault': true},
+      {'title': 'Hey Diddle Diddle', 'asset': 'assets/sample_songs/hey_diddle_diddle.xml', 'icon': '🎻', 'tags': [], 'isDefault': true},
+      {'title': 'Humpty Dumpty', 'asset': 'assets/sample_songs/humpty_dumpty.xml', 'icon': '🥚', 'tags': [], 'isDefault': true},
 
-      {'title': 'Silent Night', 'asset': 'assets/sample_songs/silent_night.xml', 'tags': ['Religious'], 'isDefault': false},
-      {'title': 'Concerning Hobbits', 'asset': 'assets/sample_songs/concerning_hobbits.xml', 'tags': ['Movie'], 'isDefault': false},
-      {'title': 'Formatting', 'asset': 'assets/sample_songs/formatting.xml', 'tags': ['Testing'], 'isDefault': false},
+      {'title': 'Silent Night', 'asset': 'assets/sample_songs/silent_night.xml', 'icon': '👼', 'tags': ['Religious'], 'isDefault': false},
+      {'title': 'Concerning Hobbits', 'asset': 'assets/sample_songs/concerning_hobbits.xml', 'icon': '💍', 'tags': ['Movie'], 'isDefault': false},
+      {'title': 'Formatting', 'asset': 'assets/sample_songs/formatting.xml', 'icon': '📝', 'tags': ['Testing'], 'isDefault': false},
       // {'title': 'Itsy Bitsy Spider', 'asset': 'assets/sample_songs/itsy_bitsy_spider.xml', 'tags': [], 'isDefault': true},
     ],
   };
@@ -100,14 +100,55 @@ class SongProvider extends ChangeNotifier {
     try {
       _songs = await _storage.getAllSongs();
 
-      // Migration: rename old libraries to 'Fun Sheet Music'
-      bool migrated = false;
+      // Migration & Icon Repair
       for (int i = 0; i < _songs.length; i++) {
-        if (_songs[i].library == AppConfig.appName || _songs[i].library == 'Built In') {
-          _songs[i] = _songs[i].copyWith(library: builtinLibraryName);
-          await _storage.saveSong(_songs[i]);
-          migrated = true;
+        final song = _songs[i];
+        bool needsUpdate = false;
+        String? newLibrary;
+        String? newIcon;
+
+        if (song.library == AppConfig.appName || song.library == 'Built In') {
+          newLibrary = builtinLibraryName;
+          needsUpdate = true;
         }
+
+        // If it's a built-in song and missing an icon, try to recover it from metadata
+        if (song.library == builtinLibraryName && song.icon.isEmpty) {
+          final metadata = bundledSongs[builtinLibraryName]?.firstWhere(
+            (s) => s['title'] == song.title,
+            orElse: () => {},
+          );
+          if (metadata != null && metadata['icon'] != null) {
+            newIcon = metadata['icon'] as String;
+            needsUpdate = true;
+          }
+        }
+
+        if (needsUpdate) {
+          _songs[i] = song.copyWith(
+            library: newLibrary ?? song.library,
+            icon: newIcon ?? song.icon,
+          );
+          await _storage.updateMetadata(
+            _songs[i].id,
+            library: newLibrary,
+            icon: newIcon,
+          );
+        }
+      }
+
+      // Repair: detect songs with empty XML content and remove them so they can be re-imported
+      // (This fixes corruption caused by a previous bug in migration)
+      final List<String> corruptedIds = [];
+      for (final song in _songs) {
+        final xml = await _storage.getXmlContent(song.id);
+        if (xml == null || xml.trim().isEmpty) {
+          corruptedIds.add(song.id);
+        }
+      }
+      for (final id in corruptedIds) {
+        await _storage.deleteSong(id);
+        _songs.removeWhere((s) => s.id == id);
       }
 
       _invalidateCache();
@@ -139,6 +180,7 @@ class SongProvider extends ChangeNotifier {
             xmlContent,
             tags: List<String>.from(songData['tags'] as List),
             library: libraryName,
+            icon: songData['icon'] as String?,
           );
         } catch (e) {
           debugPrint('Failed to load sample song: $e');
@@ -185,6 +227,7 @@ class SongProvider extends ChangeNotifier {
     String xmlContent, {
     List<String> tags = const [],
     String library = 'Default',
+    String? icon,
     String? sourceUrl,
     String? id,
   }) async {
@@ -196,6 +239,7 @@ class SongProvider extends ChangeNotifier {
         'id': songId,
         'tags': tags,
         'library': library,
+        'icon': icon,
         'sourceUrl': sourceUrl,
       });
 
@@ -305,7 +349,7 @@ class SongProvider extends ChangeNotifier {
 
 /// Helper for running MusicXmlParser in an isolate.
 Song _parseSongInIsolate(Map<String, dynamic> params) {
-  return MusicXmlParser.parse(
+  final song = MusicXmlParser.parse(
     params['content'] as String,
     id: params['id'] as String,
     tags: params['tags'] as List<String>,
@@ -314,4 +358,10 @@ Song _parseSongInIsolate(Map<String, dynamic> params) {
     sourceUrl: params['sourceUrl'] as String?,
     createdAt: params['createdAt'] as DateTime?,
   );
+
+  // If an icon was provided in params, it overrides the one in XML
+  if (params['icon'] != null && (params['icon'] as String).isNotEmpty) {
+    return song.copyWith(icon: params['icon'] as String);
+  }
+  return song;
 }

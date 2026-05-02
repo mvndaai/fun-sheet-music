@@ -5,6 +5,7 @@ import 'music_note.dart';
 class Song {
   final String id;
   final String title;
+  final String icon;
   final String composer;
   final String arranger;
   final List<Measure> measures;
@@ -18,6 +19,7 @@ class Song {
     required this.id,
     required this.title,
     required this.measures,
+    this.icon = '',
     this.composer = '',
     this.arranger = '',
     this.tags = const [],
@@ -30,6 +32,7 @@ class Song {
   Song copyWith({
     String? id,
     String? title,
+    String? icon,
     String? composer,
     String? arranger,
     List<Measure>? measures,
@@ -42,6 +45,7 @@ class Song {
     return Song(
       id: id ?? this.id,
       title: title ?? this.title,
+      icon: icon ?? this.icon,
       composer: composer ?? this.composer,
       arranger: arranger ?? this.arranger,
       measures: measures ?? this.measures,
@@ -61,6 +65,7 @@ class Song {
   Map<String, dynamic> toJson() => {
         'id': id,
         'title': title,
+        'icon': icon,
         'composer': composer,
         'arranger': arranger,
         'tags': tags,
@@ -73,6 +78,7 @@ class Song {
   factory Song.fromJson(Map<String, dynamic> json) => Song(
         id: json['id'] as String,
         title: json['title'] as String,
+        icon: (json['icon'] as String?) ?? '',
         composer: (json['composer'] as String?) ?? '',
         arranger: (json['arranger'] as String?) ?? '',
         measures: const [], // measures are re-parsed from file

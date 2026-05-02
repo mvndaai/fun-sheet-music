@@ -24,6 +24,11 @@ class MusicXmlGenerator {
     if (song.arranger.isNotEmpty) {
       buffer.writeln('    <creator type="arranger">${_escape(song.arranger)}</creator>');
     }
+    if (song.icon.isNotEmpty) {
+      buffer.writeln('    <miscellaneous>');
+      buffer.writeln('      <miscellaneous-field name="icon">${_escape(song.icon)}</miscellaneous-field>');
+      buffer.writeln('    </miscellaneous>');
+    }
     buffer.writeln('    <encoding>');
     buffer.writeln('      <software>${AppConfig.title} Editor</software>');
     buffer.writeln('      <encoding-date>${DateTime.now().toIso8601String().split('T')[0]}</encoding-date>');

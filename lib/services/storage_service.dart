@@ -18,6 +18,7 @@ class StorageService {
     await _db.insertSong(SongDbEntity(
       id: song.id,
       title: song.title,
+      icon: song.icon,
       composer: song.composer,
       tags: song.tags,
       library: song.library,
@@ -44,11 +45,17 @@ class StorageService {
     await _db.updateSongTags(songId, tags);
   }
 
+  /// Updates metadata without touching XML content.
+  Future<void> updateMetadata(String songId, {String? title, String? library, String? icon}) async {
+    await _db.updateSongMetadata(songId, title: title, library: library, icon: icon);
+  }
+
   Song _mapToSong(SongDbEntity row) {
     return Song(
       id: row.id,
       title: row.title,
-      composer: row.composer,
+      icon: row.icon,
+      composer: row.composer ?? '',
       measures: [], // Measures are re-parsed from XML when needed
       tags: row.tags,
       library: row.library,

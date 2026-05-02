@@ -333,12 +333,32 @@ class _SongCard extends StatelessWidget {
   final bool showLibrary;
   const _SongCard({required this.song, this.showLibrary = false});
 
+  String _getInitials(String title) {
+    final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return '';
+    if (words.length == 1) return words[0][0].toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.read<SongProvider>();
 
     return Card(
       child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          child: song.icon.isNotEmpty
+              ? Text(song.icon, style: const TextStyle(fontSize: 20))
+              : Text(
+                  _getInitials(song.title),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+        ),
         title: Text(
           song.title,
           style: const TextStyle(fontWeight: FontWeight.w600),

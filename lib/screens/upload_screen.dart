@@ -113,6 +113,13 @@ class _UploadScreenState extends State<UploadScreen>
     Navigator.pop(context);
   }
 
+  String _getInitials(String title) {
+    final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return '';
+    if (words.length == 1) return words[0][0].toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,6 +161,13 @@ class _UploadScreenState extends State<UploadScreen>
 
 class _CreateTab extends StatelessWidget {
   const _CreateTab();
+
+  String _getInitials(String title) {
+    final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return '';
+    if (words.length == 1) return words[0][0].toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -210,6 +224,13 @@ class _ImportTab extends StatelessWidget {
     required this.onFetch,
     this.error,
   });
+
+  String _getInitials(String title) {
+    final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return '';
+    if (words.length == 1) return words[0][0].toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -303,12 +324,14 @@ class _ImportTab extends StatelessWidget {
 class _LibraryEntry {
   final String title;
   final String library;
+  final String icon;
   final String? assetPath;
   final String? url;
 
   const _LibraryEntry({
     required this.title,
     required this.library,
+    this.icon = '',
     this.assetPath,
     this.url,
   });
@@ -361,7 +384,11 @@ class _LibraryTabState extends State<_LibraryTab>
       }
 
       if (xmlContent != null) {
-        final song = await provider.addSongFromXml(xmlContent, library: entry.library);
+        final song = await provider.addSongFromXml(
+          xmlContent,
+          library: entry.library,
+          icon: entry.icon,
+        );
         if (song != null) {
           widget.onSongAdded(song.title);
         }
@@ -375,6 +402,13 @@ class _LibraryTabState extends State<_LibraryTab>
     } finally {
       if (mounted) setState(() => _adding.remove(entry.uniqueId));
     }
+  }
+
+  String _getInitials(String title) {
+    final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return '';
+    if (words.length == 1) return words[0][0].toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
   }
 
   @override
@@ -400,6 +434,7 @@ class _LibraryTabState extends State<_LibraryTab>
           allAvailable.add(_LibraryEntry(
             title: songData['title']!,
             library: libName,
+            icon: songData['icon'] ?? '',
             assetPath: songData['asset'],
           ));
         }
@@ -500,7 +535,16 @@ class _LibraryTabState extends State<_LibraryTab>
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                        child: const Icon(Icons.music_note),
+                        child: entry.icon.isNotEmpty
+                            ? Text(entry.icon, style: const TextStyle(fontSize: 20))
+                            : Text(
+                                _getInitials(entry.title),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                ),
+                              ),
                       ),
                       title: Text(entry.title),
                       subtitle: showLibraryInList ? Text(entry.library) : null,

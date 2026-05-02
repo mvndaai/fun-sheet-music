@@ -476,48 +476,16 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   }
 
   void _showMetadataEditor() {
-    final titleController = TextEditingController(text: _song.title);
-    final composerController = TextEditingController(text: _song.composer);
-    final arrangerController = TextEditingController(text: _song.arranger);
-    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Song Info'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
-            ),
-            TextField(
-              controller: composerController,
-              decoration: const InputDecoration(labelText: 'Composer'),
-            ),
-            TextField(
-              controller: arrangerController,
-              decoration: const InputDecoration(labelText: 'Arranger'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _song = _song.copyWith(
-                  title: titleController.text,
-                  composer: composerController.text,
-                  arranger: arrangerController.text,
-                );
-                _saveToHistory();
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Update'),
-          ),
-        ],
+      builder: (context) => _SongMetadataDialog(
+        initialSong: _song,
+        onUpdate: (updatedSong) {
+          setState(() {
+            _song = updatedSong;
+            _saveToHistory();
+          });
+        },
       ),
     );
   }
@@ -1400,6 +1368,233 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       ),
     );
   }
+}
 
+class _SongMetadataDialog extends StatefulWidget {
+  final Song initialSong;
+  final ValueChanged<Song> onUpdate;
 
+  const _SongMetadataDialog({
+    required this.initialSong,
+    required this.onUpdate,
+  });
+
+  @override
+  State<_SongMetadataDialog> createState() => _SongMetadataDialogState();
+}
+
+class _SongMetadataDialogState extends State<_SongMetadataDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _composerController;
+  late final TextEditingController _arrangerController;
+  late final TextEditingController _emojiSearchController = TextEditingController();
+  late final ScrollController _emojiScrollController = ScrollController();
+  late String _selectedEmoji;
+  String _emojiQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.initialSong.title);
+    _composerController = TextEditingController(text: widget.initialSong.composer);
+    _arrangerController = TextEditingController(text: widget.initialSong.arranger);
+    _selectedEmoji = widget.initialSong.icon;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _composerController.dispose();
+    _arrangerController.dispose();
+    _emojiSearchController.dispose();
+    _emojiScrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _showCustomIconDialog() async {
+    final controller = TextEditingController(text: _selectedEmoji.length <= 2 ? _selectedEmoji : '');
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Custom Icon'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 2,
+          decoration: const InputDecoration(
+            hintText: 'Enter 1-2 characters',
+            helperText: 'e.g. A1, 🎸, or 👋',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      setState(() => _selectedEmoji = result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredEmojis = MusicConstants.allEmojis
+        .where((e) => e.name.toLowerCase().contains(_emojiQuery.toLowerCase()))
+        .toList();
+
+    return AlertDialog(
+      title: const Text('Song Info'),
+      content: SizedBox(
+        width: 400,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(labelText: 'Title'),
+              ),
+              TextField(
+                controller: _composerController,
+                decoration: const InputDecoration(labelText: 'Composer'),
+              ),
+              TextField(
+                controller: _arrangerController,
+                decoration: const InputDecoration(labelText: 'Arranger'),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  const Text('Icon', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _emojiSearchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Search icons...',
+                        isDense: true,
+                        prefixIcon: Icon(Icons.search, size: 18),
+                        contentPadding: EdgeInsets.symmetric(vertical: 8),
+                      ),
+                      onChanged: (v) => setState(() => _emojiQuery = v),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Scrollbar(
+                  controller: _emojiScrollController,
+                  thumbVisibility: true,
+                  child: GridView.builder(
+                    controller: _emojiScrollController,
+                    padding: const EdgeInsets.all(8),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 6,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                    ),
+                    itemCount: filteredEmojis.length + (_emojiQuery.isEmpty ? 2 : 0),
+                    itemBuilder: (context, index) {
+                      if (_emojiQuery.isEmpty) {
+                        if (index == 0) {
+                          final isSelected = _selectedEmoji.isEmpty;
+                          return GestureDetector(
+                            onTap: () => setState(() => _selectedEmoji = ''),
+                            child: Tooltip(
+                              message: 'No icon',
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: isSelected ? Theme.of(context).colorScheme.primaryContainer : null,
+                                  border: Border.all(
+                                    color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Center(child: Icon(Icons.block, size: 20)),
+                              ),
+                            ),
+                          );
+                        }
+                        if (index == 1) {
+                          final isCustomSelected = _selectedEmoji.isNotEmpty && !MusicConstants.allEmojis.any((e) => e.char == _selectedEmoji);
+                          return GestureDetector(
+                            onTap: _showCustomIconDialog,
+                            child: Tooltip(
+                              message: 'Custom text icon',
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: isCustomSelected ? Theme.of(context).colorScheme.primaryContainer : null,
+                                  border: Border.all(
+                                    color: isCustomSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Center(
+                                  child: isCustomSelected
+                                      ? Text(_selectedEmoji, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))
+                                      : const Icon(Icons.edit_note, size: 24),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                      final emojiRecord = filteredEmojis[_emojiQuery.isEmpty ? index - 2 : index];
+                      final emoji = emojiRecord.char;
+                      final isSelected = _selectedEmoji == emoji;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedEmoji = emoji),
+                        child: Tooltip(
+                          message: emojiRecord.name,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isSelected ? Theme.of(context).colorScheme.primaryContainer : null,
+                              border: Border.all(
+                                color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                                width: 2,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(child: Text(emoji, style: const TextStyle(fontSize: 24))),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () {
+            widget.onUpdate(widget.initialSong.copyWith(
+              title: _titleController.text,
+              composer: _composerController.text,
+              arranger: _arrangerController.text,
+              icon: _selectedEmoji,
+            ));
+            Navigator.pop(context);
+          },
+          child: const Text('Update'),
+        ),
+      ],
+    );
+  }
 }

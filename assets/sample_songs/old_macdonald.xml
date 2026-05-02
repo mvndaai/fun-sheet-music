@@ -9,6 +9,9 @@
             <software>Fun Sheet Music Editor</software>
             <encoding-date>2026-04-23</encoding-date>
         </encoding>
+        <miscellaneous>
+            <miscellaneous-field name="icon">🐮</miscellaneous-field>
+        </miscellaneous>
     </identification>
     <part-list>
         <score-part id="P1">

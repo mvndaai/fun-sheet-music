@@ -8,6 +8,7 @@ part 'database.g.dart';
 class Songs extends Table {
   TextColumn get id => text()();
   TextColumn get title => text().withLength(min: 1, max: 255)();
+  TextColumn get icon => text().withDefault(const Constant(''))();
   TextColumn get composer => text().nullable()();
   TextColumn get tags => text().map(const StringListConverter())();
   TextColumn get library => text()();
@@ -41,7 +42,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(songs, songs.icon);
+          }
+        },
+      );
 
   // --- DAO Methods ---
 
@@ -56,6 +66,16 @@ class AppDatabase extends _$AppDatabase {
   Future<void> updateSongTags(String id, List<String> tags) {
     return (update(songs)..where((t) => t.id.equals(id))).write(
       SongsCompanion(tags: Value(tags)),
+    );
+  }
+
+  Future<void> updateSongMetadata(String id, {String? title, String? library, String? icon}) {
+    return (update(songs)..where((t) => t.id.equals(id))).write(
+      SongsCompanion(
+        title: title != null ? Value(title) : const Value.absent(),
+        library: library != null ? Value(library) : const Value.absent(),
+        icon: icon != null ? Value(icon) : const Value.absent(),
+      ),
     );
   }
 }
