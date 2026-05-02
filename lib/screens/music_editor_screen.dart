@@ -68,7 +68,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       final isSmallScreen = view.physicalSize.width / view.devicePixelRatio < 600;
       _song = Song(
         id: '',
-        title: 'My New Song',
+        title: 'Make My Own',
         composer: 'Me',
         measures: List.generate(
           isSmallScreen ? 2 : 1,
@@ -635,9 +635,15 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_song.id.isEmpty ? 'Make My Own' : _song.title, style: const TextStyle(fontSize: 16)),
-                if (_song.composer.isNotEmpty)
-                  Text(_song.composer, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.normal)),
+                Text(_song.title.isNotEmpty ? _song.title : 'Make My Own', style: const TextStyle(fontSize: 16)),
+                if (_song.composer.isNotEmpty || _song.arranger.isNotEmpty)
+                  Text(
+                    [
+                      if (_song.composer.isNotEmpty) _song.composer,
+                      if (_song.arranger.isNotEmpty) _song.arranger,
+                    ].join(' • '),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.normal),
+                  ),
               ],
             ),
           ),

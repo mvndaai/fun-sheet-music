@@ -9,6 +9,7 @@ import '../config/app_config.dart';
 
 /// Manages the list of songs and loading/saving operations.
 class SongProvider extends ChangeNotifier {
+  static const String builtinLibraryName = AppConfig.title;
   final StorageService _storage;
   final CloudService _cloud;
   final Uuid _uuid = const Uuid();
@@ -24,7 +25,7 @@ class SongProvider extends ChangeNotifier {
   String? _error;
   String _searchQuery = '';
   final Set<String> _selectedTags = {};
-  final Set<String> _selectedLibraries = {AppConfig.appName}; // TODO add a second library for user uploads
+  final Set<String> _selectedLibraries = {builtinLibraryName}; // TODO add a second library for user uploads
 
   List<Song>? _filteredSongsCache;
 
@@ -68,13 +69,13 @@ class SongProvider extends ChangeNotifier {
       libs.add(song.library);
     }
     // These are the known "available" libraries.
-    libs.add(AppConfig.appName);
+    libs.add(builtinLibraryName);
     return libs.toList()..sort();
   }
 
   /// Metadata for bundled songs available in the app.
   static final Map<String, List<Map<String, dynamic>>> bundledSongs = {
-    AppConfig.appName: [
+    builtinLibraryName: [
       {'title': 'Twinkle Twinkle Little Star', 'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'tags': [], 'isDefault': true},
       {'title': 'The Wheels on the Bus', 'asset': 'assets/sample_songs/the_wheels_on_the_bus.xml', 'tags': [], 'isDefault': true},
       {'title': 'Mary Had a Little Lamb', 'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': [], 'isDefault': true},
@@ -98,6 +99,17 @@ class SongProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _songs = await _storage.getAllSongs();
+
+      // Migration: rename old libraries to 'Fun Sheet Music'
+      bool migrated = false;
+      for (int i = 0; i < _songs.length; i++) {
+        if (_songs[i].library == AppConfig.appName || _songs[i].library == 'Built In') {
+          _songs[i] = _songs[i].copyWith(library: builtinLibraryName);
+          await _storage.saveSong(_songs[i]);
+          migrated = true;
+        }
+      }
+
       _invalidateCache();
       // Ensure all default bundled songs are present in the library
       await _loadSampleSongs(onlyDefaults: true);

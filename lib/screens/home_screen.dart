@@ -226,7 +226,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           separatorBuilder: (_, __) => const SizedBox(height: 8),
                           itemBuilder: (context, index) {
                             final song = provider.filteredSongs[index];
-                            return _SongCard(song: song);
+                            final showLibrary = provider.filteredSongs.map((s) => s.library).toSet().length > 1;
+                            return _SongCard(song: song, showLibrary: showLibrary);
                           },
                         ),
                 ),
@@ -329,7 +330,8 @@ class _SearchAndFilterBar extends StatelessWidget {
 
 class _SongCard extends StatelessWidget {
   final Song song;
-  const _SongCard({required this.song});
+  final bool showLibrary;
+  const _SongCard({required this.song, this.showLibrary = false});
 
   @override
   Widget build(BuildContext context) {
@@ -344,7 +346,15 @@ class _SongCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${song.composer} • ${song.library}', style: const TextStyle(fontSize: 12)),
+            if (song.composer.isNotEmpty || song.arranger.isNotEmpty || (showLibrary && song.library != SongProvider.builtinLibraryName))
+              Text(
+                [
+                  if (song.composer.isNotEmpty) song.composer,
+                  if (song.arranger.isNotEmpty) song.arranger,
+                  if (showLibrary && song.library != SongProvider.builtinLibraryName) song.library,
+                ].join(' • '),
+                style: const TextStyle(fontSize: 12),
+              ),
             if (song.tags.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 4),

@@ -382,6 +382,14 @@ class _LibraryTabState extends State<_LibraryTab>
     super.build(context);
     final provider = context.watch<SongProvider>();
 
+    final importableLibraries = SongProvider.bundledSongs.keys
+        .where((lib) => SongProvider.bundledSongs[lib]?.isNotEmpty ?? false)
+        .toList()
+      ..sort();
+
+    final bool showLibraryChips = importableLibraries.length > 1;
+    final bool showLibraryInList = provider.selectedLibraries.length > 1;
+
     // Build unified list from all selected libraries
     final List<_LibraryEntry> allAvailable = [];
     
@@ -409,26 +417,27 @@ class _LibraryTabState extends State<_LibraryTab>
     return Column(
       children: [
         // Library Selectors
-        Container(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                spacing: 8,
-                children: provider.currentLibraries.map((lib) {
-                  final isSelected = provider.selectedLibraries.contains(lib);
-                  return FilterChip(
-                    label: Text(lib),
-                    selected: isSelected,
-                    onSelected: (val) => provider.setLibrarySelected(lib, val),
-                  );
-                }).toList(),
-              ),
-            ],
+        if (showLibraryChips)
+          Container(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  children: importableLibraries.map((lib) {
+                    final isSelected = provider.selectedLibraries.contains(lib);
+                    return FilterChip(
+                      label: Text(lib),
+                      selected: isSelected,
+                      onSelected: (val) => provider.setLibrarySelected(lib, val),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
           ),
-        ),
         
         // Search Bar
         Padding(
@@ -494,7 +503,7 @@ class _LibraryTabState extends State<_LibraryTab>
                         child: const Icon(Icons.music_note),
                       ),
                       title: Text(entry.title),
-                      subtitle: Text(entry.library),
+                      subtitle: showLibraryInList ? Text(entry.library) : null,
                       trailing: SizedBox(
                         width: 48,
                         child: Center(
