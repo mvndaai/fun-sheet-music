@@ -19,7 +19,11 @@ class TonePlayer {
       await _platformPlayer.playSample(samplePath);
       return;
     }
-    if (frequency <= 0) return;
+    if (frequency <= 0) {
+      // Silence if it's a rest or invalid frequency
+      _platformPlayer.stopAllTones();
+      return;
+    }
     await _platformPlayer.playTone(frequency, 300);
   }
 

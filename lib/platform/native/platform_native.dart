@@ -106,6 +106,11 @@ class MobileTonePlayer implements PlatformTonePlayer {
   }
 
   @override
+  void stopAllTones() {
+    _player.stop();
+  }
+
+  @override
   void dispose() => _player.dispose();
 }
 

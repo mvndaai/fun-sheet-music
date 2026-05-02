@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/music_note.dart';
@@ -147,6 +148,7 @@ class StaffPainter extends CustomPainter {
             measureWidth: currentMeasureW,
             hasTimeSig: hasTimeSig,
             cumulativeDuration: cumulativeDurationBeforeGhost,
+            noteDuration: ghostNote!.duration,
             displayNotes: displayNotes,
           );
           
@@ -252,6 +254,7 @@ class StaffPainter extends CustomPainter {
         measureWidth: measureWidth,
         hasTimeSig: hasTimeSig,
         cumulativeDuration: cumulativeDuration,
+        noteDuration: note.duration,
         displayNotes: displayNotes,
       );
 
@@ -260,15 +263,55 @@ class StaffPainter extends CustomPainter {
       } else {
         bool isBeamed = false;
         if (note.beam != null) {
-          // Find the direction for this entire beam group
+          // 1. Find all notes in this beam group to determine a consistent direction and beam line
           int startOfBeam = ni;
           while (startOfBeam > 0 && displayNotes[startOfBeam].beam != 'begin') {
             startOfBeam--;
           }
-          final beamStartNote = displayNotes[startOfBeam];
-          // Determine stem direction based on the first note of the beam
-          // Standard rule: furthest from middle line, but first-note is a good simple proxy
-          final beamStemUp = staffPos(beamStartNote.step, beamStartNote.octave) < 4;
+          
+          int endOfBeam = ni;
+          while (endOfBeam < displayNotes.length - 1 && displayNotes[endOfBeam].beam != 'end') {
+            endOfBeam++;
+          }
+
+          final beamNotes = displayNotes.sublist(startOfBeam, endOfBeam + 1);
+          
+          // 2. Determine stem direction: majority rule with tie-break towards furthest from center
+          int upCount = 0;
+          int downCount = 0;
+          double maxDist = 0;
+          bool distPrefersUp = true;
+          
+          for (final bn in beamNotes) {
+            final p = staffPos(bn.step, bn.octave);
+            if (p < 4) upCount++; else downCount++;
+            final dist = (p - 4).abs().toDouble();
+            if (dist > maxDist) {
+              maxDist = dist;
+              distPrefersUp = p < 4;
+            }
+          }
+          final bool beamStemUp = (upCount == downCount) ? distPrefersUp : (upCount > downCount);
+
+          // 3. Determine beam Y positions (simple straight beam for now, using extreme pitches)
+          // To make it look better, we find the "outer" y for the stems
+          double beamY;
+          if (beamStemUp) {
+            // Find the lowest pitch (highest pos) to ensure beam is above all notes
+            int minPos = 100;
+            for (final bn in beamNotes) {
+              minPos = math.min(minPos, staffPos(bn.step, bn.octave));
+            }
+            // Beam is at least kStem above the highest note head, but also above middle line
+            beamY = posToY(math.max(minPos, 4)) - kStem;
+          } else {
+            // Find the highest pitch (lowest pos) to ensure beam is below all notes
+            int maxPos = -100;
+            for (final bn in beamNotes) {
+              maxPos = math.max(maxPos, staffPos(bn.step, bn.octave));
+            }
+            beamY = posToY(math.min(maxPos, 4)) + kStem;
+          }
 
           if (note.beam == 'begin' || note.beam == 'continue') {
             int nextNi = ni + 1;
@@ -293,18 +336,14 @@ class StaffPainter extends CustomPainter {
                 hasTimeSig: hasTimeSig,
                 cumulativeDuration: cumulativeDuration,
                 nextNoteOffset: nextNoteOffset,
+                nextNoteDuration: nextNote.duration,
                 displayNotes: displayNotes,
               );
               
-              final y = posToY(staffPos(note.step, note.octave));
-              final nextY = posToY(staffPos(nextNote.step, nextNote.octave));
-              final stemTipY = y + (beamStemUp ? -kStem : kStem);
-              final nextStemTipY = nextY + (beamStemUp ? -kStem : kStem);
-
               _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
                 forcedStemUp: beamStemUp, 
                 noFlags: true, 
-                stemTipY: stemTipY
+                stemTipY: beamY
               );
 
               final noteColor = instrument.colorForNote(
@@ -320,15 +359,13 @@ class StaffPainter extends CustomPainter {
               
               final beamStartX = noteX + (beamStemUp ? kNRx : -kNRx);
               final beamEndX = nextX + (beamStemUp ? kNRx : -kNRx);
-              canvas.drawLine(Offset(beamStartX, stemTipY), Offset(beamEndX, nextStemTipY), beamPaint);
+              canvas.drawLine(Offset(beamStartX, beamY), Offset(beamEndX, beamY), beamPaint);
             }
           } else if (note.beam == 'end') {
-            final y = posToY(staffPos(note.step, note.octave));
-            final stemTipY = y + (beamStemUp ? -kStem : kStem);
             _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
-              forcedStemUp: beamStemUp,
+              forcedStemUp: beamStemUp, 
               noFlags: true, 
-              stemTipY: stemTipY
+              stemTipY: beamY
             );
             isBeamed = true;
           }

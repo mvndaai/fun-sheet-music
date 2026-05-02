@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart' show Brightness;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -394,12 +395,64 @@ class MusicPdfService {
           measureWidth: measureWidth,
           hasTimeSig: hasTimeSig,
           cumulativeDuration: cumulativeDuration,
+          noteDuration: note.duration,
           displayNotes: displayNotes,
         );
 
         if (!note.isRest) {
           bool isBeamed = false;
           if (note.beam != null) {
+            // 1. Find all notes in this beam group to determine a consistent direction and beam line
+            int startOfBeam = ni;
+            while (startOfBeam > 0 && displayNotes[startOfBeam].beam != 'begin') {
+              startOfBeam--;
+            }
+            
+            int endOfBeam = ni;
+            while (endOfBeam < displayNotes.length - 1 && displayNotes[endOfBeam].beam != 'end') {
+              endOfBeam++;
+            }
+
+            final beamNotes = displayNotes.sublist(startOfBeam, endOfBeam + 1);
+            
+            // 2. Determine stem direction: majority rule with tie-break towards furthest from center
+            int upCount = 0;
+            int downCount = 0;
+            double maxDist = 0;
+            bool distPrefersUp = true;
+            
+            for (final bn in beamNotes) {
+              final p = staffPos(bn.step, bn.octave);
+              if (p < 4) upCount++; else downCount++;
+              final dist = (p - 4).abs().toDouble();
+              if (dist > maxDist) {
+                maxDist = dist;
+                distPrefersUp = p < 4;
+              }
+            }
+            final bool beamStemUp = (upCount == downCount) ? distPrefersUp : (upCount > downCount);
+
+            // 3. Determine beam Y positions
+            final stemLength = ls * 3.4;
+            double beamY;
+            if (beamStemUp) {
+              int minPos = 100;
+              for (final bn in beamNotes) {
+                final p = staffPos(bn.step, bn.octave);
+                if (p < minPos) minPos = p;
+              }
+              final basePos = math.max(minPos, 4);
+              beamY = topMargin + staffHeight - basePos * ls / 2 - stemLength;
+            } else {
+              int maxPos = -100;
+              for (final bn in beamNotes) {
+                final p = staffPos(bn.step, bn.octave);
+                if (p > maxPos) maxPos = p;
+              }
+              final basePos = math.min(maxPos, 4);
+              beamY = topMargin + staffHeight - basePos * ls / 2 + stemLength;
+            }
+
             if (note.beam == 'begin' || note.beam == 'continue') {
               int nextNi = ni + 1;
               MusicNote? nextNote;
@@ -423,19 +476,9 @@ class MusicPdfService {
                   hasTimeSig: hasTimeSig,
                   cumulativeDuration: cumulativeDuration,
                   nextNoteOffset: nextNoteOffset,
+                  nextNoteDuration: nextNote.duration,
                   displayNotes: displayNotes,
                 );
-
-                final pos = staffPos(note.step, note.octave);
-                final nextPos = staffPos(nextNote.step, nextNote.octave);
-
-                final stemUp = pos < 5;
-                final y = topMargin + staffHeight - pos * ls / 2;
-                final nextY = topMargin + staffHeight - nextPos * ls / 2;
-
-                final stemLength = ls * 3.4;
-                final stemTipY = y + (stemUp ? -stemLength : stemLength);
-                final nextStemTipY = nextY + (stemUp ? -stemLength : stemLength);
 
                 widgets.addAll(_buildNote(
                   note: note,
@@ -445,12 +488,13 @@ class MusicPdfService {
                   ls: ls,
                   colorScheme: colorScheme,
                   musicFont: musicFont,
-                  forcedStemUp: stemUp,
+                  forcedStemUp: beamStemUp,
                   noFlags: true,
                   showSolfege: showSolfege,
                   showLetter: showLetter,
                   labelsBelow: labelsBelow,
                   coloredLabels: coloredLabels,
+                  stemTipY: beamY,
                 ));
 
                 final color = colorScheme.colorForNote(
@@ -461,8 +505,8 @@ class MusicPdfService {
                 );
                 final pdfColor = PdfColor(color.r, color.g, color.b);
 
-                final beamStartX = noteX + (stemUp ? noteHeadWidth / 2 - 0.6 : -noteHeadWidth / 2 + 0.6);
-                final beamEndX = nextX + (stemUp ? noteHeadWidth / 2 - 0.6 : -noteHeadWidth / 2 + 0.6);
+                final beamStartX = noteX + (beamStemUp ? (ls * 0.78) : -(ls * 0.78));
+                final beamEndX = nextX + (beamStemUp ? (ls * 0.78) : -(ls * 0.78));
 
                 widgets.add(
                   pw.Positioned(
@@ -473,29 +517,14 @@ class MusicPdfService {
                       painter: (PdfGraphics canvas, PdfPoint size) {
                         canvas.setStrokeColor(pdfColor);
                         canvas.setLineWidth(3.5);
-                        canvas.drawLine(beamStartX, -stemTipY, beamEndX, -nextStemTipY);
+                        canvas.drawLine(beamStartX, -beamY, beamEndX, -beamY);
                         canvas.strokePath();
                       },
                     ),
                   ),
                 );
               }
-            } else if (note.beam == 'end' || note.beam == 'continue') {
-              int prevNi = ni - 1;
-              MusicNote? startNote;
-              while (prevNi >= 0) {
-                final candidate = displayNotes[prevNi];
-                if (!candidate.isRest && candidate.beam == 'begin') {
-                  startNote = candidate;
-                  break;
-                }
-                prevNi--;
-              }
-
-              final stemUp = startNote != null
-                ? staffPos(startNote.step, startNote.octave) < 5
-                : staffPos(note.step, note.octave) < 5;
-
+            } else if (note.beam == 'end') {
               widgets.addAll(_buildNote(
                 note: note,
                 x: noteX,
@@ -504,12 +533,13 @@ class MusicPdfService {
                 ls: ls,
                 colorScheme: colorScheme,
                 musicFont: musicFont,
-                forcedStemUp: stemUp,
+                forcedStemUp: beamStemUp,
                 noFlags: true,
                 showSolfege: showSolfege,
                 showLetter: showLetter,
                 labelsBelow: labelsBelow,
                 coloredLabels: coloredLabels,
+                stemTipY: beamY,
               ));
               isBeamed = true;
             }
@@ -530,6 +560,15 @@ class MusicPdfService {
               coloredLabels: coloredLabels,
             ));
           }
+        } else {
+          widgets.addAll(_buildRest(
+            note: note,
+            x: noteX,
+            topMargin: topMargin,
+            staffHeight: staffHeight,
+            ls: ls,
+            musicFont: musicFont,
+          ));
         }
         cumulativeDuration += note.duration;
       }
@@ -590,6 +629,7 @@ class MusicPdfService {
     required bool coloredLabels,
     bool? forcedStemUp,
     bool noFlags = false,
+    double? stemTipY,
   }) {
     final widgets = <pw.Widget>[];
 
@@ -690,15 +730,26 @@ class MusicPdfService {
 
     if (note.type != 'whole') {
       final stemUp = forcedStemUp ?? (pos < 5);
-      final stemLength = ls * 3.4;
+      final defaultStemLength = ls * 3.4;
+      
+      double calculatedStemLength;
+      double top;
+      
+      if (stemTipY != null) {
+        calculatedStemLength = (y - stemTipY).abs();
+        top = stemUp ? stemTipY : y;
+      } else {
+        calculatedStemLength = defaultStemLength;
+        top = stemUp ? y - defaultStemLength : y;
+      }
 
       widgets.add(
         pw.Positioned(
           left: stemUp ? x + noteHeadWidth / 2 - 0.6 : x - noteHeadWidth / 2 - 0.6,
-          top: stemUp ? y - stemLength : y,
+          top: top,
           child: pw.Container(
             width: 1.2,
-            height: stemLength,
+            height: calculatedStemLength,
             color: pdfColor,
           ),
         ),
@@ -713,7 +764,7 @@ class MusicPdfService {
         };
 
         if (flagCount > 0) {
-          final tipY = stemUp ? y - stemLength : y + stemLength;
+          final tipY = stemTipY ?? (stemUp ? y - defaultStemLength : y + defaultStemLength);
           final flagX = stemUp ? x + noteHeadWidth / 2 - 0.6 : x - noteHeadWidth / 2 - 0.6;
 
           for (int i = 0; i < flagCount; i++) {
@@ -750,6 +801,10 @@ class MusicPdfService {
       }
     }
 
+    if (note.dot > 0) {
+      widgets.add(_buildDot(x + noteHeadWidth / 2 + 2, y - ls * 0.2, pdfColor));
+    }
+
     if (showLetter || showSolfege) {
       String label = '';
       if (showLetter && showSolfege) {
@@ -764,8 +819,8 @@ class MusicPdfService {
 
       if (labelsBelow) {
         final stemUp = pos < 5;
-        final stemLength = ls * 3.4;
-        final labelY = stemUp ? y + ls * 2.5 : y + stemLength + ls * 1.2;
+        final actualStemLength = stemTipY != null ? (y - stemTipY).abs() : ls * 3.4;
+        final labelY = stemUp ? y + ls * 2.5 : y + actualStemLength + ls * 1.2;
 
         widgets.add(
           pw.Positioned(
@@ -804,5 +859,118 @@ class MusicPdfService {
     }
 
     return widgets;
+  }
+
+  static List<pw.Widget> _buildRest({
+    required MusicNote note,
+    required double x,
+    required double topMargin,
+    required double staffHeight,
+    required double ls,
+    required pw.Font musicFont,
+  }) {
+    final widgets = <pw.Widget>[];
+    final type = note.type;
+    final bool hasDot = note.dot > 0;
+
+    switch (type) {
+      case 'breve':
+        final ly = topMargin + staffHeight - 5 * ls / 2 - ls * 0.5;
+        widgets.add(
+          pw.Positioned(
+            left: x - ls * 0.4,
+            top: ly,
+            child: pw.Container(
+              width: ls * 0.8,
+              height: ls * 1.0,
+              color: PdfColors.black,
+            ),
+          ),
+        );
+        if (hasDot) {
+          widgets.add(_buildDot(x + ls * 0.5, ly + ls * 0.5, PdfColors.black));
+        }
+        break;
+      case 'whole':
+        final ly = topMargin + staffHeight - 6 * ls / 2;
+        widgets.add(
+          pw.Positioned(
+            left: x - ls * 0.75,
+            top: ly,
+            child: pw.Container(
+              width: ls * 1.5,
+              height: ls * 0.55,
+              color: PdfColors.black,
+            ),
+          ),
+        );
+        if (hasDot) {
+          widgets.add(_buildDot(x + ls * 0.75, ly + ls * 0.25, PdfColors.black));
+        }
+        break;
+      case 'half':
+        final ly = topMargin + staffHeight - 4 * ls / 2 - ls * 0.55;
+        widgets.add(
+          pw.Positioned(
+            left: x - ls * 0.75,
+            top: ly,
+            child: pw.Container(
+              width: ls * 1.5,
+              height: ls * 0.55,
+              color: PdfColors.black,
+            ),
+          ),
+        );
+        if (hasDot) {
+          widgets.add(_buildDot(x + ls * 0.75, ly + ls * 0.25, PdfColors.black));
+        }
+        break;
+      default:
+        final sym = switch (type) {
+          'quarter' => '\u{1D13D}',
+          'eighth' => '\u{1D13E}',
+          '16th' => '\u{1D13F}',
+          '32nd' => '\u{1D140}',
+          '64th' => '\u{1D141}',
+          _ => '\u{1D13D}'
+        };
+        final ry = topMargin + staffHeight - 5 * ls / 2 - ls * 1.0;
+        widgets.add(
+          pw.Positioned(
+            left: x - ls * 0.7,
+            top: ry,
+            child: pw.Text(
+              sym,
+              style: pw.TextStyle(
+                font: musicFont,
+                fontSize: ls * 2.1,
+                color: PdfColors.black,
+              ),
+            ),
+          ),
+        );
+        if (hasDot) {
+          widgets.add(_buildDot(x + ls * 0.4, ry + ls * 0.8, PdfColors.black));
+        }
+        break;
+    }
+
+    return widgets;
+  }
+
+  static pw.Widget _buildDot(double x, double y, PdfColor color) {
+    return pw.Positioned(
+      left: x,
+      top: y,
+      child: pw.CustomPaint(
+        size: const PdfPoint(4, 4),
+        painter: (PdfGraphics canvas, PdfPoint size) {
+          canvas.setStrokeColor(color);
+          canvas.setFillColor(color);
+          canvas.drawEllipse(2, 2, 1.2, 1.2);
+          canvas.fillPath();
+        },
+      ),
+    );
   }
 }

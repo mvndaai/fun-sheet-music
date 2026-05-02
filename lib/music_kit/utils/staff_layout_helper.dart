@@ -15,18 +15,19 @@ class StaffLayoutHelper {
   /// [measureWidth] is the total width allocated to this measure.
   /// [hasTimeSig] whether a time signature is displayed at the start of this measure.
   /// [cumulativeDuration] the sum of durations of all previous notes in this measure.
+  /// [noteDuration] the duration of the current note.
   static double getNoteX({
     required Measure measure,
     required double startX,
     required double measureWidth,
     required bool hasTimeSig,
     required double cumulativeDuration,
+    required double noteDuration,
     required List<MusicNote> displayNotes,
   }) {
     final double tsReserved = hasTimeSig ? kTimeSigReservedW : 0.0;
     final double usableW = (measureWidth - tsReserved - (kMeasurePadding * 2)).clamp(0.0, measureWidth);
     
-    // Logic from staff_painter.dart
     final double durationToBeats = measure.beatType / 4.0;
     final double beatsInMeasure = measure.beats > 0 ? measure.beats.toDouble() : 1.0;
     
@@ -35,8 +36,9 @@ class StaffLayoutHelper {
     
     final double beatW = usableW / effectiveBeats;
     final double beatIndex = cumulativeDuration * durationToBeats;
+    final double currentNoteBeats = noteDuration * durationToBeats;
     
-    return startX + tsReserved + kMeasurePadding + (beatIndex + 0.5) * beatW;
+    return startX + tsReserved + kMeasurePadding + (beatIndex + (currentNoteBeats / 2)) * beatW;
   }
 
   /// Calculates the X position for the end of a beam.
@@ -47,6 +49,7 @@ class StaffLayoutHelper {
     required bool hasTimeSig,
     required double cumulativeDuration,
     required double nextNoteOffset,
+    required double nextNoteDuration,
     required List<MusicNote> displayNotes,
   }) {
     final double tsReserved = hasTimeSig ? kTimeSigReservedW : 0.0;
@@ -60,7 +63,8 @@ class StaffLayoutHelper {
     
     final double beatW = usableW / effectiveBeats;
     final double nextBeatIndex = (cumulativeDuration + nextNoteOffset) * durationToBeats;
+    final double nextNoteBeats = nextNoteDuration * durationToBeats;
     
-    return startX + tsReserved + kMeasurePadding + (nextBeatIndex + 0.5) * beatW;
+    return startX + tsReserved + kMeasurePadding + (nextBeatIndex + (nextNoteBeats / 2)) * beatW;
   }
 }

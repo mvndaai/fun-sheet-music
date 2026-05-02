@@ -11,6 +11,7 @@ abstract class PlatformTonePlayer {
   Future<void> playSample(String path);
   void startSample(String path);
   void stopSample(String path);
+  void stopAllTones();
   void dispose();
 }
 

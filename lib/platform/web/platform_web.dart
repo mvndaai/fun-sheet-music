@@ -146,7 +146,7 @@ class WebTonePlayer implements PlatformTonePlayer {
   }
 
   @override
-  void dispose() {
+  void stopAllTones() {
     try {
       for (final note in _activeNotes.values) {
         note.$1.stop();
@@ -157,7 +157,15 @@ class WebTonePlayer implements PlatformTonePlayer {
         sample.pause();
       }
       _activeSamples.clear();
-      
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  @override
+  void dispose() {
+    stopAllTones();
+    try {
       _audioContext?.close();
       _audioStorage.dispose();
     } catch (e) {
