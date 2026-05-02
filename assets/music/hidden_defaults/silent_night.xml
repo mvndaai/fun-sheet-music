@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.0">
   <work>
     <work-title>Silent Night</work-title>
   </work>
   <identification>
-    <creator type="composer">Religious</creator>
     <encoding>
       <software>Fun Sheet Music Editor</software>
       <encoding-date>2026-04-30</encoding-date>
