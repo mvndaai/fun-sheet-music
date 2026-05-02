@@ -416,8 +416,8 @@ class _LibraryTabState extends State<_LibraryTab>
     super.build(context);
     final provider = context.watch<SongProvider>();
 
-    final importableLibraries = SongProvider.bundledSongs.keys
-        .where((lib) => SongProvider.bundledSongs[lib]?.isNotEmpty ?? false)
+    final importableLibraries = provider.bundledSongsMetadata.keys
+        .where((lib) => provider.bundledSongsMetadata[lib]?.isNotEmpty ?? false)
         .toList()
       ..sort();
 
@@ -513,7 +513,18 @@ class _LibraryTabState extends State<_LibraryTab>
         // Unified Results List
         Expanded(
           child: allAvailable.isEmpty
-              ? const Center(child: Text('No libraries enabled'))
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Text(
+                      importableLibraries.isEmpty
+                          ? 'No bundled songs found in assets.'
+                          : 'No libraries selected or search yielded no results.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ),
+                )
               : ListView.builder(
                   controller: widget.scrollController,
                   itemCount: filtered.length,

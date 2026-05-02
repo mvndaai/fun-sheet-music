@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
@@ -26,7 +27,7 @@ class SongProvider extends ChangeNotifier {
   String? _error;
   String _searchQuery = '';
   final Set<String> _selectedTags = {};
-  final Set<String> _selectedLibraries = {builtinLibraryName}; // TODO add a second library for user uploads
+  final Set<String> _selectedLibraries = {builtinLibraryName};
 
   List<Song>? _filteredSongsCache;
 
@@ -72,27 +73,9 @@ class SongProvider extends ChangeNotifier {
     }
     // These are the known "available" libraries.
     libs.add(builtinLibraryName);
+    libs.addAll(_bundledSongsMetadata.keys);
     return libs.toList()..sort();
   }
-
-  /// Metadata for bundled songs available in the app.
-  static final Map<String, List<Map<String, dynamic>>> bundledSongs = {
-    builtinLibraryName: [
-      {'asset': 'assets/sample_songs/twinkle_twinkle.xml', 'tags': [], 'isDefault': true},
-      {'asset': 'assets/sample_songs/the_wheels_on_the_bus.xml', 'tags': [], 'isDefault': true},
-      {'asset': 'assets/sample_songs/mary_had_a_little_lamb.xml', 'tags': [], 'isDefault': true},
-      {'asset': 'assets/sample_songs/row_row_row_your_boat.xml', 'tags': [], 'isDefault': true},
-      {'asset': 'assets/sample_songs/old_macdonald.xml', 'tags': [], 'isDefault': true},
-      {'asset': 'assets/sample_songs/bingo.xml', 'tags': [], 'isDefault': true},
-      {'asset': 'assets/sample_songs/happy_birthday.xml', 'tags': [], 'isDefault': true},
-      {'asset': 'assets/sample_songs/hey_diddle_diddle.xml', 'tags': [], 'isDefault': true},
-      {'asset': 'assets/sample_songs/humpty_dumpty.xml', 'tags': [], 'isDefault': true},
-
-      {'asset': 'assets/sample_songs/silent_night.xml', 'tags': ['Religious'], 'isDefault': false},
-      {'asset': 'assets/sample_songs/concerning_hobbits.xml', 'tags': ['Movie'], 'isDefault': false},
-      {'asset': 'assets/sample_songs/formatting.xml', 'tags': ['Testing'], 'isDefault': false},
-    ],
-  };
 
   Future<void> loadSongs() async {
     _loading = true;
@@ -113,18 +96,6 @@ class SongProvider extends ChangeNotifier {
           needsUpdate = true;
         }
 
-        // If it's a built-in song and missing an icon, try to recover it from metadata
-        if (song.library == builtinLibraryName && song.icon.isEmpty) {
-          final metadata = _bundledSongsMetadata[builtinLibraryName]?.firstWhere(
-            (s) => s.title == song.title,
-            orElse: () => Song(id: '', title: '', measures: [], createdAt: DateTime.now()),
-          );
-          if (metadata != null && metadata.icon.isNotEmpty) {
-            newIcon = metadata.icon;
-            needsUpdate = true;
-          }
-        }
-
         if (needsUpdate) {
           _songs[i] = song.copyWith(
             library: newLibrary ?? song.library,
@@ -139,7 +110,6 @@ class SongProvider extends ChangeNotifier {
       }
 
       // Repair: detect songs with empty XML content and remove them so they can be re-imported
-      // (This fixes corruption caused by a previous bug in migration)
       final List<String> corruptedIds = [];
       for (final song in _songs) {
         final xml = await _storage.getXmlContent(song.id);
@@ -167,65 +137,76 @@ class SongProvider extends ChangeNotifier {
 
   /// Loads metadata for all bundled songs from assets.
   Future<void> _loadBundledMetadata() async {
-    final Map<String, List<Song>> results = {};
-    for (final entry in bundledSongs.entries) {
-      final libraryName = entry.key;
-      final List<Song> librarySongs = [];
-      for (final songData in entry.value) {
+    try {
+      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      final songAssets = manifest.listAssets().where((p) => p.endsWith('.xml') && (p.contains('assets/music/') || p.contains('music/')));
+
+      final uri = Uri.base;
+      final isTestingEnabled = kDebugMode || (kIsWeb && (uri.host == 'localhost' || uri.queryParameters.containsKey('testing')));
+
+      final Map<String, List<Song>> results = {};
+      for (final assetPath in songAssets) {
         try {
-          final assetPath = songData['asset'] as String;
+          String libraryName = builtinLibraryName;
+          if (assetPath.contains('/shared_by_users/')) {
+            libraryName = 'Shared by Users';
+          } else if (assetPath.contains('/testing/')) {
+            if (!isTestingEnabled) continue;
+            libraryName = 'Testing';
+          }
+
           final xmlContent = await rootBundle.loadString(assetPath);
           final metadata = MusicXmlParser.parseMetadata(
             xmlContent,
             id: assetPath, // Use asset path as temp ID
-            tags: List<String>.from(songData['tags'] as List),
             library: libraryName,
             localPath: assetPath,
           );
-          librarySongs.add(metadata);
+          
+          results.putIfAbsent(libraryName, () => []).add(metadata);
         } catch (e) {
-          debugPrint('Failed to load metadata for bundled song: $e');
+          debugPrint('Failed to load metadata for bundled song ($assetPath): $e');
         }
       }
-      results[libraryName] = librarySongs;
+      _bundledSongsMetadata = results;
+      
+      // Auto-select discovered libraries if we only had the default one
+      if (_selectedLibraries.length == 1 && _selectedLibraries.contains(builtinLibraryName)) {
+        _selectedLibraries.addAll(_bundledSongsMetadata.keys);
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading asset manifest: $e');
     }
-    _bundledSongsMetadata = results;
-    notifyListeners();
   }
 
   /// Loads sample songs from the assets folder into the library if they are missing.
   Future<void> _loadSampleSongs({bool onlyDefaults = false}) async {
-    for (final entry in bundledSongs.entries) {
+    for (final entry in _bundledSongsMetadata.entries) {
       final libraryName = entry.key;
-      for (final songData in entry.value) {
-        if (onlyDefaults && songData['isDefault'] != true) continue;
+      for (final metadata in entry.value) {
+        final assetPath = metadata.localPath!;
+        
+        if (onlyDefaults && !assetPath.contains('/defaults/')) continue;
 
-        final assetPath = songData['asset'] as String;
         // Check if this specific asset is already imported
         final alreadyExists = _songs.any((s) => s.localPath == assetPath && s.library == libraryName);
         if (alreadyExists) continue;
 
         try {
-          // If we already have metadata cached, we can use it to check by title as well
-          final metadata = _bundledSongsMetadata[libraryName]?.firstWhere(
-            (s) => s.localPath == assetPath,
-            orElse: () => Song(id: '', title: '', measures: [], createdAt: DateTime.now()),
-          );
-          
-          if (metadata != null && metadata.title.isNotEmpty) {
-            // Double check by title if localPath wasn't set correctly in previous versions
-            if (_songs.any((s) => s.title == metadata.title && s.library == libraryName)) {
-              final existing = _songs.firstWhere((s) => s.title == metadata.title && s.library == libraryName);
-              await _storage.updateMetadata(existing.id, localPath: assetPath);
-              continue;
-            }
+          // Double check by title if localPath wasn't set correctly in previous versions
+          if (_songs.any((s) => s.title == metadata.title && s.library == libraryName)) {
+            final existing = _songs.firstWhere((s) => s.title == metadata.title && s.library == libraryName);
+            await _storage.updateMetadata(existing.id, localPath: assetPath);
+            continue;
           }
 
           final xmlContent = await rootBundle.loadString(assetPath);
           // Fully add the song (this parses the whole thing in an isolate)
           await addSongFromXml(
             xmlContent,
-            tags: List<String>.from(songData['tags'] as List),
+            tags: metadata.tags,
             library: libraryName,
             localPath: assetPath, // Store asset path to avoid re-imports
           );

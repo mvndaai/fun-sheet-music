@@ -3,6 +3,11 @@
   <work>
     <work-title>Itsy Bitsy Spider</work-title>
   </work>
+  <identification>
+    <miscellaneous>
+      <miscellaneous-field name="icon">🕷️</miscellaneous-field>
+    </miscellaneous>
+  </identification>
   <part-list>
     <score-part id="P1">
       <part-name>Piano</part-name>

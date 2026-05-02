@@ -7,6 +7,10 @@
   </work>
   <identification>
     <creator type="arranger">Reddit: haggislasagne</creator>
+    <miscellaneous>
+      <miscellaneous-field name="icon">💍</miscellaneous-field>
+      <miscellaneous-field name="tag">Movie</miscellaneous-field>
+    </miscellaneous>
   </identification>
   <part-list>
     <score-part id="P1">

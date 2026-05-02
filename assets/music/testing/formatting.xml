@@ -7,6 +7,10 @@
   </work>
   <identification>
     <creator type="composer">AI Example</creator>
+    <miscellaneous>
+      <miscellaneous-field name="icon">📝</miscellaneous-field>
+      <miscellaneous-field name="tag">Testing</miscellaneous-field>
+    </miscellaneous>
   </identification>
   <part-list>
     <score-part id="P1">

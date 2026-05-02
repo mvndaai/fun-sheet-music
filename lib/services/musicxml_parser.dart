@@ -22,6 +22,7 @@ class MusicXmlParser {
 
     final title = _getTitle(root);
     final icon = _getMiscellaneousField(root, 'icon');
+    final xmlTags = _getMiscellaneousFields(root, 'tag');
     final composer = _getComposer(root);
     final measures = _parseMeasures(root);
 
@@ -31,7 +32,7 @@ class MusicXmlParser {
       icon: icon,
       composer: composer,
       measures: measures,
-      tags: tags,
+      tags: [...tags, ...xmlTags].toSet().toList().cast<String>(),
       library: library,
       localPath: localPath,
       sourceUrl: sourceUrl,
@@ -55,6 +56,7 @@ class MusicXmlParser {
 
     final title = _getTitle(root);
     final icon = _getMiscellaneousField(root, 'icon');
+    final xmlTags = _getMiscellaneousFields(root, 'tag');
     final composer = _getComposer(root);
 
     return Song(
@@ -63,7 +65,7 @@ class MusicXmlParser {
       icon: icon,
       composer: composer,
       measures: const [], // No measures for metadata-only
-      tags: tags,
+      tags: [...tags, ...xmlTags].toSet().toList().cast<String>(),
       library: library,
       localPath: localPath,
       sourceUrl: sourceUrl,
@@ -88,6 +90,17 @@ class MusicXmlParser {
       }
     }
     return '';
+  }
+
+  static List<String> _getMiscellaneousFields(XmlElement root, String fieldName) {
+    final results = <String>[];
+    for (final field in root.findAllElements('miscellaneous-field')) {
+      if (field.getAttribute('name') == fieldName) {
+        final val = field.innerText.trim();
+        if (val.isNotEmpty) results.add(val);
+      }
+    }
+    return results;
   }
 
   static String _getTitle(XmlElement root) {

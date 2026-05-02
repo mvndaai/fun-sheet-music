@@ -29,6 +29,11 @@ class Song {
     required this.createdAt,
   });
 
+  bool get isDefault => localPath?.contains('/defaults/') ?? false;
+  bool get isHidden => localPath?.contains('/hidden_defaults/') ?? false;
+  bool get isTesting => localPath?.contains('/testing/') ?? false;
+  bool get isShared => localPath?.contains('/shared_by_users/') ?? false;
+
   Song copyWith({
     String? id,
     String? title,
