@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import '../utils/note_map_lookup.dart';
 
 /// The canonical 12 chromatic note keys used as keys in a color scheme.
 const List<String> kNoteKeys = [
@@ -65,32 +66,26 @@ class InstrumentProfile {
   }) {
     Color? baseColor;
 
-    if (octave != null && octaveOverrides.isNotEmpty) {
-      final key = alter == 1
-          ? '$step#$octave'
-          : alter == -1
-              ? '${step}b$octave'
-              : '$step$octave';
-      if (octaveOverrides.containsKey(key)) baseColor = octaveOverrides[key]!;
+    // Build the note name for lookup
+    final noteName = alter == 1
+        ? '$step#${octave ?? ''}'
+        : alter == -1
+            ? '${step}b${octave ?? ''}'
+            : '$step${octave ?? ''}';
 
-      if (baseColor == null && alter == -1) {
-        final enharmonic = kFlatToSharp['${step}b'];
-        if (enharmonic != null &&
-            octaveOverrides.containsKey('$enharmonic$octave')) {
-          baseColor = octaveOverrides['$enharmonic$octave']!;
-        }
-      }
+    // Use consistent lookup pattern for octave overrides
+    if (octave != null && octaveOverrides.isNotEmpty) {
+      baseColor = NoteMapLookup.lookup<Color>(
+        noteName: noteName,
+        primaryMap: octaveOverrides,
+        isEmpty: (color) => color.alpha == 0,
+      );
     }
 
+    // Fall back to step-only colors if no octave override found
     if (baseColor == null) {
-      if (alter == 1) {
-        baseColor = colors['$step#'] ?? colors[step];
-      } else if (alter == -1) {
-        final enharmonic = kFlatToSharp['${step}b'];
-        baseColor = colors[enharmonic] ?? colors[step];
-      } else {
-        baseColor = colors[step];
-      }
+      final stepKey = alter == 1 ? '$step#' : (alter == -1 ? NoteMapLookup.normalizeToSharps('${step}b') : step);
+      baseColor = colors[stepKey] ?? colors[step];
     }
 
     final bool isStandard = baseColor == null ||

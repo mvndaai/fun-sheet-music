@@ -15,6 +15,7 @@ import '../music_kit/utils/music_pdf_service.dart';
 import '../music_kit/utils/music_constants.dart';
 import '../music_kit/utils/keyboard_utils.dart';
 import '../music_kit/utils/note_resolver.dart';
+import '../music_kit/utils/note_map_lookup.dart';
 import '../music_kit/sheet_music_constants.dart';
 import '../music_kit/widgets/staff_painter.dart';
 import '../widgets/sheet_music_widget.dart';
@@ -435,21 +436,12 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
         final mapping = KeyboardUtils.getMappingName(event);
         final overrides = keyboardProvider.activeProfile.getAllKeyMappings();
 
-        String normalizeToSharps(String note) {
-          return note
-              .replaceAll('Db', 'C#')
-              .replaceAll('Eb', 'D#')
-              .replaceAll('Gb', 'F#')
-              .replaceAll('Ab', 'G#')
-              .replaceAll('Bb', 'A#');
-        }
-
         String? findNote(String mapping) {
           final current = _currentNote;
           if (current != null) {
             final targetNoteName = NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme);
             // Normalize to sharps for consistent lookup (Db -> C#)
-            final normalizedTarget = normalizeToSharps(targetNoteName);
+            final normalizedTarget = NoteMapLookup.normalizeToSharps(targetNoteName);
             if (overrides[normalizedTarget] == mapping) return normalizedTarget;
             // Fallback for keyboard mappings across octaves if only one was mapped
             // (Standard Keyboard already has many mapped, but we can do a quick check)

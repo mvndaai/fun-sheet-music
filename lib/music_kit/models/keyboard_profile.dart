@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import '../utils/note_map_lookup.dart';
 
 class KeyboardProfile {
   final String id;
@@ -48,67 +49,30 @@ class KeyboardProfile {
     );
   }
 
-  /// Gets a sample path for a note, with fallback to C4 if the specific octave doesn't exist.
-  /// Also falls back to the standard profile's defaults if not found in this profile.
+  /// Gets a sample path for a note.
+  /// Looks for exact octave match first, then step-only "default", then standard profile.
   String? getSamplePath(String noteName) {
-    // Normalize to sharps for consistent lookup (Db -> C#)
-    final normalized = _normalizeToSharps(noteName);
-    
-    // 1. Check for exact match (e.g., "C#5")
-    final exactPath = noteSounds[normalized];
-    if (exactPath != null && exactPath.isNotEmpty) return exactPath;
-
-    final step = normalized.replaceAll(RegExp(r'\d'), '');
-    
-    // 2. Check for step-only "default" recording (e.g., "C#" without octave)
-    final stepOnlyPath = noteSounds[step];
-    if (stepOnlyPath != null && stepOnlyPath.isNotEmpty) return stepOnlyPath;
-    
-    // 3. Check for octave 4 fallback (e.g., "C#4")
-    final fallbackNote = '${step}4';
-    final fallbackPath = noteSounds[fallbackNote];
-    if (fallbackPath != null && fallbackPath.isNotEmpty) return fallbackPath;
-
-    // 4. Check standard profile defaults if this isn't the standard profile
-    if (id != KeyboardProfile.standard.id) {
-      final standardExact = KeyboardProfile.standard.noteSounds[normalized];
-      if (standardExact != null && standardExact.isNotEmpty) return standardExact;
-      
-      final standardStepOnly = KeyboardProfile.standard.noteSounds[step];
-      if (standardStepOnly != null && standardStepOnly.isNotEmpty) return standardStepOnly;
-      
-      final standardFallback = KeyboardProfile.standard.noteSounds[fallbackNote];
-      if (standardFallback != null && standardFallback.isNotEmpty) return standardFallback;
-    }
-
-    return null;
+    return NoteMapLookup.lookup<String>(
+      noteName: noteName,
+      primaryMap: noteSounds,
+      fallbackMap: id != KeyboardProfile.standard.id 
+          ? KeyboardProfile.standard.noteSounds 
+          : null,
+      isEmpty: (value) => value.isEmpty,
+    );
   }
 
-  /// Gets a keyboard mapping for a note, with fallback to the standard profile if not found.
+  /// Gets a keyboard mapping for a note.
+  /// Looks for exact octave match first, then step-only "default", then standard profile.
   String? getKeyMapping(String noteName) {
-    // Normalize to sharps for consistent lookup
-    final normalized = _normalizeToSharps(noteName);
-    
-    final mapping = keyboardOverrides[normalized];
-    if (mapping != null && mapping.isNotEmpty) return mapping;
-
-    // Check standard profile defaults if this isn't the standard profile
-    if (id != KeyboardProfile.standard.id) {
-      final standardMapping = KeyboardProfile.standard.keyboardOverrides[normalized];
-      if (standardMapping != null && standardMapping.isNotEmpty) return standardMapping;
-    }
-
-    return null;
-  }
-
-  /// Normalizes flats to sharps (Db -> C#)
-  static String _normalizeToSharps(String note) {
-    return note
-        .replaceAll('Db', 'C#')
-        .replaceAll('Eb', 'D#')
-        .replaceAll('Gb', 'F#')
-        .replaceAll('Ab', 'G#')
-        .replaceAll('Bb', 'A#');
+    return NoteMapLookup.lookup<String>(
+      noteName: noteName,
+      primaryMap: keyboardOverrides,
+      fallbackMap: id != KeyboardProfile.standard.id 
+          ? KeyboardProfile.standard.keyboardOverrides 
+          : null,
+      isEmpty: (value) => value.isEmpty,
+    );
   }
 
   /// Gets all keyboard mappings with standard profile fallbacks merged in.
