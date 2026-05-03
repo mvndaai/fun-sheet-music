@@ -114,7 +114,13 @@ class FunSheetMusic extends StatelessWidget {
               ),
               useMaterial3: true,
               textTheme: GoogleFonts.notoSansTextTheme().apply(
-                fontFamilyFallback: ['NotoColorEmoji'],
+                fontFamilyFallback: [
+                  'NotoColorEmoji',
+                  'NotoSansSymbols',
+                  'NotoSansSymbols2',
+                  'NotoMusic',
+                  'NotoSans',
+                ],
               ),
               appBarTheme: const AppBarTheme(
                 centerTitle: false,
@@ -133,7 +139,13 @@ class FunSheetMusic extends StatelessWidget {
               ),
             ),
             darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
+              colorScheme: ColorSchem
+                  'NotoColorEmoji',
+                  'NotoSansSymbols',
+                  'NotoSansSymbols2',
+                  'NotoMusic',
+                  'NotoSans',
+                
                 seedColor: const Color(0xFF1565C0),
                 brightness: Brightness.dark,
               ),
