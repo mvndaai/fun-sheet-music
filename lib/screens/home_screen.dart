@@ -20,6 +20,8 @@ import '../widgets/batch_print_dialog.dart';
 import '../music_kit/utils/music_xml_generator.dart';
 import '../platform/platform.dart';
 
+enum EditMode { normal, reorder }
+
 /// Home screen showing the song library with tag-based filtering.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,6 +33,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  EditMode _editMode = EditMode.normal;
 
   @override
   void initState() {
@@ -220,22 +223,91 @@ class _HomeScreenState extends State<HomeScreen> {
                   provider: provider,
                   searchController: _searchController,
                 ),
+                // Edit mode banner
+                if (_editMode == EditMode.reorder)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.swap_vert,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Drag songs to reorder',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => setState(() => _editMode = EditMode.normal),
+                          icon: Icon(
+                            Icons.check,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                          label: Text(
+                            'Done',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 // Song list
                 Expanded(
                   child: provider.filteredSongs.isEmpty
                       ? _EmptyState(
                           hasFilter: provider.selectedTags.isNotEmpty || provider.searchQuery.isNotEmpty,
                         )
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(12),
-                          itemCount: provider.filteredSongs.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final song = provider.filteredSongs[index];
-                            final showLibrary = provider.filteredSongs.map((s) => s.library).toSet().length > 1;
-                            return _SongCard(song: song, showLibrary: showLibrary);
-                          },
-                        ),
+                      : _editMode == EditMode.reorder
+                          ? ReorderableListView.builder(
+                              padding: const EdgeInsets.all(12),
+                              itemCount: provider.filteredSongs.length,
+                              onReorder: (oldIndex, newIndex) {
+                                provider.reorderSongs(oldIndex, newIndex);
+                              },
+                              itemBuilder: (context, index) {
+                                final song = provider.filteredSongs[index];
+                                final showLibrary = provider.filteredSongs.map((s) => s.library).toSet().length > 1;
+                                return Padding(
+                                  key: ValueKey(song.id),
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: _SongCard(
+                                    song: song,
+                                    showLibrary: showLibrary,
+                                    editMode: _editMode,
+                                    onEnterReorderMode: () => setState(() => _editMode = EditMode.reorder),
+                                  ),
+                                );
+                              },
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(12),
+                              itemCount: provider.filteredSongs.length,
+                              itemBuilder: (context, index) {
+                                final song = provider.filteredSongs[index];
+                                final showLibrary = provider.filteredSongs.map((s) => s.library).toSet().length > 1;
+                                return Padding(
+                                  key: ValueKey(song.id),
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: _SongCard(
+                                    song: song,
+                                    showLibrary: showLibrary,
+                                    editMode: _editMode,
+                                    onEnterReorderMode: () => setState(() => _editMode = EditMode.reorder),
+                                  ),
+                                );
+                              },
+                            ),
                 ),
                 // Ad Banner
                 Consumer<InstrumentProvider>(
@@ -337,7 +409,15 @@ class _SearchAndFilterBar extends StatelessWidget {
 class _SongCard extends StatelessWidget {
   final Song song;
   final bool showLibrary;
-  const _SongCard({required this.song, this.showLibrary = false});
+  final EditMode editMode;
+  final VoidCallback onEnterReorderMode;
+  
+  const _SongCard({
+    required this.song,
+    this.showLibrary = false,
+    this.editMode = EditMode.normal,
+    required this.onEnterReorderMode,
+  });
 
   String _getInitials(String title) {
     final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
@@ -398,11 +478,11 @@ class _SongCard extends StatelessWidget {
           ],
         ),
         isThreeLine: song.tags.isNotEmpty,
-        trailing: PopupMenuButton<String>(
+        trailing: editMode == EditMode.reorder
+            ? null
+            : PopupMenuButton<String>(
           onSelected: (value) async {
-            if (value == 'view') {
-              _openSheet(context, song);
-            } else if (value == 'copy_link') {
+            if (value == 'copy_link') {
               _copySongLink(context, song);
             } else if (value == 'edit') {
               _editSong(context, song);
@@ -415,7 +495,6 @@ class _SongCard extends StatelessWidget {
             }
           },
           itemBuilder: (_) => [
-            const PopupMenuItem(value: 'view', child: Text('View Sheet Music')),
             const PopupMenuItem(value: 'copy_link', child: Text('Copy Link')),
             const PopupMenuItem(value: 'edit', child: Text('Edit')),
             if (song.library == 'Created')
@@ -425,6 +504,7 @@ class _SongCard extends StatelessWidget {
           ],
         ),
         onTap: () => _openSheet(context, song),
+        onLongPress: editMode == EditMode.normal ? onEnterReorderMode : null,
       ),
     );
   }

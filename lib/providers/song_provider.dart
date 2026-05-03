@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../music_kit/models/song.dart';
 import '../services/musicxml_parser.dart';
@@ -11,9 +12,12 @@ import '../main.dart'; // Import to use showToast
 /// Manages the list of songs and loading/saving operations.
 class SongProvider extends ChangeNotifier {
   static const String builtinLibraryName = 'Fun Sheet Music';
+  static const String _songOrderKey = 'song_order';
   final StorageService _storage;
   final CloudService _cloud;
   final Uuid _uuid = const Uuid();
+  SharedPreferences? _prefs;
+  List<String> _songOrder = [];
 
   SongProvider({
     required StorageService storage,
@@ -84,7 +88,10 @@ class SongProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
+      _prefs ??= await SharedPreferences.getInstance();
+      _songOrder = _prefs!.getStringList(_songOrderKey) ?? [];
       _songs = await _storage.getAllSongs();
+      _applySongOrder();
 
       // Migration & Icon Repair
       for (int i = 0; i < _songs.length; i++) {
@@ -459,6 +466,56 @@ class SongProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       showToast('Failed to delete song: $e', isError: true);
+    }
+  }
+
+  /// Reorders songs in the list and persists the order.
+  Future<void> reorderSongs(int oldIndex, int newIndex) async {
+    if (oldIndex == newIndex) return;
+    
+    // Adjust newIndex if moving down (ReorderableList behavior)
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    
+    // Reorder the filtered songs list (what the user sees)
+    final song = _songs.removeAt(oldIndex);
+    _songs.insert(newIndex, song);
+    
+    // Save the new order
+    _songOrder = _songs.map((s) => s.id).toList();
+    _prefs ??= await SharedPreferences.getInstance();
+    await _prefs!.setStringList(_songOrderKey, _songOrder);
+    
+    _invalidateCache();
+    notifyListeners();
+  }
+
+  /// Applies the saved song order to the songs list.
+  void _applySongOrder() {
+    if (_songOrder.isEmpty) return;
+    
+    // Create a map for quick lookup
+    final songMap = {for (var song in _songs) song.id: song};
+    
+    // Build ordered list based on saved order
+    final orderedSongs = <Song>[];
+    for (final id in _songOrder) {
+      if (songMap.containsKey(id)) {
+        orderedSongs.add(songMap[id]!);
+        songMap.remove(id);
+      }
+    }
+    
+    // Add any new songs that aren't in the saved order at the beginning
+    orderedSongs.insertAll(0, songMap.values);
+    
+    _songs = orderedSongs;
+    
+    // Update the order to include new songs
+    if (songMap.isNotEmpty) {
+      _songOrder = _songs.map((s) => s.id).toList();
+      _prefs?.setStringList(_songOrderKey, _songOrder);
     }
   }
 }
