@@ -113,13 +113,6 @@ class _UploadScreenState extends State<UploadScreen>
     Navigator.pop(context);
   }
 
-  String _getInitials(String title) {
-    final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-    if (words.isEmpty) return '';
-    if (words.length == 1) return words[0][0].toUpperCase();
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -161,13 +154,6 @@ class _UploadScreenState extends State<UploadScreen>
 
 class _CreateTab extends StatelessWidget {
   const _CreateTab();
-
-  String _getInitials(String title) {
-    final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-    if (words.isEmpty) return '';
-    if (words.length == 1) return words[0][0].toUpperCase();
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,13 +210,6 @@ class _ImportTab extends StatelessWidget {
     required this.onFetch,
     this.error,
   });
-
-  String _getInitials(String title) {
-    final words = title.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
-    if (words.isEmpty) return '';
-    if (words.length == 1) return words[0][0].toUpperCase();
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
 
   @override
   Widget build(BuildContext context) {

@@ -432,7 +432,7 @@ class MusicPdfService {
             
             for (final bn in beamNotes) {
               final p = staffPos(bn.step, bn.octave);
-              if (p < 4) upCount++; else downCount++;
+              if (p < 4) {upCount++; }else {downCount++;}
               final dist = (p - 4).abs().toDouble();
               if (dist > maxDist) {
                 maxDist = dist;
