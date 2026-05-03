@@ -65,11 +65,16 @@ class LegendPiano extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final baseColor = isBlack ? Colors.black : Colors.white;
-    final borderColor = isDark ? Colors.white24 : Colors.black26;
     
     // If hidden, we show it dimmed or as a standard key
     final displayColor = isHidden ? baseColor : color;
     final opacity = isHidden ? 0.3 : 1.0;
+
+    // Use a slightly darker border for colored keys on light theme to improve contrast
+    final borderColor = isDark 
+        ? Colors.white24 
+        : (displayColor == baseColor ? Colors.black26 : Colors.black45);
+    final borderWidth = (displayColor != baseColor && !isDark) ? 0.8 : 0.5;
 
     final textColor = displayColor.computeLuminance() > 0.35 ? Colors.black87 : Colors.white;
     final solfege = MusicConstants.stepToSolfege[note] ?? note;
@@ -82,7 +87,7 @@ class LegendPiano extends StatelessWidget {
         height: isBlack ? keyHeight * 0.6 : keyHeight,
         decoration: BoxDecoration(
           color: displayColor,
-          border: Border.all(color: borderColor, width: 0.5),
+          border: Border.all(color: borderColor, width: borderWidth),
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(3)),
           boxShadow: [
             if (!isBlack) BoxShadow(color: Colors.black.withValues(alpha: .1), blurRadius: 2, offset: const Offset(0, 1)),

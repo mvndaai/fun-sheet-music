@@ -515,6 +515,12 @@ class MusicPdfService {
                     child: pw.CustomPaint(
                       size: const PdfPoint(0, 0),
                       painter: (PdfGraphics canvas, PdfPoint size) {
+                        // Draw a subtle outline for the beam to improve visibility of light colors
+                        canvas.setStrokeColor(PdfColors.grey400);
+                        canvas.setLineWidth(4.8);
+                        canvas.drawLine(beamStartX, -beamY, beamEndX, -beamY);
+                        canvas.strokePath();
+
                         canvas.setStrokeColor(pdfColor);
                         canvas.setLineWidth(3.5);
                         canvas.drawLine(beamStartX, -beamY, beamEndX, -beamY);
@@ -711,15 +717,27 @@ class MusicPdfService {
           child: pw.CustomPaint(
             size: PdfPoint(noteHeadWidth, noteHeadHeight),
             painter: (PdfGraphics canvas, PdfPoint size) {
-              canvas.setStrokeColor(pdfColor);
-              canvas.setFillColor(pdfColor);
               if (filled) {
+                canvas.setFillColor(pdfColor);
                 canvas.drawEllipse(size.x / 2, size.y / 2, size.x / 2, size.y / 2);
                 canvas.fillPath();
+                
+                // Add a subtle outline to help visibility of light colors like yellow on white backgrounds
+                canvas.setStrokeColor(PdfColors.grey400);
+                canvas.setLineWidth(0.8);
+                canvas.drawEllipse(size.x / 2, size.y / 2, size.x / 2, size.y / 2);
+                canvas.strokePath();
               } else {
+                canvas.setStrokeColor(pdfColor);
                 canvas.setLineWidth(1.5);
                 // Draw clean ellipse for open notes
                 canvas.drawEllipse(size.x / 2, size.y / 2, size.x / 2 - 0.75, size.y / 2 - 0.75);
+                canvas.strokePath();
+
+                // Also add a subtle darker outline for unfilled notes
+                canvas.setStrokeColor(PdfColors.grey200);
+                canvas.setLineWidth(0.5);
+                canvas.drawEllipse(size.x / 2, size.y / 2, size.x / 2, size.y / 2);
                 canvas.strokePath();
               }
             },
@@ -743,14 +761,28 @@ class MusicPdfService {
         top = stemUp ? y - defaultStemLength : y;
       }
 
+      final stemX = stemUp ? x + noteHeadWidth / 2 - 0.6 : x - noteHeadWidth / 2 - 0.6;
+
+      // Draw stem with outline
       widgets.add(
         pw.Positioned(
-          left: stemUp ? x + noteHeadWidth / 2 - 0.6 : x - noteHeadWidth / 2 - 0.6,
-          top: top,
-          child: pw.Container(
-            width: 1.2,
-            height: calculatedStemLength,
-            color: pdfColor,
+          left: 0,
+          top: 0,
+          child: pw.CustomPaint(
+            size: const PdfPoint(0, 0),
+            painter: (PdfGraphics canvas, PdfPoint size) {
+              // Stem outline
+              canvas.setStrokeColor(PdfColors.grey400);
+              canvas.setLineWidth(2.4);
+              canvas.drawLine(stemX, -top, stemX, -(top + calculatedStemLength));
+              canvas.strokePath();
+
+              // Stem fill
+              canvas.setStrokeColor(pdfColor);
+              canvas.setLineWidth(1.2);
+              canvas.drawLine(stemX, -top, stemX, -(top + calculatedStemLength));
+              canvas.strokePath();
+            },
           ),
         ),
       );
@@ -778,13 +810,25 @@ class MusicPdfService {
                 child: pw.CustomPaint(
                   size: const PdfPoint(0, 0),
                   painter: (PdfGraphics canvas, PdfPoint size) {
-                    canvas.setStrokeColor(pdfColor);
-                    canvas.setLineWidth(1.0);
                     final startX = flagX;
                     final startY = -currentFlagY;
                     final ey = stemUp ? -ls * 1.3 : ls * 1.3;
                     final cpY = stemUp ? -ls * 0.5 : ls * 0.5;
 
+                    // Flag outline
+                    canvas.setStrokeColor(PdfColors.grey400);
+                    canvas.setLineWidth(2.8);
+                    canvas.moveTo(startX, startY);
+                    canvas.curveTo(
+                      startX + ls * 0.8, startY + cpY,
+                      startX + ls * 0.5, startY + ey,
+                      startX + ls * 0.5, startY + ey
+                    );
+                    canvas.strokePath();
+
+                    // Flag fill
+                    canvas.setStrokeColor(pdfColor);
+                    canvas.setLineWidth(1.0);
                     canvas.moveTo(startX, startY);
                     canvas.curveTo(
                       startX + ls * 0.8, startY + cpY,
@@ -965,6 +1009,12 @@ class MusicPdfService {
       child: pw.CustomPaint(
         size: const PdfPoint(4, 4),
         painter: (PdfGraphics canvas, PdfPoint size) {
+          // Dot outline
+          canvas.setStrokeColor(PdfColors.grey400);
+          canvas.drawEllipse(2, 2, 1.4, 1.4);
+          canvas.strokePath();
+
+          // Dot fill
           canvas.setStrokeColor(color);
           canvas.setFillColor(color);
           canvas.drawEllipse(2, 2, 1.2, 1.2);

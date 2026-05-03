@@ -66,7 +66,6 @@ class StaffPainter extends CustomPainter {
       old.showLetter != showLetter ||
       old.labelsBelow != labelsBelow ||
       old.coloredLabels != coloredLabels ||
-      old.context != context ||
       old.row != row ||
       old.instrument != instrument ||
       old.showNoteLabels != showNoteLabels ||
@@ -353,12 +352,19 @@ class StaffPainter extends CustomPainter {
                 context: context,
               );
 
+              // Draw a subtle outline for the beam to improve visibility of light colors
+              final beamOutlinePaint = Paint()
+                ..color = clefColor.withValues(alpha: (isPast ? 0.3 : 0.7) * 0.4)
+                ..strokeWidth = 4.8;
+              
+              final beamStartX = noteX + (beamStemUp ? kNRx : -kNRx);
+              final beamEndX = nextX + (beamStemUp ? kNRx : -kNRx);
+              canvas.drawLine(Offset(beamStartX, beamY), Offset(beamEndX, beamY), beamOutlinePaint);
+
               final beamPaint = Paint()
                 ..color = noteColor.withValues(alpha: isPast ? 0.3 : 0.7)
                 ..strokeWidth = 3.5;
               
-              final beamStartX = noteX + (beamStemUp ? kNRx : -kNRx);
-              final beamEndX = nextX + (beamStemUp ? kNRx : -kNRx);
               canvas.drawLine(Offset(beamStartX, beamY), Offset(beamEndX, beamY), beamPaint);
             }
           } else if (note.beam == 'end') {
@@ -403,7 +409,7 @@ class StaffPainter extends CustomPainter {
 
     _drawLedgerLines(canvas, x, pos, alpha, clefColor);
     _drawAccidental(canvas, note.alter, x, y, alpha, clefColor);
-    _drawNoteHead(canvas, note.type, x, y, color, alpha, isActive);
+    _drawNoteHead(canvas, note.type, x, y, color, alpha, isActive, clefColor: clefColor);
     _drawStem(
       canvas,
       note.type,
@@ -417,7 +423,7 @@ class StaffPainter extends CustomPainter {
       noFlags: noFlags,
       stemTipY: stemTipY,
     );
-    if (note.isDotted) _drawDot(canvas, x, y, alpha, color);
+    if (note.isDotted) _drawDot(canvas, x, y, alpha, color, clefColor);
     _drawNoteLabel(canvas, note, x, y, pos, color, alpha, clefColor);
   }
 
@@ -432,7 +438,7 @@ class StaffPainter extends CustomPainter {
     );
   }
 
-  void _drawNoteHead(Canvas canvas, String type, double x, double y, Color color, double alpha, bool isActive) {
+  void _drawNoteHead(Canvas canvas, String type, double x, double y, Color color, double alpha, bool isActive, {required Color clefColor}) {
     final filled = type != 'whole' && type != 'half' && type != 'breve';
     final rect = Rect.fromCenter(center: Offset(x, y), width: kNRx * 2, height: kNRy * 2);
 
@@ -465,6 +471,16 @@ class StaffPainter extends CustomPainter {
 
     if (filled) {
       canvas.drawOval(rect, Paint()..color = color.withValues(alpha: alpha));
+      
+      // Add a subtle outline to help visibility of light colors like yellow on white backgrounds
+      canvas.drawOval(
+        rect,
+        Paint()
+          ..color = clefColor.withValues(alpha: alpha * 0.4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.8,
+      );
+
       if (isActive) {
         canvas.drawOval(
           rect,
@@ -482,6 +498,15 @@ class StaffPainter extends CustomPainter {
           ..color = color.withValues(alpha: alpha)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.0,
+      );
+      
+      // Also add a subtle darker outline for unfilled notes
+      canvas.drawOval(
+        rect,
+        Paint()
+          ..color = clefColor.withValues(alpha: alpha * 0.2)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.5,
       );
     }
     canvas.restore();
@@ -502,6 +527,12 @@ class StaffPainter extends CustomPainter {
   }) {
     if (type == 'whole' || type == 'breve') return;
     final stemUp = forcedStemUp ?? (pos < 5);
+    
+    // Draw outline for the stem
+    final pOutline = Paint()
+      ..color = clefColor.withValues(alpha: alpha * 0.35)
+      ..strokeWidth = 2.4;
+      
     final p = Paint()
       ..color = color.withValues(alpha: alpha)
       ..strokeWidth = 1.4;
@@ -509,12 +540,14 @@ class StaffPainter extends CustomPainter {
 
     if (stemUp) {
       final sx = x + kNRx;
+      canvas.drawLine(Offset(sx, y), Offset(sx, sy), pOutline);
       canvas.drawLine(Offset(sx, y), Offset(sx, sy), p);
       if (type != 'half' && !noFlags) {
         _drawFlags(canvas, Offset(sx, sy), true, type, alpha, color, clefColor);
       }
     } else {
       final sx = x - kNRx;
+      canvas.drawLine(Offset(sx, y), Offset(sx, sy), pOutline);
       canvas.drawLine(Offset(sx, y), Offset(sx, sy), p);
       if (type != 'half' && !noFlags) {
         _drawFlags(canvas, Offset(sx, sy), false, type, alpha, color, clefColor);
@@ -530,18 +563,29 @@ class StaffPainter extends CustomPainter {
       _ => 0,
     };
     if (count == 0) return;
+
+    // Draw outline for flags
+    final pOutline = Paint()
+      ..color = clefColor.withValues(alpha: alpha * 0.35)
+      ..strokeWidth = 2.8
+      ..style = PaintingStyle.stroke;
+
     final p = Paint()
       ..color = color.withValues(alpha: alpha)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
+    final path = Path();
     for (int i = 0; i < count; i++) {
       final shift = stemUp ? i * kLS * 0.75 : -i * kLS * 0.75;
       final s = Offset(tip.dx, tip.dy + shift);
       final cp = Offset(s.dx + kLS * 1.0, s.dy + (stemUp ? kLS * 0.6 : -kLS * 0.6));
       final e = Offset(s.dx + kLS * 0.55, s.dy + (stemUp ? kLS * 1.5 : -kLS * 1.5));
-      canvas.drawPath(Path()..moveTo(s.dx, s.dy)..quadraticBezierTo(cp.dx, cp.dy, e.dx, e.dy), p);
+      path.moveTo(s.dx, s.dy);
+      path.quadraticBezierTo(cp.dx, cp.dy, e.dx, e.dy);
     }
+    canvas.drawPath(path, pOutline);
+    canvas.drawPath(path, p);
   }
 
   void _drawLedgerLines(Canvas canvas, double x, int pos, double alpha, Color clefColor) {
@@ -563,8 +607,11 @@ class StaffPainter extends CustomPainter {
     }
   }
 
-  void _drawDot(Canvas canvas, double x, double y, double alpha, Color color) {
-    canvas.drawCircle(Offset(x + kNRx + 4, y - kLS * 0.25), 2.0, Paint()..color = color.withValues(alpha: alpha));
+  void _drawDot(Canvas canvas, double x, double y, double alpha, Color color, Color clefColor) {
+    final center = Offset(x + kNRx + 4, y - kLS * 0.25);
+    // Draw outline for the dot
+    canvas.drawCircle(center, 2.6, Paint()..color = clefColor.withValues(alpha: alpha * 0.3));
+    canvas.drawCircle(center, 2.0, Paint()..color = color.withValues(alpha: alpha));
   }
 
   void _drawRest(Canvas canvas, double x, String type, Color clefColor, {bool isActive = false, bool isPast = false, MusicNote? note}) {
@@ -577,17 +624,17 @@ class StaffPainter extends CustomPainter {
       case 'breve':
         final ly = posToY(5) - kLS * 0.5;
         canvas.drawRect(Rect.fromLTWH(x - kLS * 0.4, ly, kLS * 0.8, kLS * 1.0), Paint()..color = color);
-        if (hasDot) _drawDot(canvas, x + kLS * 0.5, ly + kLS * 0.5, alpha, color);
+        if (hasDot) _drawDot(canvas, x + kLS * 0.5, ly + kLS * 0.5, alpha, color, clefColor);
         return;
       case 'whole':
         final ly = posToY(6);
         canvas.drawRect(Rect.fromLTWH(x - kLS * 0.75, ly, kLS * 1.5, kLS * 0.55), Paint()..color = color);
-        if (hasDot) _drawDot(canvas, x + kLS * 0.75, ly + kLS * 0.25, alpha, color);
+        if (hasDot) _drawDot(canvas, x + kLS * 0.75, ly + kLS * 0.25, alpha, color, clefColor);
         return;
       case 'half':
         final ly = posToY(4) - kLS * 0.55;
         canvas.drawRect(Rect.fromLTWH(x - kLS * 0.75, ly, kLS * 1.5, kLS * 0.55), Paint()..color = color);
-        if (hasDot) _drawDot(canvas, x + kLS * 0.75, ly + kLS * 0.25, alpha, color);
+        if (hasDot) _drawDot(canvas, x + kLS * 0.75, ly + kLS * 0.25, alpha, color, clefColor);
         return;
       default:
         break;
@@ -605,7 +652,7 @@ class StaffPainter extends CustomPainter {
     _drawText(canvas, sym, Offset(x - kLS * 0.7, y), fontSize: kLS * 2.1, color: color);
 
     if (hasDot) {
-      _drawDot(canvas, x + kLS * 0.4, y + kLS * 0.8, alpha, color);
+      _drawDot(canvas, x + kLS * 0.4, y + kLS * 0.8, alpha, color, clefColor);
     }
   }
 
@@ -619,16 +666,43 @@ class StaffPainter extends CustomPainter {
     if (labelsBelow) {
       final stemUp = pos < 5;
       final labelY = stemUp ? y + kLS * 2.5 : y + kStem + kLS * 1.2;
+      
+      // Ensure the label color has enough contrast with the background
+      final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+      Color labelColor = coloredLabels ? color.withValues(alpha: alpha) : clefColor.withValues(alpha: alpha);
+      
+      if (coloredLabels) {
+        final luminance = color.computeLuminance();
+        if (!isDarkTheme && luminance > 0.7) {
+          // Too light for white background, use a darkened version
+          labelColor = Color.alphaBlend(Colors.black54, color).withValues(alpha: alpha);
+        } else if (isDarkTheme && luminance < 0.15) {
+          // Too dark for black background, use a lightened version
+          labelColor = Color.alphaBlend(Colors.white54, color).withValues(alpha: alpha);
+        }
+      }
+
       _drawTextWithOutline(
         canvas, label, Offset(x, labelY), fontSize: kLS * 0.85,
-        color: coloredLabels ? color.withValues(alpha: alpha) : clefColor.withValues(alpha: alpha),
+        color: labelColor,
         outlineColor: Theme.of(context).canvasColor.withValues(alpha: alpha * 0.8),
         outlineWidth: 1.8, fontWeight: FontWeight.bold,
       );
     } else {
       final textColor = filled ? NoteColors.textColorFor(color).withValues(alpha: alpha) : color.withValues(alpha: alpha);
+      
+      // For hollow notes (half/whole), if the note color is too light/dark for the theme, 
+      // adjust the text color for better readability against the hollow center.
+      Color finalTextColor = textColor;
+      if (!filled) {
+        final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+        final luminance = color.computeLuminance();
+        if (!isDarkTheme && luminance > 0.7) finalTextColor = Colors.black87.withValues(alpha: alpha);
+        if (isDarkTheme && luminance < 0.2) finalTextColor = Colors.white70.withValues(alpha: alpha);
+      }
+      
       final fontSize = label.length > 2 ? kNRy * 0.95 : kNRy * 1.15;
-      _drawTextCentered(canvas, label, Offset(x, y), fontSize: fontSize, color: textColor, fontWeight: FontWeight.bold);
+      _drawTextCentered(canvas, label, Offset(x, y), fontSize: fontSize, color: finalTextColor, fontWeight: FontWeight.bold);
     }
   }
 

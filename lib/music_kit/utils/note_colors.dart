@@ -11,7 +11,7 @@ class NoteColors {
     'D': Color(0xFFF57C00), // Orange
     'D#': Color(0xFFE65100), // Dark Orange
     'Eb': Color(0xFFE65100), // Dark Orange
-    'E': Color(0xFFFDD835), // Yellow
+    'E': Color(0xFFFBC02D), // Deep Yellow (Yellow 700)
     'F': Color(0xFF43A047), // Green
     'F#': Color(0xFF2E7D32), // Dark Green
     'Gb': Color(0xFF2E7D32), // Dark Green
@@ -54,7 +54,7 @@ class NoteColors {
         MapEntry('C#', Color(0xFFD81B60)),
         MapEntry('D', Color(0xFFF57C00)),
         MapEntry('D#', Color(0xFFE65100)),
-        MapEntry('E', Color(0xFFFDD835)),
+        MapEntry('E', Color(0xFFFBC02D)),
         MapEntry('F', Color(0xFF43A047)),
         MapEntry('F#', Color(0xFF2E7D32)),
         MapEntry('G', Color(0xFF00ACC1)),
