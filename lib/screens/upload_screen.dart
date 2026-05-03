@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import '../providers/song_provider.dart';
+import '../main.dart' show showToast;
 import 'music_editor_screen.dart';
 
 /// Upload screen: lets the user pick a local MusicXML file or enter a URL.
@@ -104,12 +105,7 @@ class _UploadScreenState extends State<UploadScreen>
   }
 
   void _showSuccess(String title) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('✅ "$title" added to library'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    showToast('✅ "$title" added to library');
     Navigator.pop(context);
   }
 
@@ -373,11 +369,7 @@ class _LibraryTabState extends State<_LibraryTab>
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+      showToast('Error: $e', isError: true);
     } finally {
       if (mounted) setState(() => _adding.remove(entry.uniqueId));
     }

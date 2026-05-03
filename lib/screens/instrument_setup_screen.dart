@@ -6,7 +6,8 @@ import '../providers/instrument_provider.dart';
 import '../services/tone_player.dart';
 import '../services/pitch_detection_service.dart';
 import '../widgets/note_color_picker.dart';
-import 'instruments_screen.dart';
+import '../widgets/name_icon_emoji_dialog.dart';
+import 'instruments_screen.dart'; // For InstrumentIcon
 
 enum SetupMode { visuals, visibility, tuning }
 
@@ -90,7 +91,13 @@ class _InstrumentSetupScreenState extends State<InstrumentSetupScreen> {
   Future<void> _editInfo() async {
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (_) => NameIconEmojiDialog(initialName: _name, initialIcon: _icon, initialEmoji: _emoji),
+      builder: (_) => NameIconEmojiDialog(
+        initialName: _name,
+        initialIcon: _icon,
+        initialEmoji: _emoji,
+        title: 'Instrument info',
+        nameHint: 'e.g. My Blue Xylophone',
+      ),
     );
     if (result != null) {
       setState(() {

@@ -28,6 +28,12 @@ class InstrumentProvider extends ChangeNotifier {
   static const String _builtInTuningOverridesKey = 'color_scheme_builtin_tuning';
 
   final Uuid _uuid = const Uuid();
+  SharedPreferences? _prefs;
+
+  Future<SharedPreferences> get _preferences async {
+    _prefs ??= await SharedPreferences.getInstance();
+    return _prefs!;
+  }
 
   String _activeId = 'builtin_rainbow'; // Default to rainbow on first install
   List<InstrumentProfile> _customSchemes = [];
@@ -79,7 +85,7 @@ class InstrumentProvider extends ChangeNotifier {
       );
 
   Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _preferences;
     await _loadDefaults();
 
     _activeId = prefs.getString(_activeIdKey) ?? 'builtin_rainbow';
@@ -128,7 +134,7 @@ class InstrumentProvider extends ChangeNotifier {
         _builtInSchemes.insert(0, InstrumentProfile.black);
       }
 
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _preferences;
       final tuningRaw = prefs.getString(_builtInTuningOverridesKey);
       Map<String, dynamic> allTuning = {};
       if (tuningRaw != null) {
@@ -162,75 +168,75 @@ class InstrumentProvider extends ChangeNotifier {
     if (_activeId == id) return;
     _activeId = id;
     notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _preferences;
     await prefs.setString(_activeIdKey, id);
   }
 
   Future<void> setShowNoteLabels(bool value) async {
     _showNoteLabels = value; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_showLabelsKey, value);
+    final prefs = await _preferences; await prefs.setBool(_showLabelsKey, value);
   }
 
   Future<void> setShowLetter(bool value) async {
     _showLetter = value; _showNoteLabels = _showLetter || _showSolfege; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_showLetterKey, value); await prefs.setBool(_showLabelsKey, _showNoteLabels);
+    final prefs = await _preferences; await prefs.setBool(_showLetterKey, value); await prefs.setBool(_showLabelsKey, _showNoteLabels);
   }
 
   Future<void> setShowSolfege(bool value) async {
     _showSolfege = value; _showNoteLabels = _showLetter || _showSolfege; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_showSolfegeKey, value); await prefs.setBool(_showLabelsKey, _showNoteLabels);
+    final prefs = await _preferences; await prefs.setBool(_showSolfegeKey, value); await prefs.setBool(_showLabelsKey, _showNoteLabels);
   }
 
   Future<void> setLabelsBelow(bool value) async {
     _labelsBelow = value; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_labelsBelowKey, value);
+    final prefs = await _preferences; await prefs.setBool(_labelsBelowKey, value);
   }
 
   Future<void> setColoredLabels(bool value) async {
     _coloredLabels = value; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_coloredLabelsKey, value);
+    final prefs = await _preferences; await prefs.setBool(_coloredLabelsKey, value);
   }
 
   Future<void> setMeasuresPerRow(int value) async {
     _measuresPerRow = value; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setInt(_measuresPerRowKey, value);
+    final prefs = await _preferences; await prefs.setInt(_measuresPerRowKey, value);
   }
 
   Future<void> setShowLegend(bool value) async {
     _showLegend = value; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_showLegendKey, value);
+    final prefs = await _preferences; await prefs.setBool(_showLegendKey, value);
   }
 
   Future<void> setLegendStyle(LegendStyle style) async {
     _legendStyle = style; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setInt(_legendStyleKey, style.index);
+    final prefs = await _preferences; await prefs.setInt(_legendStyleKey, style.index);
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode; notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _preferences;
     final modeStr = switch (mode) { ThemeMode.light => 'light', ThemeMode.dark => 'dark', _ => 'system' };
     await prefs.setString(_themeModeKey, modeStr);
   }
 
   Future<void> setMetronomeSound(String sound) async {
     _metronomeSound = sound; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setString(_metronomeSoundKey, sound);
+    final prefs = await _preferences; await prefs.setString(_metronomeSoundKey, sound);
   }
 
   Future<void> setDisplayMode(MusicDisplayMode mode) async {
     _displayMode = mode; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setInt(_displayModeKey, mode.index);
+    final prefs = await _preferences; await prefs.setInt(_displayModeKey, mode.index);
   }
 
   Future<void> setPdfLandscape(bool value) async {
     _pdfLandscape = value; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_pdfLandscapeKey, value);
+    final prefs = await _preferences; await prefs.setBool(_pdfLandscapeKey, value);
   }
 
   Future<void> setAdFree(bool value) async {
     _isAdFree = value; notifyListeners();
-    final prefs = await SharedPreferences.getInstance(); await prefs.setBool(_isAdFreeKey, value);
+    final prefs = await _preferences; await prefs.setBool(_isAdFreeKey, value);
   }
 
   Future<void> setTempo(double value, {bool persist = true}) async {
@@ -240,7 +246,7 @@ class InstrumentProvider extends ChangeNotifier {
   }
 
   Future<void> persistTempo() async {
-    final prefs = await SharedPreferences.getInstance(); await prefs.setDouble(_tempoKey, _tempo);
+    final prefs = await _preferences; await prefs.setDouble(_tempoKey, _tempo);
   }
   Future<InstrumentProfile> createCustom({String? name, String? icon, String? emoji}) async {
     final scheme = InstrumentProfile(
@@ -269,7 +275,7 @@ class InstrumentProvider extends ChangeNotifier {
     final builtInIdx = _builtInSchemes.indexWhere((s) => s.id == schemeId);
     if (builtInIdx >= 0) {
       _builtInSchemes[builtInIdx] = _builtInSchemes[builtInIdx].copyWith(tuningOverrides: tuning);
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await _preferences;
       final existingRaw = prefs.getString(_builtInTuningOverridesKey);
       Map<String, dynamic> allTuning = {};
       if (existingRaw != null) { try { allTuning = jsonDecode(existingRaw); } catch (_) {} }
@@ -294,7 +300,7 @@ class InstrumentProvider extends ChangeNotifier {
   }
 
   Future<void> _persistCustom() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _preferences;
     final encoded = jsonEncode(_customSchemes.map((s) => s.toJson()).toList());
     await prefs.setString(_customSchemesKey, encoded);
   }

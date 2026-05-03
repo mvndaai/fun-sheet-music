@@ -11,6 +11,7 @@ import '../services/musicxml_parser.dart';
 import '../providers/song_provider.dart';
 import '../providers/instrument_provider.dart';
 import '../providers/keyboard_provider.dart';
+import '../main.dart' show showToast;
 import 'instruments_screen.dart';
 import '../widgets/music_settings_sheet.dart';
 import '../widgets/sheet_music_widget.dart';
@@ -523,7 +524,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                 });
                 Navigator.pop(context);
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error parsing XML: $e')));
+                showToast('Error parsing XML: $e', isError: true);
               }
             },
             child: const Text('Apply'),

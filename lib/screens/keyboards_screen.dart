@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../music_kit/models/keyboard_profile.dart';
 import '../providers/keyboard_provider.dart';
+import '../widgets/name_icon_emoji_dialog.dart';
 import 'keyboard_setup_screen.dart';
-import 'instruments_screen.dart'; // For InstrumentIcon and NameIconEmojiDialog
 
 class KeyboardsScreen extends StatelessWidget {
   const KeyboardsScreen({super.key});
@@ -49,7 +49,13 @@ class KeyboardsScreen extends StatelessWidget {
     final provider = context.read<KeyboardProvider>();
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (_) => const NameIconEmojiDialog(initialName: '', initialIcon: null, initialEmoji: null),
+      builder: (_) => const NameIconEmojiDialog(
+        initialName: '',
+        initialIcon: null,
+        initialEmoji: null,
+        title: 'New keyboard',
+        nameHint: 'e.g. My Custom Keyboard',
+      ),
     );
     if (result == null) return;
     final name = result['name'] ?? '';

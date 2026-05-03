@@ -10,6 +10,7 @@ import '../music_kit/models/instrument_profile.dart';
 import '../widgets/tag_chip.dart';
 import '../widgets/kid_safe_ad_banner.dart';
 import '../config/app_links.dart';
+import '../main.dart' show showToast;
 import 'sheet_music_screen.dart';
 import 'upload_screen.dart';
 import 'share_screen.dart';
@@ -446,9 +447,7 @@ class _SongCard extends StatelessWidget {
     final songUrl = '$baseUrl$separator' 'song=${Uri.encodeComponent(song.title)}';
 
     Clipboard.setData(ClipboardData(text: songUrl));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Link to "${song.title}" copied!')),
-    );
+    showToast('Link to "${song.title}" copied!');
   }
 
   Future<void> _openSheet(BuildContext context, Song song) async {

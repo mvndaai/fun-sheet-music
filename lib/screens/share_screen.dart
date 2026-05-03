@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/app_links.dart';
 import '../config/app_config.dart';
+import '../main.dart' show showToast;
 
 /// Share / download screen.
 ///
@@ -251,11 +252,7 @@ class _PlatformCard extends StatelessWidget {
   Future<void> _launch(BuildContext context, String url) async {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open: $url')),
-        );
-      }
+      showToast('Could not open: $url', isError: true);
     }
   }
 }
@@ -330,11 +327,7 @@ class _OpenWebBanner extends StatelessWidget {
         onTap: () async {
           final uri = Uri.parse(AppLinks.webUrl);
           if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Could not open web version')),
-              );
-            }
+            showToast('Could not open web version', isError: true);
           }
         },
       ),
@@ -372,12 +365,7 @@ class _CopyLinkRow extends StatelessWidget {
           tooltip: 'Copy link',
           onPressed: () {
             Clipboard.setData(ClipboardData(text: url));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Link copied to clipboard'),
-                duration: Duration(seconds: 2),
-              ),
-            );
+            showToast('Link copied to clipboard');
           },
         ),
       ],

@@ -4,10 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
-import '../music_kit/utils/music_constants.dart';
+import '../main.dart' show showToast;
 import '../music_kit/models/legend_style.dart';
 import '../widgets/legend_circle.dart';
 import '../widgets/legend_piano.dart';
+import '../widgets/name_icon_emoji_dialog.dart';
 import 'instrument_setup_screen.dart';
 
 /// Screen for managing instrument profiles.
@@ -88,11 +89,7 @@ class InstrumentsScreen extends StatelessWidget {
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
     } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open GitHub')),
-        );
-      }
+      showToast('Could not open GitHub', isError: true);
     }
   }
 
@@ -164,6 +161,8 @@ class InstrumentsScreen extends StatelessWidget {
         initialName: initialName,
         initialIcon: initialIcon,
         initialEmoji: initialEmoji,
+        title: 'Instrument info',
+        nameHint: 'e.g. My Blue Xylophone',
       ),
     );
   }
@@ -220,9 +219,7 @@ class _LibrarySearchSheetState extends State<_LibrarySearchSheet> {
                             await context.read<InstrumentProvider>().importScheme(scheme);
                             if (context.mounted) {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Imported ${scheme.name}')),
-                              );
+                              showToast('Imported ${scheme.name}');
                             }
                           },
                           child: const Text('Import'),
@@ -270,226 +267,6 @@ class InstrumentIcon extends StatelessWidget {
     }
 
     return Icon(Icons.music_note, size: size);
-  }
-}
-
-// ── Name, Icon & Emoji dialog ───────────────────────────────────────────
-
-enum _IconType { emoji, character, url }
-
-class NameIconEmojiDialog extends StatefulWidget {
-  final String initialName;
-  final String? initialIcon;
-  final String? initialEmoji;
-  const NameIconEmojiDialog({
-    super.key,
-    required this.initialName,
-    this.initialIcon,
-    this.initialEmoji,
-  });
-
-  @override
-  State<NameIconEmojiDialog> createState() => _NameIconEmojiDialogState();
-}
-
-class _NameIconEmojiDialogState extends State<NameIconEmojiDialog> {
-  late final TextEditingController _nameController =
-      TextEditingController(text: widget.initialName);
-  late final TextEditingController _iconController =
-      TextEditingController(text: widget.initialIcon);
-  late final TextEditingController _characterController =
-      TextEditingController(text: widget.initialEmoji);
-  late final TextEditingController _emojiSearchController = TextEditingController();
-  late final ScrollController _emojiScrollController = ScrollController();
-  late String _selectedEmoji = MusicConstants.allEmojis.any((e) => e.char == widget.initialEmoji)
-      ? widget.initialEmoji!
-      : '🎹';
-  late _IconType _iconType;
-  String _emojiQuery = '';
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.initialIcon != null && widget.initialIcon!.isNotEmpty) {
-      _iconType = _IconType.url;
-    } else if (widget.initialEmoji != null && widget.initialEmoji!.isNotEmpty) {
-      if (MusicConstants.allEmojis.any((e) => e.char == widget.initialEmoji)) {
-        _iconType = _IconType.emoji;
-      } else {
-        _iconType = _IconType.character;
-      }
-    } else {
-      _iconType = _IconType.emoji;
-    }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _iconController.dispose();
-    _characterController.dispose();
-    _emojiSearchController.dispose();
-    _emojiScrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final filteredEmojis = MusicConstants.allEmojis
-        .where((e) => e.name.toLowerCase().contains(_emojiQuery.toLowerCase()))
-        .toList();
-
-    return AlertDialog(
-      title: const Text('Instrument info'),
-      content: SizedBox(
-        width: 320,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: _nameController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  hintText: 'e.g. My Blue Xylophone',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<_IconType>(
-                value: _iconType,
-                decoration: const InputDecoration(
-                  labelText: 'Icon Type',
-                  border: OutlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(value: _IconType.emoji, child: Text('Select Emoji')),
-                  DropdownMenuItem(value: _IconType.character, child: Text('Input Character')),
-                  DropdownMenuItem(value: _IconType.url, child: Text('Image URL')),
-                ],
-                onChanged: (v) => setState(() => _iconType = v!),
-              ),
-              const SizedBox(height: 16),
-              if (_iconType == _IconType.emoji) ...[
-                Row(
-                  children: [
-                    const Text('Emoji', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _emojiSearchController,
-                        decoration: const InputDecoration(
-                          hintText: 'Search...',
-                          isDense: true,
-                          prefixIcon: Icon(Icons.search, size: 16),
-                        ),
-                        onChanged: (v) => setState(() => _emojiQuery = v),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 190,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Scrollbar(
-                    controller: _emojiScrollController,
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      controller: _emojiScrollController,
-                      padding: const EdgeInsets.all(8),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: filteredEmojis.map((emojiRecord) {
-                          final emoji = emojiRecord.char;
-                          final isSelected = _selectedEmoji == emoji;
-                          return GestureDetector(
-                            onTap: () => setState(() => _selectedEmoji = emoji),
-                            child: Tooltip(
-                              message: emojiRecord.name,
-                              child: Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? Theme.of(context).colorScheme.primaryContainer
-                                      : null,
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Colors.transparent,
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Center(
-                                  child: Text(emoji,
-                                      style: const TextStyle(fontSize: 24)),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                ),
-              ] else if (_iconType == _IconType.character) ...[
-                TextField(
-                  controller: _characterController,
-                  decoration: const InputDecoration(
-                    labelText: 'Character',
-                    hintText: 'A, B, C...',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLength: 2,
-                ),
-              ] else if (_iconType == _IconType.url) ...[
-                TextField(
-                  controller: _iconController,
-                  decoration: const InputDecoration(
-                    labelText: 'Icon URL',
-                    hintText: 'https://...',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            String emoji = '';
-            String icon = '';
-            if (_iconType == _IconType.emoji) {
-              emoji = _selectedEmoji;
-            } else if (_iconType == _IconType.character) {
-              emoji = _characterController.text;
-            } else if (_iconType == _IconType.url) {
-              icon = _iconController.text;
-            }
-            Navigator.pop(context, {
-              'name': _nameController.text,
-              'icon': icon,
-              'emoji': emoji,
-            });
-          },
-          child: const Text('OK'),
-        ),
-      ],
-    );
   }
 }
 

@@ -17,6 +17,7 @@ import '../music_kit/utils/keyboard_utils.dart';
 import '../music_kit/utils/note_resolver.dart';
 import '../music_kit/utils/note_map_lookup.dart';
 import '../music_kit/sheet_music_constants.dart';
+import '../main.dart' show showToast;
 import '../music_kit/widgets/staff_painter.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../widgets/music_settings_sheet.dart';
@@ -319,19 +320,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     _stopMic();
     _stopPlayback();
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.stars, color: Colors.white),
-            SizedBox(width: 12),
-            Text('Congratulations! Song Complete!', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        backgroundColor: Colors.green.shade700,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    showToast('⭐ Congratulations! Song Complete!');
 
     showDialog(
       context: context,

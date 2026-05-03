@@ -9,7 +9,8 @@ import '../providers/keyboard_provider.dart';
 import '../music_kit/utils/keyboard_utils.dart';
 import '../services/tone_player.dart';
 import '../platform/platform.dart' as platform;
-import 'instruments_screen.dart';
+import '../widgets/name_icon_emoji_dialog.dart';
+import '../main.dart' show showToast;
 
 enum KeyboardSetupMode { keys, sounds }
 
@@ -78,7 +79,13 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   Future<void> _editInfo() async {
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (_) => NameIconEmojiDialog(initialName: _name, initialIcon: _icon, initialEmoji: _emoji),
+      builder: (_) => NameIconEmojiDialog(
+        initialName: _name,
+        initialIcon: _icon,
+        initialEmoji: _emoji,
+        title: 'Keyboard info',
+        nameHint: 'e.g. My Custom Keyboard',
+      ),
     );
     if (result != null) {
       setState(() {
@@ -124,7 +131,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
           _isActionActive = true;
         });
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        showToast('Failed: $e', isError: true);
       }
     }
   }
