@@ -353,7 +353,7 @@ class SongProvider extends ChangeNotifier {
       if (index >= 0) {
         _songs[index] = song;
       } else {
-        _songs.add(song);
+        _songs.insert(0, song); // Add new songs to the top
       }
       _invalidateCache();
       notifyListeners();
