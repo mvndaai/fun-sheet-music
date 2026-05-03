@@ -78,7 +78,7 @@ class InstrumentProfile {
       baseColor = NoteMapLookup.lookup<Color>(
         noteName: noteName,
         primaryMap: octaveOverrides,
-        isEmpty: (color) => color.alpha == 0,
+        isEmpty: (color) => color.a == 0,
       );
     }
 

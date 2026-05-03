@@ -32,7 +32,7 @@ class MusicXmlParser {
       icon: icon,
       composer: composer,
       measures: measures,
-      tags: [...tags, ...xmlTags].toSet().toList().cast<String>(),
+      tags: <String>{...tags, ...xmlTags}.toList(),
       library: library,
       localPath: localPath,
       sourceUrl: sourceUrl,
@@ -65,7 +65,7 @@ class MusicXmlParser {
       icon: icon,
       composer: composer,
       measures: const [], // No measures for metadata-only
-      tags: [...tags, ...xmlTags].toSet().toList().cast<String>(),
+      tags: <String>{...tags, ...xmlTags}.toList(),
       library: library,
       localPath: localPath,
       sourceUrl: sourceUrl,

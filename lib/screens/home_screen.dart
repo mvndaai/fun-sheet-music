@@ -69,6 +69,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
     
+    // Check if widget is still mounted after async gap
+    if (!mounted) return;
+    
     // Get the song parameter from the query string
     final songId = uri.queryParameters['song'];
     if (songId == null || songId.isEmpty) return;
