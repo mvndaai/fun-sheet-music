@@ -54,18 +54,28 @@ class KeyboardProfile {
     // Normalize to sharps for consistent lookup (Db -> C#)
     final normalized = _normalizeToSharps(noteName);
     
+    // 1. Check for exact match (e.g., "C#5")
     final exactPath = noteSounds[normalized];
     if (exactPath != null && exactPath.isNotEmpty) return exactPath;
 
     final step = normalized.replaceAll(RegExp(r'\d'), '');
+    
+    // 2. Check for step-only "default" recording (e.g., "C#" without octave)
+    final stepOnlyPath = noteSounds[step];
+    if (stepOnlyPath != null && stepOnlyPath.isNotEmpty) return stepOnlyPath;
+    
+    // 3. Check for octave 4 fallback (e.g., "C#4")
     final fallbackNote = '${step}4';
     final fallbackPath = noteSounds[fallbackNote];
     if (fallbackPath != null && fallbackPath.isNotEmpty) return fallbackPath;
 
-    // Check standard profile defaults if this isn't the standard profile
+    // 4. Check standard profile defaults if this isn't the standard profile
     if (id != KeyboardProfile.standard.id) {
       final standardExact = KeyboardProfile.standard.noteSounds[normalized];
       if (standardExact != null && standardExact.isNotEmpty) return standardExact;
+      
+      final standardStepOnly = KeyboardProfile.standard.noteSounds[step];
+      if (standardStepOnly != null && standardStepOnly.isNotEmpty) return standardStepOnly;
       
       final standardFallback = KeyboardProfile.standard.noteSounds[fallbackNote];
       if (standardFallback != null && standardFallback.isNotEmpty) return standardFallback;
