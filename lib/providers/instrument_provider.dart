@@ -243,13 +243,12 @@ class InstrumentProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance(); await prefs.setDouble(_tempoKey, _tempo);
   }
   Future<InstrumentProfile> createCustom({String? name, String? icon, String? emoji}) async {
-    final base = activeScheme;
     final scheme = InstrumentProfile(
       id: _uuid.v7(),
       name: name ?? 'Custom Instrument ${_customSchemes.length + 1}',
       icon: icon, emoji: emoji,
-      colors: Map.from(base.colors),
-      octaveOverrides: Map.from(base.octaveOverrides),
+      colors: {}, // Start empty - user can clone if they want to copy
+      octaveOverrides: {}, // Start empty - user can clone if they want to copy
     );
     _customSchemes.add(scheme);
     await _persistCustom();

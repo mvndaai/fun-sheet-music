@@ -50,14 +50,13 @@ class KeyboardProvider extends ChangeNotifier {
   }
 
   Future<KeyboardProfile> createCustom({String? name, String? icon, String? emoji}) async {
-    final base = activeProfile;
     final profile = KeyboardProfile(
       id: _uuid.v7(),
       name: name ?? 'Custom Keyboard ${_customProfiles.length + 1}',
       icon: icon,
       emoji: emoji,
-      keyboardOverrides: Map.from(base.keyboardOverrides),
-      noteSounds: Map.from(base.noteSounds),
+      keyboardOverrides: {}, // Start empty - user can clone if they want to copy
+      noteSounds: {}, // Start empty - user can clone if they want to copy
     );
     _customProfiles.add(profile);
     await _persistCustom();

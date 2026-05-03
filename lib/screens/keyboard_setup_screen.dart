@@ -29,7 +29,7 @@ class KeyboardSetupScreen extends StatefulWidget {
 
 class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   late KeyboardSetupMode _mode;
-  int? _selectedOctave = 4;
+  int? _selectedOctave;
 
   late Map<String, String> _keyboardOverrides;
   late Map<String, String> _noteSounds;
