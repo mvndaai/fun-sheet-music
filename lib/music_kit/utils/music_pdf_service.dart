@@ -511,6 +511,7 @@ class MusicPdfService {
                     pos: pos,
                     ls: ls,
                     pdfColor: pdfColor,
+                    colorLuminance: color.computeLuminance(),
                     showSolfege: showSolfege,
                     showLetter: showLetter,
                     labelsBelow: labelsBelow,
@@ -565,6 +566,7 @@ class MusicPdfService {
                   pos: pos,
                   ls: ls,
                   pdfColor: pdfColor,
+                  colorLuminance: color.computeLuminance(),
                   showSolfege: showSolfege,
                   showLetter: showLetter,
                   labelsBelow: labelsBelow,
@@ -594,6 +596,7 @@ class MusicPdfService {
                 pos: pos,
                 ls: ls,
                 pdfColor: pdfColor,
+                colorLuminance: color.computeLuminance(),
                 showSolfege: showSolfege,
                 showLetter: showLetter,
                 labelsBelow: labelsBelow,
@@ -891,6 +894,7 @@ class MusicPdfService {
     required int pos,
     required double ls,
     required PdfColor pdfColor,
+    required double colorLuminance,
     required bool showSolfege,
     required bool showLetter,
     required bool labelsBelow,
@@ -925,7 +929,7 @@ class MusicPdfService {
         ),
       );
     } else {
-      final textColor = pdfColor.computeLuminance() > 0.35 ? PdfColors.black : PdfColors.white;
+      final textColor = colorLuminance > 0.35 ? PdfColors.black : PdfColors.white;
 
       return pw.Positioned(
         left: x - 4,
