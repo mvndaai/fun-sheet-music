@@ -239,6 +239,7 @@ class StaffPainter extends CustomPainter {
     bool hasTimeSig = false,
   }) {
     final displayNotes = m.notes.where((n) => !n.isChordContinuation).toList();
+    final List<({MusicNote note, double x, double y, int pos, Color color, double alpha, double? stemTipY})> labelsToDraw = [];
     
     double cumulativeDuration = 0.0;
     for (int ni = 0; ni < displayNotes.length; ni++) {
@@ -260,6 +261,16 @@ class StaffPainter extends CustomPainter {
       if (note.isRest) {
         _drawRest(canvas, noteX, note.type, clefColor, isActive: isActive, isPast: isPast, note: note);
       } else {
+        final pos = staffPos(note.step, note.octave);
+        final y = posToY(pos);
+        final color = instrument.colorForNote(
+          note.step,
+          note.alter,
+          octave: note.octave,
+          context: context,
+        );
+        final alpha = isPast ? 0.30 : 1.0;
+
         bool isBeamed = false;
         if (note.beam != null) {
           // 1. Find all notes in this beam group to determine a consistent direction and beam line
@@ -342,15 +353,10 @@ class StaffPainter extends CustomPainter {
               _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
                 forcedStemUp: beamStemUp, 
                 noFlags: true, 
-                stemTipY: beamY
+                stemTipY: beamY,
+                drawLabel: false,
               );
-
-              final noteColor = instrument.colorForNote(
-                note.step,
-                note.alter,
-                octave: note.octave,
-                context: context,
-              );
+              labelsToDraw.add((note: note, x: noteX, y: y, pos: pos, color: color, alpha: alpha, stemTipY: beamY));
 
               // Draw a subtle outline for the beam to improve visibility of light colors
               final beamOutlinePaint = Paint()
@@ -362,7 +368,7 @@ class StaffPainter extends CustomPainter {
               canvas.drawLine(Offset(beamStartX, beamY), Offset(beamEndX, beamY), beamOutlinePaint);
 
               final beamPaint = Paint()
-                ..color = noteColor.withValues(alpha: isPast ? 0.3 : 0.7)
+                ..color = color.withValues(alpha: isPast ? 0.3 : 0.7)
                 ..strokeWidth = 3.5;
               
               canvas.drawLine(Offset(beamStartX, beamY), Offset(beamEndX, beamY), beamPaint);
@@ -371,17 +377,24 @@ class StaffPainter extends CustomPainter {
             _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
               forcedStemUp: beamStemUp, 
               noFlags: true, 
-              stemTipY: beamY
+              stemTipY: beamY,
+              drawLabel: false,
             );
+            labelsToDraw.add((note: note, x: noteX, y: y, pos: pos, color: color, alpha: alpha, stemTipY: beamY));
             isBeamed = true;
           }
         }
 
         if (!isBeamed) {
-          _drawNote(canvas, note, noteX, isActive, isPast, clefColor);
+          _drawNote(canvas, note, noteX, isActive, isPast, clefColor, drawLabel: false);
+          labelsToDraw.add((note: note, x: noteX, y: y, pos: pos, color: color, alpha: alpha, stemTipY: null));
         }
       }
       cumulativeDuration += note.duration;
+    }
+
+    for (final l in labelsToDraw) {
+      _drawNoteLabel(canvas, l.note, l.x, l.y, l.pos, l.color, l.alpha, clefColor, stemTipY: l.stemTipY);
     }
   }
 
@@ -396,6 +409,7 @@ class StaffPainter extends CustomPainter {
     bool noFlags = false,
     double? stemTipY,
     double opacity = 1.0,
+    bool drawLabel = true,
   }) {
     final pos = staffPos(note.step, note.octave);
     final y = posToY(pos);
@@ -424,7 +438,9 @@ class StaffPainter extends CustomPainter {
       stemTipY: stemTipY,
     );
     if (note.isDotted) _drawDot(canvas, x, y, alpha, color, clefColor);
-    _drawNoteLabel(canvas, note, x, y, pos, color, alpha, clefColor);
+    if (drawLabel) {
+      _drawNoteLabel(canvas, note, x, y, pos, color, alpha, clefColor, stemTipY: stemTipY);
+    }
   }
 
   void _drawAccidental(Canvas canvas, double alter, double x, double y, double alpha, Color clefColor) {
@@ -656,7 +672,7 @@ class StaffPainter extends CustomPainter {
     }
   }
 
-  void _drawNoteLabel(Canvas canvas, MusicNote note, double x, double y, int pos, Color color, double alpha, Color clefColor) {
+  void _drawNoteLabel(Canvas canvas, MusicNote note, double x, double y, int pos, Color color, double alpha, Color clefColor, {double? stemTipY}) {
     if (!showNoteLabels) return;
     if (!showLetter && !showSolfege) return;
     final raw = note.letterName.replaceAll(RegExp(r'\d'), '');
@@ -665,7 +681,8 @@ class StaffPainter extends CustomPainter {
 
     if (labelsBelow) {
       final stemUp = pos < 5;
-      final labelY = stemUp ? y + kLS * 2.5 : y + kStem + kLS * 1.2;
+      final double effectiveStemTipY = stemTipY ?? (stemUp ? y - kStem : y + kStem);
+      final labelY = stemUp ? y + kLS * 2.5 : effectiveStemTipY + kLS * 1.2;
       
       // Ensure the label color has enough contrast with the background
       final isDarkTheme = Theme.of(context).brightness == Brightness.dark;

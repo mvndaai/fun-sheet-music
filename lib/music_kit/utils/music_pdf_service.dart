@@ -323,6 +323,7 @@ class MusicPdfService {
     required bool coloredLabels,
   }) {
     final widgets = <pw.Widget>[];
+    final labelWidgets = <pw.Widget>[];
     double x = clefWidth;
 
     final availWidth = width - x;
@@ -384,8 +385,6 @@ class MusicPdfService {
       final bool hasTimeSig = measure.beats != currentPrevMeasure.beats ||
           measure.beatType != currentPrevMeasure.beatType;
 
-      final noteHeadWidth = ls * 1.2; // Match the width in _buildNote
-
       double cumulativeDuration = 0.0;
       for (int ni = 0; ni < displayNotes.length; ni++) {
         final note = displayNotes[ni];
@@ -400,6 +399,16 @@ class MusicPdfService {
         );
 
         if (!note.isRest) {
+          final pos = staffPos(note.step, note.octave);
+          final y = topMargin + staffHeight - pos * ls / 2;
+          final color = colorScheme.colorForNote(
+            note.step,
+            note.alter,
+            octave: note.octave,
+            brightness: Brightness.light,
+          );
+          final pdfColor = PdfColor(color.r, color.g, color.b);
+
           bool isBeamed = false;
           if (note.beam != null) {
             // 1. Find all notes in this beam group to determine a consistent direction and beam line
@@ -490,20 +499,24 @@ class MusicPdfService {
                   musicFont: musicFont,
                   forcedStemUp: beamStemUp,
                   noFlags: true,
-                  showSolfege: showSolfege,
-                  showLetter: showLetter,
-                  labelsBelow: labelsBelow,
-                  coloredLabels: coloredLabels,
                   stemTipY: beamY,
+                  drawLabel: false,
                 ));
 
-                final color = colorScheme.colorForNote(
-                  note.step,
-                  note.alter,
-                  octave: note.octave,
-                  brightness: Brightness.light,
-                );
-                final pdfColor = PdfColor(color.r, color.g, color.b);
+                if (showLetter || showSolfege) {
+                  labelWidgets.add(_buildNoteLabel(
+                    note: note,
+                    x: noteX,
+                    y: y,
+                    pos: pos,
+                    ls: ls,
+                    pdfColor: pdfColor,
+                    showSolfege: showSolfege,
+                    showLetter: showLetter,
+                    labelsBelow: labelsBelow,
+                    stemTipY: beamY,
+                  ));
+                }
 
                 final beamStartX = noteX + (beamStemUp ? (ls * 0.78) : -(ls * 0.78));
                 final beamEndX = nextX + (beamStemUp ? (ls * 0.78) : -(ls * 0.78));
@@ -541,12 +554,23 @@ class MusicPdfService {
                 musicFont: musicFont,
                 forcedStemUp: beamStemUp,
                 noFlags: true,
-                showSolfege: showSolfege,
-                showLetter: showLetter,
-                labelsBelow: labelsBelow,
-                coloredLabels: coloredLabels,
                 stemTipY: beamY,
+                drawLabel: false,
               ));
+              if (showLetter || showSolfege) {
+                labelWidgets.add(_buildNoteLabel(
+                  note: note,
+                  x: noteX,
+                  y: y,
+                  pos: pos,
+                  ls: ls,
+                  pdfColor: pdfColor,
+                  showSolfege: showSolfege,
+                  showLetter: showLetter,
+                  labelsBelow: labelsBelow,
+                  stemTipY: beamY,
+                ));
+              }
               isBeamed = true;
             }
           }
@@ -560,11 +584,22 @@ class MusicPdfService {
               ls: ls,
               colorScheme: colorScheme,
               musicFont: musicFont,
-              showSolfege: showSolfege,
-              showLetter: showLetter,
-              labelsBelow: labelsBelow,
-              coloredLabels: coloredLabels,
+              drawLabel: false,
             ));
+            if (showLetter || showSolfege) {
+              labelWidgets.add(_buildNoteLabel(
+                note: note,
+                x: noteX,
+                y: y,
+                pos: pos,
+                ls: ls,
+                pdfColor: pdfColor,
+                showSolfege: showSolfege,
+                showLetter: showLetter,
+                labelsBelow: labelsBelow,
+                stemTipY: null,
+              ));
+            }
           }
         } else {
           widgets.addAll(_buildRest(
@@ -618,7 +653,7 @@ class MusicPdfService {
       }
     }
 
-    return widgets;
+    return [...widgets, ...labelWidgets];
   }
 
   static List<pw.Widget> _buildNote({
@@ -629,13 +664,10 @@ class MusicPdfService {
     required double ls,
     required InstrumentProfile colorScheme,
     required pw.Font musicFont,
-    required bool showSolfege,
-    required bool showLetter,
-    required bool labelsBelow,
-    required bool coloredLabels,
     bool? forcedStemUp,
     bool noFlags = false,
     double? stemTipY,
+    bool drawLabel = true,
   }) {
     final widgets = <pw.Widget>[];
 
@@ -849,60 +881,65 @@ class MusicPdfService {
       widgets.add(_buildDot(x + noteHeadWidth / 2 + 2, y - ls * 0.2, pdfColor));
     }
 
-    if (showLetter || showSolfege) {
-      String label = '';
-      if (showLetter && showSolfege) {
-        label = '${note.step}\n${note.solfegeName}';
-      } else if (showLetter) {
-        label = note.step;
-        if (note.alter == 1) label += '#';
-        if (note.alter == -1) label += 'b';
-      } else if (showSolfege) {
-        label = note.solfegeName;
-      }
+    return widgets;
+  }
 
-      if (labelsBelow) {
-        final stemUp = pos < 5;
-        final actualStemLength = stemTipY != null ? (y - stemTipY).abs() : ls * 3.4;
-        final labelY = stemUp ? y + ls * 2.5 : y + actualStemLength + ls * 1.2;
-
-        widgets.add(
-          pw.Positioned(
-            left: x - 6,
-            top: labelY - 3,
-            child: pw.Text(
-              label,
-              style: pw.TextStyle(
-                fontSize: 7,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.black,
-              ),
-            ),
-          ),
-        );
-      } else {
-        final textColor = color.computeLuminance() > 0.35
-            ? PdfColors.black
-            : PdfColors.white;
-
-        widgets.add(
-          pw.Positioned(
-            left: x - 4,
-            top: y - 4,
-            child: pw.Text(
-              label,
-              style: pw.TextStyle(
-                fontSize: 5,
-                fontWeight: pw.FontWeight.bold,
-                color: textColor,
-              ),
-            ),
-          ),
-        );
-      }
+  static pw.Widget _buildNoteLabel({
+    required MusicNote note,
+    required double x,
+    required double y,
+    required int pos,
+    required double ls,
+    required PdfColor pdfColor,
+    required bool showSolfege,
+    required bool showLetter,
+    required bool labelsBelow,
+    required double? stemTipY,
+  }) {
+    String label = '';
+    if (showLetter && showSolfege) {
+      label = '${note.step}\n${note.solfegeName}';
+    } else if (showLetter) {
+      label = note.step;
+      if (note.alter == 1) label += '#';
+      if (note.alter == -1) label += 'b';
+    } else if (showSolfege) {
+      label = note.solfegeName;
     }
 
-    return widgets;
+    if (labelsBelow) {
+      final stemUp = pos < 5;
+      final actualStemLength = stemTipY != null ? (y - stemTipY).abs() : ls * 3.4;
+      final labelY = stemUp ? y + ls * 2.5 : y + actualStemLength + ls * 1.2;
+
+      return pw.Positioned(
+        left: x - 6,
+        top: labelY - 3,
+        child: pw.Text(
+          label,
+          style: pw.TextStyle(
+            fontSize: 7,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.black,
+          ),
+        ),
+      );
+    } else {
+      final textColor = pdfColor.computeLuminance() > 0.35 ? PdfColors.black : PdfColors.white;
+
+      return pw.Positioned(
+        left: x - 4,
+        top: y - 4,
+        child: pw.Text(
+          label,
+          style: pw.TextStyle(
+            fontSize: 5,
+            fontWeight: pw.FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+      );
+    }
   }
 
   static List<pw.Widget> _buildRest({
