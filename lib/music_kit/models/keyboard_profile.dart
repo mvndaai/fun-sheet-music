@@ -49,19 +49,71 @@ class KeyboardProfile {
   }
 
   /// Gets a sample path for a note, with fallback to C4 if the specific octave doesn't exist.
+  /// Also falls back to the standard profile's defaults if not found in this profile.
   String? getSamplePath(String noteName) {
-    final exactPath = noteSounds[noteName];
+    // Normalize to sharps for consistent lookup (Db -> C#)
+    final normalized = _normalizeToSharps(noteName);
+    
+    final exactPath = noteSounds[normalized];
     if (exactPath != null && exactPath.isNotEmpty) return exactPath;
 
-    final step = noteName.replaceAll(RegExp(r'\d'), '');
+    final step = normalized.replaceAll(RegExp(r'\d'), '');
     final fallbackNote = '${step}4';
     final fallbackPath = noteSounds[fallbackNote];
     if (fallbackPath != null && fallbackPath.isNotEmpty) return fallbackPath;
 
+    // Check standard profile defaults if this isn't the standard profile
+    if (id != KeyboardProfile.standard.id) {
+      final standardExact = KeyboardProfile.standard.noteSounds[normalized];
+      if (standardExact != null && standardExact.isNotEmpty) return standardExact;
+      
+      final standardFallback = KeyboardProfile.standard.noteSounds[fallbackNote];
+      if (standardFallback != null && standardFallback.isNotEmpty) return standardFallback;
+    }
+
     return null;
   }
 
+  /// Gets a keyboard mapping for a note, with fallback to the standard profile if not found.
+  String? getKeyMapping(String noteName) {
+    // Normalize to sharps for consistent lookup
+    final normalized = _normalizeToSharps(noteName);
+    
+    final mapping = keyboardOverrides[normalized];
+    if (mapping != null && mapping.isNotEmpty) return mapping;
+
+    // Check standard profile defaults if this isn't the standard profile
+    if (id != KeyboardProfile.standard.id) {
+      final standardMapping = KeyboardProfile.standard.keyboardOverrides[normalized];
+      if (standardMapping != null && standardMapping.isNotEmpty) return standardMapping;
+    }
+
+    return null;
+  }
+
+  /// Normalizes flats to sharps (Db -> C#)
+  static String _normalizeToSharps(String note) {
+    return note
+        .replaceAll('Db', 'C#')
+        .replaceAll('Eb', 'D#')
+        .replaceAll('Gb', 'F#')
+        .replaceAll('Ab', 'G#')
+        .replaceAll('Bb', 'A#');
+  }
+
+  /// Gets all keyboard mappings with standard profile fallbacks merged in.
+  Map<String, String> getAllKeyMappings() {
+    if (id == KeyboardProfile.standard.id) {
+      return Map.from(keyboardOverrides);
+    }
+    // Start with standard mappings, then override with custom ones
+    final merged = Map<String, String>.from(KeyboardProfile.standard.keyboardOverrides);
+    merged.addAll(keyboardOverrides);
+    return merged;
+  }
+
   Map<String, dynamic> toJson() => {
+        'id': id,
         'name': name,
         if (icon != null) 'icon': icon,
         if (emoji != null) 'emoji': emoji,

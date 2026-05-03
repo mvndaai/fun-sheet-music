@@ -433,16 +433,27 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           if (mode == MusicDisplayMode.view) return KeyEventResult.ignored;
           if (event is KeyRepeatEvent) return KeyEventResult.handled;
         final mapping = KeyboardUtils.getMappingName(event);
-        final overrides = keyboardProvider.activeProfile.keyboardOverrides;
+        final overrides = keyboardProvider.activeProfile.getAllKeyMappings();
+
+        String normalizeToSharps(String note) {
+          return note
+              .replaceAll('Db', 'C#')
+              .replaceAll('Eb', 'D#')
+              .replaceAll('Gb', 'F#')
+              .replaceAll('Ab', 'G#')
+              .replaceAll('Bb', 'A#');
+        }
 
         String? findNote(String mapping) {
           final current = _currentNote;
           if (current != null) {
             final targetNoteName = NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme);
-            if (overrides[targetNoteName] == mapping) return targetNoteName;
+            // Normalize to sharps for consistent lookup (Db -> C#)
+            final normalizedTarget = normalizeToSharps(targetNoteName);
+            if (overrides[normalizedTarget] == mapping) return normalizedTarget;
             // Fallback for keyboard mappings across octaves if only one was mapped
             // (Standard Keyboard already has many mapped, but we can do a quick check)
-            final step = targetNoteName.replaceAll(RegExp(r'\d+$'), '');
+            final step = normalizedTarget.replaceAll(RegExp(r'\d+$'), '');
             for (int oct = 1; oct <= 8; oct++) {
               if (overrides['$step$oct'] == mapping) return '$step$oct';
             }
@@ -544,7 +555,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
                 isKeyboardInput: _isKeyboardInput,
                 lastPhysicalKey: _lastPhysicalKey,
                 targetNoteName: NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme),
-                keyboardOverrides: keyboardProvider.activeProfile.keyboardOverrides,
+                keyboardOverrides: keyboardProvider.activeProfile.getAllKeyMappings(),
               ),
             Expanded(
               child: mode == MusicDisplayMode.game ? _GameView(

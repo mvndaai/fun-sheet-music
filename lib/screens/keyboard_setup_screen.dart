@@ -208,11 +208,18 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
             const Divider(height: 1),
             Expanded(
               child: ListView.builder(
+                key: ValueKey('$_mode-$_selectedOctave'),
                 itemCount: kNoteKeys.length,
                 itemBuilder: (context, index) {
                   final step = kNoteKeys[index];
                   final noteKey = _getMappingKey(step);
-                  final isInherited = _selectedOctave != null && !_keyboardOverrides.containsKey(noteKey) && !_noteSounds.containsKey(noteKey);
+                  
+                  // Check if this specific note has a custom override in the current mode
+                  final hasCustomKey = _keyboardOverrides.containsKey(noteKey);
+                  final hasCustomSound = _noteSounds.containsKey(noteKey);
+                  final isInherited = _mode == KeyboardSetupMode.keys 
+                      ? !hasCustomKey 
+                      : !hasCustomSound;
                   
                   // Get current instrument color for this note
                   final instrument = context.watch<InstrumentProvider>().activeScheme;
@@ -264,16 +271,36 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (_mode == KeyboardSetupMode.sounds) ...[
-                            if (_noteSounds[noteKey] != null) IconButton(icon: const Icon(Icons.play_arrow), onPressed: () => _tonePlayer.playNote(440, samplePath: _noteSounds[noteKey])),
-                            IconButton(icon: Icon(_isActionActive && _pendingNote == step ? Icons.stop : Icons.mic), color: _isActionActive && _pendingNote == step ? Colors.red : null, onPressed: () => _toggleRecording(step)),
+                            // Play button - check both custom and default sounds
+                            if (_noteSounds[noteKey] != null || KeyboardProfile.standard.noteSounds[noteKey] != null) 
+                              IconButton(
+                                icon: const Icon(Icons.play_arrow), 
+                                onPressed: () {
+                                  final samplePath = _noteSounds[noteKey] ?? KeyboardProfile.standard.noteSounds[noteKey];
+                                  _tonePlayer.playNote(440, samplePath: samplePath);
+                                },
+                              ),
+                            IconButton(
+                              icon: Icon(_isActionActive && _pendingNote == step ? Icons.stop : Icons.mic), 
+                              color: _isActionActive && _pendingNote == step ? Colors.red : null, 
+                              onPressed: () => _toggleRecording(step),
+                            ),
                           ],
-                          if (!isInherited && !_isActionActive) IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () {
-                            setState(() {
-                              if (_mode == KeyboardSetupMode.keys) _keyboardOverrides.remove(noteKey);
-                              if (_mode == KeyboardSetupMode.sounds) _noteSounds.remove(noteKey);
-                            });
-                            _save();
-                          }),
+                          // Only show close button if this specific note has a custom value in the current mode
+                          if (!isInherited && !_isActionActive) 
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 20), 
+                              onPressed: () {
+                                setState(() {
+                                  if (_mode == KeyboardSetupMode.keys) {
+                                    _keyboardOverrides.remove(noteKey);
+                                  } else if (_mode == KeyboardSetupMode.sounds) {
+                                    _noteSounds.remove(noteKey);
+                                  }
+                                });
+                                _save();
+                              },
+                            ),
                         ],
                       ),
                     ),
@@ -299,6 +326,13 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
       final mapping = _keyboardOverrides[noteKey] ?? KeyboardProfile.standard.keyboardOverrides[noteKey];
       return '$prefix${isInherited ? 'Default: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}' : 'Specific: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}'}';
     }
-    return '$prefix${isInherited ? 'Default sound' : 'Specific Recording'}';
+    // For sounds mode
+    final hasDefaultSound = KeyboardProfile.standard.noteSounds[noteKey] != null;
+    if (isInherited && hasDefaultSound) {
+      return '${prefix}Default sound';
+    } else if (isInherited) {
+      return '${prefix}No sound';
+    }
+    return '${prefix}Specific Recording';
   }
 }

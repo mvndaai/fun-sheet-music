@@ -113,7 +113,9 @@ class FunSheetMusic extends StatelessWidget {
                 brightness: Brightness.light,
               ),
               useMaterial3: true,
-              textTheme: GoogleFonts.notoSansTextTheme(),
+              textTheme: GoogleFonts.notoSansTextTheme().apply(
+                fontFamilyFallback: ['NotoColorEmoji'],
+              ),
               appBarTheme: const AppBarTheme(
                 centerTitle: false,
                 elevation: 2,
@@ -136,7 +138,9 @@ class FunSheetMusic extends StatelessWidget {
                 brightness: Brightness.dark,
               ),
               useMaterial3: true,
-              textTheme: GoogleFonts.notoSansTextTheme(ThemeData.dark().textTheme),
+              textTheme: GoogleFonts.notoSansTextTheme(ThemeData.dark().textTheme).apply(
+                fontFamilyFallback: ['NotoColorEmoji'],
+              ),
               appBarTheme: const AppBarTheme(
                 centerTitle: false,
               ),

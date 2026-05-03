@@ -12,7 +12,7 @@ class KeyboardProvider extends ChangeNotifier {
 
   String _activeId = KeyboardProfile.standard.id;
   List<KeyboardProfile> _customProfiles = [];
-  final List<KeyboardProfile> _builtInProfiles = [KeyboardProfile.standard];
+  List<KeyboardProfile> _builtInProfiles = [KeyboardProfile.standard];
 
   String get activeId => _activeId;
   List<KeyboardProfile> get allProfiles => [..._builtInProfiles, ..._customProfiles];
@@ -26,8 +26,8 @@ class KeyboardProvider extends ChangeNotifier {
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     
-    // Load built-in defaults from assets/instruments/defaults.json (or similar)
-    // For now, just use standard and any persisted custom ones.
+    // Always reset built-in profiles to ensure they're pristine
+    _builtInProfiles = [KeyboardProfile.standard];
     
     _activeId = prefs.getString(_activeIdKey) ?? KeyboardProfile.standard.id;
 
@@ -66,18 +66,15 @@ class KeyboardProvider extends ChangeNotifier {
   }
 
   Future<void> updateProfile(KeyboardProfile updated) async {
+    // Don't allow modifying built-in profiles
+    if (updated.isBuiltIn) return;
+    
     final idx = _customProfiles.indexWhere((s) => s.id == updated.id);
     if (idx >= 0) {
       _customProfiles[idx] = updated;
       await _persistCustom();
-    } else {
-      final bIdx = _builtInProfiles.indexWhere((s) => s.id == updated.id);
-      if (bIdx >= 0) {
-        _builtInProfiles[bIdx] = updated;
-        // In a real app, you might want to persist overrides for built-ins too.
-      }
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> deleteCustom(String id) async {
