@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import '../models/measure.dart';
 import '../models/music_note.dart';
 
@@ -32,7 +33,12 @@ class StaffLayoutHelper {
     final double beatsInMeasure = measure.beats > 0 ? measure.beats.toDouble() : 1.0;
     
     final double totalNoteDurationBeats = displayNotes.fold(0.0, (sum, n) => sum + n.duration) * durationToBeats;
-    final double effectiveBeats = (totalNoteDurationBeats > beatsInMeasure) ? totalNoteDurationBeats : beatsInMeasure;
+    
+    // For pickups, we distribute notes across the available shortened space.
+    // Otherwise we'd squeeze them at the start if beatsInMeasure is large.
+    final double effectiveBeats = measure.isPickup 
+        ? math.max(totalNoteDurationBeats, 0.5) 
+        : math.max(totalNoteDurationBeats, beatsInMeasure);
     
     final double beatW = usableW / effectiveBeats;
     final double beatIndex = cumulativeDuration * durationToBeats;
@@ -59,7 +65,10 @@ class StaffLayoutHelper {
     final double beatsInMeasure = measure.beats > 0 ? measure.beats.toDouble() : 1.0;
     
     final double totalNoteDurationBeats = displayNotes.fold(0.0, (sum, n) => sum + n.duration) * durationToBeats;
-    final double effectiveBeats = (totalNoteDurationBeats > beatsInMeasure) ? totalNoteDurationBeats : beatsInMeasure;
+    
+    final double effectiveBeats = measure.isPickup 
+        ? math.max(totalNoteDurationBeats, 0.5) 
+        : math.max(totalNoteDurationBeats, beatsInMeasure);
     
     final double beatW = usableW / effectiveBeats;
     final double nextBeatIndex = (cumulativeDuration + nextNoteOffset) * durationToBeats;

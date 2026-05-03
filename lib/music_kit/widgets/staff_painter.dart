@@ -89,15 +89,32 @@ class StaffPainter extends CustomPainter {
     // Calculate total staff width first to avoid lines overextending
     double totalStaffW = startX;
     final List<double> measureWidths = [];
+    Measure? currentPrevMeasureForW = row.previousMeasure;
     for (final m in row.measures) {
       double w = measureW;
+      final bool hasTimeSig = (currentPrevMeasureForW == null || 
+          m.beats != currentPrevMeasureForW.beats || 
+          m.beatType != currentPrevMeasureForW.beatType);
+
       if (m.isPickup) {
         final durBeats = m.notes.fold(0.0, (s, n) => s + n.duration) * (m.beatType / 4.0);
-        final ratio = (durBeats / m.beats).clamp(0.25, 0.5);
+        // Increase min ratio for pickups to prevent crowding, especially with few notes.
+        final minRatio = (m.notes.length <= 2) ? 0.4 : 0.3;
+        final ratio = (durBeats / m.beats).clamp(minRatio, 0.6);
         w = measureW * ratio;
       }
+      
+      // Ensure enough space for time signature + breathing room for notes
+      if (hasTimeSig) {
+        const minWForTimeSig = StaffLayoutHelper.kTimeSigReservedW + 
+                               (StaffLayoutHelper.kMeasurePadding * 2) + 
+                               (kNRx * 5); // Clef/ts + padding + comfortable note space
+        if (w < minWForTimeSig) w = minWForTimeSig;
+      }
+
       measureWidths.add(w);
       totalStaffW += w;
+      currentPrevMeasureForW = m;
     }
 
     if (showStaffLines) {

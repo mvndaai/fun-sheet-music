@@ -245,8 +245,35 @@ class MusicPdfService {
   }) {
     final double startX = clefWidth;
     final double availWidth = width - startX;
-    final double measureWidth = availWidth / measuresPerRow;
-    final double actualWidth = startX + (measures.length * measureWidth);
+    final double standardMeasureWidth = availWidth / measuresPerRow;
+    
+    // Pre-calculate measure widths to handle pickups and crowding
+    final List<double> measureWidths = [];
+    double totalRowW = startX;
+    Measure? currentPrevMeasureForW = previousMeasure;
+    for (final m in measures) {
+      double w = standardMeasureWidth;
+      final bool hasTimeSig = (currentPrevMeasureForW == null || 
+          m.beats != currentPrevMeasureForW.beats || 
+          m.beatType != currentPrevMeasureForW.beatType);
+
+      if (m.isPickup) {
+        final durBeats = m.notes.fold(0.0, (s, n) => s + n.duration) * (m.beatType / 4.0);
+        final ratio = (durBeats / m.beats).clamp(0.4, 0.6); 
+        w = standardMeasureWidth * ratio;
+      }
+      
+      if (hasTimeSig) {
+        final pdfNRx = kNRx * (ls / kLS);
+        final minW = StaffLayoutHelper.kTimeSigReservedW + 
+                     (StaffLayoutHelper.kMeasurePadding * 2) + 
+                     (pdfNRx * 5);
+        if (w < minW) w = minW;
+      }
+      measureWidths.add(w);
+      totalRowW += w;
+      currentPrevMeasureForW = m;
+    }
 
     return pw.SizedBox(
       height: topMargin + staffHeight + topMargin,
@@ -259,7 +286,7 @@ class MusicPdfService {
               left: 0,
               top: topMargin + i * ls,
               child: pw.Container(
-                width: actualWidth,
+                width: totalRowW,
                 height: 0.5,
                 color: PdfColors.grey700,
               ),
@@ -283,6 +310,7 @@ class MusicPdfService {
           // Notes and bar lines
           ..._buildMeasuresContent(
             measures: measures,
+            measureWidths: measureWidths,
             colorScheme: colorScheme,
             width: width,
             ls: ls,
@@ -306,6 +334,7 @@ class MusicPdfService {
 
   static List<pw.Widget> _buildMeasuresContent({
     required List<Measure> measures,
+    required List<double> measureWidths,
     required InstrumentProfile colorScheme,
     required double width,
     required double ls,
@@ -326,13 +355,11 @@ class MusicPdfService {
     final labelWidgets = <pw.Widget>[];
     double x = clefWidth;
 
-    final availWidth = width - x;
-    final measureWidth = availWidth / measuresPerRow;
-
     Measure? currentPrevMeasure = previousMeasure;
 
     for (int mi = 0; mi < measures.length; mi++) {
       final measure = measures[mi];
+      final measureWidth = measureWidths[mi];
 
       if (currentPrevMeasure == null ||
           measure.beats != currentPrevMeasure.beats ||
@@ -515,6 +542,7 @@ class MusicPdfService {
                     showSolfege: showSolfege,
                     showLetter: showLetter,
                     labelsBelow: labelsBelow,
+                    coloredLabels: coloredLabels,
                     stemTipY: beamY,
                   ));
                 }
@@ -570,6 +598,7 @@ class MusicPdfService {
                   showSolfege: showSolfege,
                   showLetter: showLetter,
                   labelsBelow: labelsBelow,
+                  coloredLabels: coloredLabels,
                   stemTipY: beamY,
                 ));
               }
@@ -600,6 +629,7 @@ class MusicPdfService {
                 showSolfege: showSolfege,
                 showLetter: showLetter,
                 labelsBelow: labelsBelow,
+                coloredLabels: coloredLabels,
                 stemTipY: null,
               ));
             }
@@ -898,6 +928,7 @@ class MusicPdfService {
     required bool showSolfege,
     required bool showLetter,
     required bool labelsBelow,
+    required bool coloredLabels,
     required double? stemTipY,
   }) {
     String label = '';
@@ -924,7 +955,7 @@ class MusicPdfService {
           style: pw.TextStyle(
             fontSize: 7,
             fontWeight: pw.FontWeight.bold,
-            color: PdfColors.black,
+            color: coloredLabels ? pdfColor : PdfColors.black,
           ),
         ),
       );
