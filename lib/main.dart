@@ -69,6 +69,45 @@ void main() async {
   ));
 }
 
+// Helper function to create theme data with consistent configuration
+ThemeData _buildTheme(Brightness brightness) {
+  final baseTextTheme = brightness == Brightness.dark 
+      ? ThemeData.dark().textTheme 
+      : null;
+  
+  return ThemeData(
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: const Color(0xFF1565C0),
+      brightness: brightness,
+    ),
+    useMaterial3: true,
+    textTheme: GoogleFonts.notoSansTextTheme(baseTextTheme).apply(
+      fontFamilyFallback: [
+        'NotoColorEmoji',
+        'NotoSansSymbols',
+        'NotoSansSymbols2',
+        'NotoMusic',
+        'NotoSans',
+      ],
+    ),
+    appBarTheme: AppBarTheme(
+      centerTitle: false,
+      elevation: brightness == Brightness.light ? 2 : null,
+    ),
+    cardTheme: CardThemeData(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ),
+    chipTheme: ChipThemeData(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+    ),
+  );
+}
+
 class FunSheetMusic extends StatelessWidget {
   final AppDatabase database;
   final StorageService storageService;
@@ -107,56 +146,8 @@ class FunSheetMusic extends StatelessWidget {
             title: AppConfig.title,
             debugShowCheckedModeBanner: false,
             themeMode: provider.themeMode,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF1565C0),
-                brightness: Brightness.light,
-              ),
-              useMaterial3: true,
-              textTheme: GoogleFonts.notoSansTextTheme().apply(
-                fontFamilyFallback: [
-                  'NotoColorEmoji',
-                  'NotoSansSymbols',
-                  'NotoSansSymbols2',
-                  'NotoMusic',
-                  'NotoSans',
-                ],
-              ),
-              appBarTheme: const AppBarTheme(
-                centerTitle: false,
-                elevation: 2,
-              ),
-              cardTheme: CardThemeData(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              chipTheme: ChipThemeData(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-            darkTheme: ThemeData(
-              colorScheme: ColorSchem
-                  'NotoColorEmoji',
-                  'NotoSansSymbols',
-                  'NotoSansSymbols2',
-                  'NotoMusic',
-                  'NotoSans',
-                
-                seedColor: const Color(0xFF1565C0),
-                brightness: Brightness.dark,
-              ),
-              useMaterial3: true,
-              textTheme: GoogleFonts.notoSansTextTheme(ThemeData.dark().textTheme).apply(
-                fontFamilyFallback: ['NotoColorEmoji'],
-              ),
-              appBarTheme: const AppBarTheme(
-                centerTitle: false,
-              ),
-            ),
+            theme: _buildTheme(Brightness.light),
+            darkTheme: _buildTheme(Brightness.dark),
             home: const SelectionArea(
               child: HomeScreen(),
             ),
