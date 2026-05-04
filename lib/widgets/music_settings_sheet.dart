@@ -13,6 +13,7 @@ import '../screens/sounds_screen.dart';
 import '../screens/app_setup_screen.dart';
 import '../music_kit/models/music_display_mode.dart';
 import '../music_kit/models/legend_style.dart';
+import '../platform/platform.dart';
 
 /// A shared settings bottom sheet for music display and playback settings.
 class MusicSettingsSheet extends StatefulWidget {
@@ -71,6 +72,11 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusNode.requestFocus();
     });
+    if (kIsWeb) {
+      setOnBeforeInstallPrompt(() {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   @override
@@ -200,6 +206,24 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                     );
                   },
                 ),
+
+                // 2.2 Install App (Web PWA)
+                if (kIsWeb && canInstallApp())
+                  ListTile(
+                    leading: const Icon(Icons.install_mobile),
+                    title: const Text('Install App'),
+                    subtitle: const Text('Add to your home screen for easy access'),
+                    onTap: () async {
+                      final result = await installApp();
+                      if (result == 'accepted' && context.mounted) {
+                        Navigator.pop(context);
+                      } else if (result == 'not_available' && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Installation prompt not ready yet or not supported by this browser.')),
+                        );
+                      }
+                    },
+                  ),
 
                 // 3. Print
                 if (widget.showPrint && widget.onPrint != null)

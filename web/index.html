@@ -71,6 +71,35 @@
   <script src="flutter_bootstrap.js" async></script>
 
   <script>
+    window.deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.deferredInstallPrompt = e;
+      if (window.onBeforeInstallPrompt) {
+        window.onBeforeInstallPrompt();
+      }
+    });
+
+    window.installApp = async function() {
+      if (window.deferredInstallPrompt) {
+        window.deferredInstallPrompt.prompt();
+        const { outcome } = await window.deferredInstallPrompt.userChoice;
+        if (outcome === 'accepted') {
+          window.deferredInstallPrompt = null;
+        }
+        return outcome;
+      }
+      return 'not_available';
+    };
+
+    window.isAppInstalled = function() {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    };
+
+    window.canInstallApp = function() {
+      return !window.isAppInstalled() && !!window.deferredInstallPrompt;
+    };
+
     (function() {
       var loadingIndicator = document.getElementById('loading-indicator');
       var isHidden = false;
