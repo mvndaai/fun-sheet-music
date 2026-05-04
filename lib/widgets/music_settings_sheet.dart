@@ -120,10 +120,22 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                     ),
                   ),
                 ),
-                Text(
-                  'Settings',
-                  style: Theme.of(context).textTheme.titleLarge,
-                  textAlign: TextAlign.center,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Text(
+                      'Settings',
+                      style: Theme.of(context).textTheme.titleLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    Positioned(
+                      right: 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  ],
                 ),
                 const Divider(height: 24),
 
@@ -367,6 +379,14 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                     ),
                   ],
                 ],
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Done'),
+                  ),
+                ),
               ],
             ),
           ),
