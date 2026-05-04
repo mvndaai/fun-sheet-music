@@ -662,18 +662,10 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
               ),
             ),
             actions: [
-              IconButton(
-                icon: Consumer<InstrumentProvider>(
-                  builder: (context, cp, _) {
-                    final s = cp.activeScheme;
-                    return InstrumentIcon(scheme: s, size: 24);
-                  },
-                ),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const InstrumentsScreen()),
-                ),
-              ),
+              IconButton(icon: const Icon(Icons.undo), onPressed: _historyIndex > 0 ? _undo : null),
+              IconButton(icon: const Icon(Icons.redo), onPressed: _historyIndex < _history.length - 1 ? _redo : null),
+              IconButton(icon: const Icon(Icons.code), onPressed: _showXmlEditor),
+              IconButton(icon: const Icon(Icons.save), onPressed: _save),
               IconButton(
                 icon: const Icon(Icons.settings),
                 onPressed: () => MusicSettingsSheet.show(
@@ -684,10 +676,6 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                   onPrint: _printSong,
                 ),
               ),
-              IconButton(icon: const Icon(Icons.undo), onPressed: _historyIndex > 0 ? _undo : null),
-              IconButton(icon: const Icon(Icons.redo), onPressed: _historyIndex < _history.length - 1 ? _redo : null),
-              IconButton(icon: const Icon(Icons.code), onPressed: _showXmlEditor),
-              IconButton(icon: const Icon(Icons.save), onPressed: _save),
             ],
           ),
           body: Column(
