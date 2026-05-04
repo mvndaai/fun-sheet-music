@@ -13,6 +13,7 @@ import '../main.dart'; // Import to use showToast
 class SongProvider extends ChangeNotifier {
   static const String builtinLibraryName = 'Fun Sheet Music';
   static const String _songOrderKey = 'song_order';
+  static const String _seenAssetsKey = 'seen_auto_add_assets';
   final StorageService _storage;
   final CloudService _cloud;
   final Uuid _uuid = const Uuid();
@@ -263,38 +264,73 @@ class SongProvider extends ChangeNotifier {
 
   /// Loads sample songs from the assets folder into the library if they are missing.
   Future<void> _loadSampleSongs({bool onlyDefaults = false}) async {
+    final seenAssets = _prefs?.getStringList(_seenAssetsKey)?.toSet() ?? {};
+    final newSeenAssets = Set<String>.from(seenAssets);
+    final Map<String, int> newAvailableByLibrary = {};
+    // We consider it a "clean slate" only if they have no songs and haven't seen assets before.
+    bool isFirstRun = seenAssets.isEmpty && _songs.isEmpty;
+
     for (final entry in _bundledSongsMetadata.entries) {
       final libraryName = entry.key;
       for (final metadata in entry.value) {
         try {
           final assetPath = metadata.localPath;
           if (assetPath == null) continue; // Skip remote songs
-          
-          if (onlyDefaults && !assetPath.contains('/auto-add/')) continue;
+
+          final isAutoAdd = assetPath.contains('/auto-add/');
+          if (onlyDefaults && !isAutoAdd) continue;
 
           // Check if this specific asset is already imported
           final alreadyExists = _songs.any((s) => s.localPath == assetPath && s.library == libraryName);
-          if (alreadyExists) continue;
 
-          // Double check by title if localPath wasn't set correctly in previous versions
-          if (_songs.any((s) => s.title == metadata.title && s.library == libraryName)) {
-            final existing = _songs.firstWhere((s) => s.title == metadata.title && s.library == libraryName);
-            await _storage.updateMetadata(existing.id, localPath: assetPath);
+          if (alreadyExists) {
+            newSeenAssets.add(assetPath);
             continue;
           }
 
-          final xmlContent = await rootBundle.loadString(assetPath);
-          // Fully add the song (this parses the whole thing in an isolate)
-          await addSongFromXml(
-            xmlContent,
-            tags: metadata.tags,
-            library: libraryName,
-            localPath: assetPath, // Store asset path to avoid re-imports
-          );
+          // If we've "seen" it before, it means the user deleted it or we notified them about it already.
+          if (seenAssets.contains(assetPath)) {
+            continue;
+          }
+
+          // Double check by title to avoid duplicates
+          if (_songs.any((s) => s.title == metadata.title && s.library == libraryName)) {
+            final existing = _songs.firstWhere((s) => s.title == metadata.title && s.library == libraryName);
+            await _storage.updateMetadata(existing.id, localPath: assetPath);
+            newSeenAssets.add(assetPath);
+            continue;
+          }
+
+          // DECISION POINT: Auto-add vs Notify
+          // We only auto-add to the home screen if it's the very first run AND the song is in auto-add.
+          if (isAutoAdd && isFirstRun) {
+            final xmlContent = await rootBundle.loadString(assetPath);
+            await addSongFromXml(
+              xmlContent,
+              tags: metadata.tags,
+              library: libraryName,
+              localPath: assetPath,
+            );
+            newSeenAssets.add(assetPath);
+          } else {
+            // It's a new song we haven't seen before. 
+            // We don't auto-add (to avoid being intrusive), but we notify.
+            newAvailableByLibrary[libraryName] = (newAvailableByLibrary[libraryName] ?? 0) + 1;
+            newSeenAssets.add(assetPath);
+          }
         } catch (e) {
           debugPrint('Failed to load sample song (${metadata.title}): $e');
         }
       }
+    }
+
+    if (newSeenAssets.length != seenAssets.length) {
+      await _prefs?.setStringList(_seenAssetsKey, newSeenAssets.toList());
+    }
+
+    if (newAvailableByLibrary.isNotEmpty) {
+      final messages = newAvailableByLibrary.entries.map((e) => '${e.value} in ${e.key}').join(', ');
+      showToast('New music available: $messages. Check the "Add Song" menu!');
     }
   }
 
