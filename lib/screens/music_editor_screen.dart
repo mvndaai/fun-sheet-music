@@ -11,6 +11,7 @@ import '../services/musicxml_parser.dart';
 import '../providers/song_provider.dart';
 import '../providers/instrument_provider.dart';
 import '../providers/keyboard_provider.dart';
+import '../music_kit/utils/keyboard_utils.dart';
 import '../main.dart' show showToast;
 import 'instruments_screen.dart';
 import '../widgets/music_settings_sheet.dart';
@@ -568,115 +569,127 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
           navigator.pop();
         }
       },
-      child: CallbackShortcuts(
-        bindings: {
-          const SingleActivator(LogicalKeyboardKey.keyP, control: true):
-              _printSong,
-          const SingleActivator(LogicalKeyboardKey.keyP, meta: true): _printSong,
-        },
-        child: Focus(
-          focusNode: _focusNode,
-          autofocus: true,
-          onKeyEvent: (node, event) {
-            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+      child: Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
-            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-          _changePitch(1);
-        } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-          _changePitch(-1);
-        } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-          _changeDuration(1);
-        } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-          _changeDuration(-1);
-        } else if (event.logicalKey == LogicalKeyboardKey.keyB) {
-          _toggleBeam();
-        } else if (event.logicalKey == LogicalKeyboardKey.space) {
-          _addCurrentNote();
-        } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
-          _deleteLastNote();
-        } else {
-          return KeyEventResult.ignored;
-        }
-        return KeyEventResult.handled;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: InkWell(
-            onTap: _showMetadataEditor,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(_song.title.isNotEmpty ? _song.title : 'Make My Own', style: const TextStyle(fontSize: 16)),
-                if (_song.composer.isNotEmpty || _song.arranger.isNotEmpty)
-                  Text(
-                    [
-                      if (_song.composer.isNotEmpty) _song.composer,
-                      if (_song.arranger.isNotEmpty) _song.arranger,
-                    ].join(' • '),
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.normal),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            IconButton(
-              icon: Consumer<InstrumentProvider>(
-                builder: (context, cp, _) {
-                  final s = cp.activeScheme;
-                  return InstrumentIcon(scheme: s, size: 24);
-                },
-              ),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const InstrumentsScreen()),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () => MusicSettingsSheet.show(
-                context,
-                tempo: _tempo,
-                onTempoChanged: (v) => setState(() => _tempo = v),
-                showPrint: true,
-                onPrint: _printSong,
+          final keyboard = context.read<KeyboardProvider>().activeProfile;
+          final mapping = KeyboardUtils.getMappingName(event);
+
+          if (mapping == keyboard.getEditorShortcut('pitchUp')) {
+            _changePitch(1);
+          } else if (mapping == keyboard.getEditorShortcut('pitchDown')) {
+            _changePitch(-1);
+          } else if (mapping == keyboard.getEditorShortcut('durationUp')) {
+            _changeDuration(1);
+          } else if (mapping == keyboard.getEditorShortcut('durationDown')) {
+            _changeDuration(-1);
+          } else if (mapping == keyboard.getEditorShortcut('toggleBeam')) {
+            _toggleBeam();
+          } else if (mapping == keyboard.getEditorShortcut('addNote')) {
+            _addCurrentNote();
+          } else if (mapping == keyboard.getEditorShortcut('deleteNote')) {
+            _deleteLastNote();
+          } else if (mapping == keyboard.getEditorShortcut('undo')) {
+            _undo();
+          } else if (mapping == keyboard.getEditorShortcut('redo')) {
+            _redo();
+          } else if (mapping == keyboard.getEditorShortcut('print')) {
+            _printSong();
+          } else if (mapping == keyboard.getEditorShortcut('save')) {
+            _save();
+          } else if (mapping == keyboard.getEditorShortcut('toggleListening')) {
+            _toggleListening();
+          } else if (mapping == keyboard.getEditorShortcut('prevMeasure')) {
+            if (_selectedMeasureIndex > 0) setState(() => _selectedMeasureIndex--);
+          } else if (mapping == keyboard.getEditorShortcut('nextMeasure')) {
+            if (_selectedMeasureIndex < _song.measures.length - 1) setState(() => _selectedMeasureIndex++);
+          } else if (mapping == keyboard.getEditorShortcut('togglePlayback')) {
+            _togglePlayback();
+          } else {
+            return KeyEventResult.ignored;
+          }
+          return KeyEventResult.handled;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: InkWell(
+              onTap: _showMetadataEditor,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_song.title.isNotEmpty ? _song.title : 'Make My Own', style: const TextStyle(fontSize: 16)),
+                  if (_song.composer.isNotEmpty || _song.arranger.isNotEmpty)
+                    Text(
+                      [
+                        if (_song.composer.isNotEmpty) _song.composer,
+                        if (_song.arranger.isNotEmpty) _song.arranger,
+                      ].join(' • '),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.normal),
+                    ),
+                ],
               ),
             ),
-            IconButton(icon: const Icon(Icons.undo), onPressed: _historyIndex > 0 ? _undo : null),
-            IconButton(icon: const Icon(Icons.redo), onPressed: _historyIndex < _history.length - 1 ? _redo : null),
-            IconButton(icon: const Icon(Icons.code), onPressed: _showXmlEditor),
-            IconButton(icon: const Icon(Icons.save), onPressed: _save),
-          ],
-        ),
-        body: Column(
-          children: [
-            Expanded(
-              child: SheetMusicWidget(
-                song: _song.copyWith(measures: _fillRests(_song.measures)),
-                measuresPerRow: 2,
-                includePickupInFirstRow: _includePickupInFirstRow,
-                activeNoteIndex: _getGlobalActiveIndex(),
-                ghostNoteIndex: _isPlaying ? null : _getGhostNoteGlobalIndex(),
-                ghostNote: _isPlaying ? null : MusicNote(
-                  step: _nextStep,
-                  octave: _nextOctave,
-                  alter: _nextAlter,
-                  duration: MusicConstants.typeToDuration[_nextType]! * (_nextIsDotted ? 1.5 : 1.0),
-                  type: _nextType,
-                  dot: _nextIsDotted ? 1 : 0,
-                  isRest: _nextIsRest,
-                  beam: (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ? _nextBeam : null,
+            actions: [
+              IconButton(
+                icon: Consumer<InstrumentProvider>(
+                  builder: (context, cp, _) {
+                    final s = cp.activeScheme;
+                    return InstrumentIcon(scheme: s, size: 24);
+                  },
+                ),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const InstrumentsScreen()),
                 ),
               ),
-            ),
-            _buildEditorControls(),
-          ],
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => MusicSettingsSheet.show(
+                  context,
+                  tempo: _tempo,
+                  onTempoChanged: (v) => setState(() => _tempo = v),
+                  showPrint: true,
+                  onPrint: _printSong,
+                ),
+              ),
+              IconButton(icon: const Icon(Icons.undo), onPressed: _historyIndex > 0 ? _undo : null),
+              IconButton(icon: const Icon(Icons.redo), onPressed: _historyIndex < _history.length - 1 ? _redo : null),
+              IconButton(icon: const Icon(Icons.code), onPressed: _showXmlEditor),
+              IconButton(icon: const Icon(Icons.save), onPressed: _save),
+            ],
+          ),
+          body: Column(
+            children: [
+              Expanded(
+                child: SheetMusicWidget(
+                  song: _song.copyWith(measures: _fillRests(_song.measures)),
+                  measuresPerRow: 2,
+                  includePickupInFirstRow: _includePickupInFirstRow,
+                  activeNoteIndex: _getGlobalActiveIndex(),
+                  ghostNoteIndex: _isPlaying ? null : _getGhostNoteGlobalIndex(),
+                  ghostNote: _isPlaying ? null : MusicNote(
+                    step: _nextStep,
+                    octave: _nextOctave,
+                    alter: _nextAlter,
+                    duration: MusicConstants.typeToDuration[_nextType]! * (_nextIsDotted ? 1.5 : 1.0),
+                    type: _nextType,
+                    dot: _nextIsDotted ? 1 : 0,
+                    isRest: _nextIsRest,
+                    beam: (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ? _nextBeam : null,
+                  ),
+                ),
+              ),
+              _buildEditorControls(),
+            ],
+          ),
         ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
   void _changePitch(int delta) {
     const steps = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];

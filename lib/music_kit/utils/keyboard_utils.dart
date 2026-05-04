@@ -24,6 +24,9 @@ class KeyboardUtils {
   /// Returns the internal mapping string, e.g., "Shift+KeyA" or "KeyA"
   static String getMappingName(KeyEvent event) {
     final keyName = getEventKeyName(event);
+    final isControl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+    if (isControl && HardwareKeyboard.instance.isShiftPressed) return 'Control+Shift+$keyName';
+    if (isControl) return 'Control+$keyName';
     if (HardwareKeyboard.instance.isShiftPressed) return 'Shift+$keyName';
     if (HardwareKeyboard.instance.isAltPressed) return 'Alt+$keyName';
     return keyName;
@@ -34,6 +37,8 @@ class KeyboardUtils {
     if (mapping == null) return '';
     return mapping
         .replaceAll('Key', '')
+        .replaceAll('Control+Shift+', '⌃⇧')
+        .replaceAll('Control+', '⌃')
         .replaceAll('Shift+', '⇧')
         .replaceAll('Alt+', '⌥');
   }

@@ -12,7 +12,7 @@ import '../platform/platform.dart' as platform;
 import '../widgets/name_icon_emoji_dialog.dart';
 import '../main.dart' show showToast;
 
-enum KeyboardSetupMode { keys, sounds }
+enum KeyboardSetupMode { keys, sounds, editor }
 
 class KeyboardSetupScreen extends StatefulWidget {
   final KeyboardProfile profile;
@@ -34,6 +34,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
 
   late Map<String, String> _keyboardOverrides;
   late Map<String, String> _noteSounds;
+  late Map<String, String> _editorShortcuts;
   late String _name;
   late String? _icon;
   late String? _emoji;
@@ -50,6 +51,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
     _mode = widget.initialMode;
     _keyboardOverrides = Map.from(widget.profile.keyboardOverrides);
     _noteSounds = Map.from(widget.profile.noteSounds);
+    _editorShortcuts = Map.from(widget.profile.editorShortcuts);
     _name = widget.profile.name;
     _icon = widget.profile.icon;
     _emoji = widget.profile.emoji;
@@ -72,6 +74,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
       emoji: _emoji,
       keyboardOverrides: _keyboardOverrides,
       noteSounds: _noteSounds,
+      editorShortcuts: _editorShortcuts,
     );
     provider.updateProfile(updated);
   }
@@ -98,16 +101,28 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   }
 
   void _onKey(KeyEvent event) {
-    if (_mode != KeyboardSetupMode.keys || _pendingNote == null || event is! KeyDownEvent) return;
+    if ((_mode != KeyboardSetupMode.keys && _mode != KeyboardSetupMode.editor) || _pendingNote == null || event is! KeyDownEvent) return;
     final mapping = KeyboardUtils.getMappingName(event);
-    final noteKey = _getMappingKey(_pendingNote!);
-    setState(() {
-      _keyboardOverrides.forEach((note, m) {
-        if (m == mapping && note != noteKey) _keyboardOverrides[note] = '';
+
+    if (_mode == KeyboardSetupMode.keys) {
+      final noteKey = _getMappingKey(_pendingNote!);
+      setState(() {
+        _keyboardOverrides.forEach((note, m) {
+          if (m == mapping && note != noteKey) _keyboardOverrides[note] = '';
+        });
+        _keyboardOverrides[noteKey] = mapping;
+        _pendingNote = null;
       });
-      _keyboardOverrides[noteKey] = mapping;
-      _pendingNote = null;
-    });
+    } else if (_mode == KeyboardSetupMode.editor) {
+      final actionKey = _pendingNote!;
+      setState(() {
+        _editorShortcuts.forEach((action, m) {
+          if (m == mapping && action != actionKey) _editorShortcuts[action] = '';
+        });
+        _editorShortcuts[actionKey] = mapping;
+        _pendingNote = null;
+      });
+    }
     _save();
   }
 
@@ -144,7 +159,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
       autofocus: true,
       onKeyEvent: (node, event) {
         _onKey(event);
-        return _mode == KeyboardSetupMode.keys && _pendingNote != null ? KeyEventResult.handled : KeyEventResult.ignored;
+        return (_mode == KeyboardSetupMode.keys || _mode == KeyboardSetupMode.editor) && _pendingNote != null ? KeyEventResult.handled : KeyEventResult.ignored;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -176,6 +191,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                       segments: const [
                         ButtonSegment(value: KeyboardSetupMode.keys, icon: Icon(Icons.keyboard), label: Text('Keys')),
                         ButtonSegment(value: KeyboardSetupMode.sounds, icon: Icon(Icons.mic), label: Text('Sounds')),
+                        ButtonSegment(value: KeyboardSetupMode.editor, icon: Icon(Icons.edit_note), label: Text('Editor')),
                       ],
                       selected: {_mode},
                       onSelectionChanged: (val) {
@@ -184,7 +200,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                       },
                     ),
                   ),
-                if (!widget.profile.isBuiltIn)
+                if (!widget.profile.isBuiltIn && _mode != KeyboardSetupMode.editor)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: SegmentedButton<int?>(
@@ -216,8 +232,33 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
             Expanded(
               child: ListView.builder(
                 key: ValueKey('$_mode-$_selectedOctave'),
-                itemCount: kNoteKeys.length,
+                itemCount: _mode == KeyboardSetupMode.editor 
+                    ? KeyboardProfile.standard.editorShortcuts.length 
+                    : kNoteKeys.length,
                 itemBuilder: (context, index) {
+                  if (_mode == KeyboardSetupMode.editor) {
+                    final action = KeyboardProfile.standard.editorShortcuts.keys.elementAt(index);
+                    final mapping = _editorShortcuts[action] ?? KeyboardProfile.standard.editorShortcuts[action];
+                    final isInherited = !_editorShortcuts.containsKey(action);
+
+                    return ListTile(
+                      onTap: widget.profile.isBuiltIn ? null : () {
+                        setState(() => _pendingNote = _pendingNote == action ? null : action);
+                      },
+                      selected: _pendingNote == action,
+                      leading: const CircleAvatar(child: Icon(Icons.shortcut)),
+                      title: Text(_formatActionName(action), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(isInherited ? 'Default: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}' : 'Specific: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}'),
+                      trailing: widget.profile.isBuiltIn || isInherited ? null : IconButton(
+                        icon: const Icon(Icons.close, size: 20), 
+                        onPressed: () {
+                          setState(() => _editorShortcuts.remove(action));
+                          _save();
+                        },
+                      ),
+                    );
+                  }
+
                   final step = kNoteKeys[index];
                   final noteKey = _getMappingKey(step);
                   
@@ -324,7 +365,14 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   String _getInstructionText() {
     final octaveLabel = _selectedOctave != null ? 'Octave $_selectedOctave' : 'Default settings';
     if (_mode == KeyboardSetupMode.keys) return _pendingNote == null ? 'Tap a note to map it for $octaveLabel.' : 'Press a key for $_pendingNote...';
-    return 'Record custom sounds for $octaveLabel.';
+    if (_mode == KeyboardSetupMode.sounds) return 'Record custom sounds for $octaveLabel.';
+    return _pendingNote == null ? 'Tap an action to remap its shortcut.' : 'Press a key for ${_formatActionName(_pendingNote!)}...';
+  }
+
+  String _formatActionName(String action) {
+    // Convert camelCase to Space Case
+    final result = action.replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(0)}');
+    return result[0].toUpperCase() + result.substring(1);
   }
 
   String _getSubtitleText(String noteKey, bool isInherited, bool isHidden) {

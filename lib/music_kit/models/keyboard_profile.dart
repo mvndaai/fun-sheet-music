@@ -16,6 +16,10 @@ class KeyboardProfile {
   /// Optional mapping from note names to recorded sound file paths.
   final Map<String, String> noteSounds;
 
+  /// Optional keyboard shortcuts for the music editor.
+  /// E.g. `{'pitchUp': 'ArrowUp'}`.
+  final Map<String, String> editorShortcuts;
+
   const KeyboardProfile({
     required this.id,
     required this.name,
@@ -25,6 +29,7 @@ class KeyboardProfile {
     this.isImported = false,
     this.keyboardOverrides = const {},
     this.noteSounds = const {},
+    this.editorShortcuts = const {},
   });
 
   KeyboardProfile copyWith({
@@ -34,6 +39,7 @@ class KeyboardProfile {
     String? emoji,
     Map<String, String>? keyboardOverrides,
     Map<String, String>? noteSounds,
+    Map<String, String>? editorShortcuts,
     bool? isBuiltIn,
     bool? isImported,
   }) {
@@ -46,6 +52,7 @@ class KeyboardProfile {
       isImported: isImported ?? this.isImported,
       keyboardOverrides: keyboardOverrides ?? Map.from(this.keyboardOverrides),
       noteSounds: noteSounds ?? Map.from(this.noteSounds),
+      editorShortcuts: editorShortcuts ?? Map.from(this.editorShortcuts),
     );
   }
 
@@ -75,6 +82,11 @@ class KeyboardProfile {
     );
   }
 
+  /// Gets an editor shortcut for an action.
+  String? getEditorShortcut(String action) {
+    return editorShortcuts[action] ?? KeyboardProfile.standard.editorShortcuts[action];
+  }
+
   /// Gets all keyboard mappings with standard profile fallbacks merged in.
   Map<String, String> getAllKeyMappings() {
     if (id == KeyboardProfile.standard.id) {
@@ -93,11 +105,13 @@ class KeyboardProfile {
         if (emoji != null) 'emoji': emoji,
         if (keyboardOverrides.isNotEmpty) 'keyboardOverrides': keyboardOverrides,
         if (noteSounds.isNotEmpty) 'noteSounds': noteSounds,
+        if (editorShortcuts.isNotEmpty) 'editorShortcuts': editorShortcuts,
       };
 
   factory KeyboardProfile.fromJson(Map<String, dynamic> json, {String? fallbackId}) {
     final rawKeyboard = json['keyboardOverrides'] as Map<String, dynamic>? ?? {};
     final rawSounds = json['noteSounds'] as Map<String, dynamic>? ?? {};
+    final rawEditor = json['editorShortcuts'] as Map<String, dynamic>? ?? {};
     return KeyboardProfile(
       id: (json['id'] as String?) ?? fallbackId ?? const Uuid().v7(),
       name: json['name'] as String,
@@ -107,6 +121,7 @@ class KeyboardProfile {
       isImported: json['isImported'] as bool? ?? false,
       keyboardOverrides: rawKeyboard.cast<String, String>(),
       noteSounds: rawSounds.cast<String, String>(),
+      editorShortcuts: rawEditor.cast<String, String>(),
     );
   }
 
@@ -123,6 +138,23 @@ class KeyboardProfile {
       'E5': 'Shift+KeyD', 'F5': 'Shift+KeyF', 'F#5': 'Shift+KeyT', 'G5': 'Shift+KeyG',
       'G#5': 'Shift+KeyY', 'A5': 'Shift+KeyH', 'A#5': 'Shift+KeyU', 'B5': 'Shift+KeyJ',
       'C6': 'Alt+KeyA', 'D6': 'Alt+KeyS', 'E6': 'Alt+KeyD',
+    },
+    editorShortcuts: {
+      'pitchUp': 'ArrowUp',
+      'pitchDown': 'ArrowDown',
+      'durationUp': 'ArrowRight',
+      'durationDown': 'ArrowLeft',
+      'toggleBeam': 'KeyB',
+      'addNote': 'Space',
+      'deleteNote': 'Backspace',
+      'undo': 'Control+KeyZ',
+      'redo': 'Control+KeyY',
+      'print': 'Control+KeyP',
+      'save': 'Control+KeyS',
+      'toggleListening': 'KeyL',
+      'prevMeasure': 'BracketLeft',
+      'nextMeasure': 'BracketRight',
+      'togglePlayback': 'Control+Space',
     },
   );
 }
