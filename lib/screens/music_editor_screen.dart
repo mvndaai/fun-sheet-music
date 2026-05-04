@@ -292,9 +292,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       _isPlaying = true;
       _playbackMeasureIndex = _selectedMeasureIndex;
       _playbackNoteIndex = 0;
-      if (_playWholeSong) {
-        _playbackMeasureIndex = 0;
-      }
+      // Always play from the beginning if we're not just playing the selected measure
+      // or just play the whole song by default now that loop is removed
+      _playbackMeasureIndex = 0;
     });
     _scheduleNextNote(songWithRests);
   }
@@ -320,7 +320,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
     final m = playbackSong.measures[_playbackMeasureIndex];
     if (_playbackNoteIndex >= m.notes.length) {
-      if (_playWholeSong && _playbackMeasureIndex < playbackSong.measures.length - 1) {
+      if (_playbackMeasureIndex < playbackSong.measures.length - 1) {
         _playbackMeasureIndex++;
         _playbackNoteIndex = 0;
         _scheduleNextNote(playbackSong);
@@ -662,8 +662,12 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
               ),
             ),
             actions: [
-              IconButton(icon: const Icon(Icons.undo), onPressed: _historyIndex > 0 ? _undo : null),
-              IconButton(icon: const Icon(Icons.redo), onPressed: _historyIndex < _history.length - 1 ? _redo : null),
+              IconButton(
+                icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
+                color: _isPlaying ? Colors.red : null,
+                onPressed: _togglePlayback,
+                tooltip: _isPlaying ? 'Stop' : 'Play',
+              ),
               IconButton(icon: const Icon(Icons.code), onPressed: _showXmlEditor),
               IconButton(icon: const Icon(Icons.save), onPressed: _save),
               IconButton(
@@ -907,75 +911,41 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(
-              _isPlaying ? Icons.stop : Icons.play_arrow,
-              color: _isPlaying ? Colors.red : Colors.green,
-              size: 28,
-            ),
-            onPressed: _togglePlayback,
-            tooltip: _isPlaying ? 'Stop' : 'Play',
+            icon: const Icon(Icons.undo, size: 20),
+            onPressed: _historyIndex > 0 ? _undo : null,
+            tooltip: 'Undo',
+            visualDensity: VisualDensity.compact,
           ),
-          const SizedBox(width: 4),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Loop', style: TextStyle(fontSize: 10, color: colorScheme.onSurface.withValues(alpha:0.6))),
-              SizedBox(
-                height: 24,
-                width: 40,
-                child: FittedBox(
-                  fit: BoxFit.contain,
-                  child: Switch(
-                    value: _playWholeSong,
-                    onChanged: (v) => setState(() => _playWholeSong = v),
-                  ),
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.redo, size: 20),
+            onPressed: _historyIndex < _history.length - 1 ? _redo : null,
+            tooltip: 'Redo',
+            visualDensity: VisualDensity.compact,
           ),
           const Spacer(),
           _buildTimeSigDisplay(m),
           const SizedBox(width: 16),
-          Container(
-            height: 32,
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left, size: 18),
-                  onPressed: _selectedMeasureIndex > 0 ? () => setState(() => _selectedMeasureIndex--) : null,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                ),
-                InkWell(
-                  onTap: () => _showTimeSigDialog(m),
-                  borderRadius: BorderRadius.circular(4),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Row(
-                      children: [
-                        Text(
-                          measureLabel,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(Icons.settings, size: 12, color: colorScheme.onSurfaceVariant),
-                      ],
-                    ),
+          InkWell(
+            onTap: () => _showTimeSigDialog(m),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    measureLabel,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right, size: 18),
-                  onPressed: _selectedMeasureIndex < _song.measures.length - 1 ? () => setState(() => _selectedMeasureIndex++) : null,
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  Icon(Icons.settings, size: 12, color: colorScheme.onSurfaceVariant),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 4),
