@@ -16,24 +16,21 @@ subprojects {
         project.evaluationDependsOn(":app")
     }
 
-    plugins.withId("com.android.application") {
-        project.extensions.configure<com.android.build.gradle.BaseExtension>("android") {
-            compileOptions {
+    afterEvaluate {
+        if (project.hasProperty("android")) {
+            val android = project.extensions.getByName("android") as com.android.build.gradle.BaseExtension
+            android.compileOptions {
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17
             }
         }
-    }
-    plugins.withId("com.android.library") {
-        project.extensions.configure<com.android.build.gradle.BaseExtension>("android") {
-            compileOptions {
-                sourceCompatibility = JavaVersion.VERSION_17
-                targetCompatibility = JavaVersion.VERSION_17
-            }
+        
+        project.tasks.withType(org.gradle.api.tasks.compile.JavaCompile::class.java).configureEach {
+            sourceCompatibility = "17"
+            targetCompatibility = "17"
         }
-    }
-    plugins.withId("org.jetbrains.kotlin.android") {
-        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+
+        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
             kotlinOptions {
                 jvmTarget = "17"
             }
