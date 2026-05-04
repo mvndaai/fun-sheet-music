@@ -140,22 +140,21 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Text('Built-in keyboard settings cannot be modified.', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: SegmentedButton<KeyboardSetupMode>(
-                      segments: const [
-                        ButtonSegment(value: KeyboardSetupMode.keys, icon: Icon(Icons.keyboard), label: Text('Keys')),
-                        ButtonSegment(value: KeyboardSetupMode.editor, icon: Icon(Icons.edit_note), label: Text('Editor')),
-                      ],
-                      selected: {_mode},
-                      onSelectionChanged: (val) {
-                        setState(() { _mode = val.first; _pendingNote = null; });
-                      },
-                    ),
                   ),
-                if (!widget.profile.isBuiltIn && _mode != KeyboardSetupMode.editor)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: SegmentedButton<KeyboardSetupMode>(
+                    segments: const [
+                      ButtonSegment(value: KeyboardSetupMode.keys, icon: Icon(Icons.keyboard), label: Text('Keys')),
+                      ButtonSegment(value: KeyboardSetupMode.editor, icon: Icon(Icons.edit_note), label: Text('Editor')),
+                    ],
+                    selected: {_mode},
+                    onSelectionChanged: (val) {
+                      setState(() { _mode = val.first; _pendingNote = null; });
+                    },
+                  ),
+                ),
+                if (_mode != KeyboardSetupMode.editor)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: SegmentedButton<int?>(

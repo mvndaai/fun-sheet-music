@@ -44,6 +44,11 @@ class SongProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   Set<String> get selectedLibraries => _selectedLibraries;
 
+  bool get isTestingEnabled {
+    final uri = Uri.base;
+    return kDebugMode || (kIsWeb && (uri.host == 'localhost' || uri.queryParameters.containsKey('testing')));
+  }
+
   List<Song> get filteredSongs {
     if (_filteredSongsCache != null) return _filteredSongsCache!;
 
@@ -365,6 +370,39 @@ class SongProvider extends ChangeNotifier {
       }
     }
     notifyListeners();
+  }
+
+  /// Clears all data and reloads the app state to simulate a new user.
+  Future<void> resetApp() async {
+    _loading = true;
+    notifyListeners();
+    try {
+      // 1. Clear database
+      await _storage.clearAll();
+      
+      // 2. Clear all preferences
+      _prefs ??= await SharedPreferences.getInstance();
+      await _prefs!.clear();
+      
+      // 3. Clear in-memory state
+      _songs = [];
+      _songOrder = [];
+      _selectedTags.clear();
+      _selectedLibraries.clear();
+      _selectedLibraries.add(builtinLibraryName);
+      _invalidateCache();
+      
+      // 4. Trigger a full reload of everything
+      await loadSongs();
+      
+      showToast('App reset successful. Simulation of new user complete.');
+    } catch (e) {
+      debugPrint('Reset failed: $e');
+      showToast('Failed to reset app: $e', isError: true);
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
 
   /// Adds a song from raw MusicXML content.

@@ -400,6 +400,46 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                 const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Consumer<SongProvider>(
+                    builder: (context, songProvider, _) {
+                      if (!songProvider.isTestingEnabled) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Reset App?'),
+                                  content: const Text('This will delete ALL songs and settings to simulate a fresh install. This cannot be undone.'),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, true), 
+                                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                      child: const Text('Reset Everything'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirmed == true && context.mounted) {
+                                Navigator.pop(context); // Close sheet
+                                await songProvider.resetApp();
+                              }
+                            },
+                            icon: const Icon(Icons.refresh, color: Colors.red),
+                            label: const Text('Reset App (Testing Only)', style: TextStyle(color: Colors.red)),
+                            style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: FilledButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Done'),

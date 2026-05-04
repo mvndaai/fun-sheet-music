@@ -61,6 +61,8 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteSong(String id) => (delete(songs)..where((t) => t.id.equals(id))).go();
 
+  Future<void> deleteAllSongs() => delete(songs).go();
+
   Future<SongDbEntity?> getSongById(String id) => (select(songs)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Future<void> updateSongTags(String id, List<String> tags) {

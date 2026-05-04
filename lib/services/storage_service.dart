@@ -34,6 +34,11 @@ class StorageService {
     await _db.deleteSong(id);
   }
 
+  /// Deletes all songs from the database.
+  Future<void> clearAll() async {
+    await _db.deleteAllSongs();
+  }
+
   /// Returns the stored MusicXML content for a song, or null if not stored.
   Future<String?> getXmlContent(String id) async {
     final row = await _db.getSongById(id);
