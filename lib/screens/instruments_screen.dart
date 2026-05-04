@@ -13,10 +13,40 @@ import 'instrument_setup_screen.dart';
 
 /// Screen for managing instrument profiles.
 class InstrumentsScreen extends StatelessWidget {
-  const InstrumentsScreen({super.key});
+  final bool isEmbedded;
+  const InstrumentsScreen({super.key, this.isEmbedded = false});
 
   @override
   Widget build(BuildContext context) {
+    final content = Consumer<InstrumentProvider>(
+      builder: (context, provider, _) {
+        final schemes = provider.allSchemes;
+        return ListView.separated(
+          padding: const EdgeInsets.all(12),
+          itemCount: schemes.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 6),
+          itemBuilder: (context, index) {
+            final scheme = schemes[index];
+            return _SchemeCard(
+              scheme: scheme,
+              isActive: provider.activeId == scheme.id,
+              onActivate: () => provider.setActive(scheme.id),
+              onClone: () => provider.cloneScheme(scheme),
+              onConfigure: () => openSetup(context, scheme, SetupMode.visuals),
+              onDelete: scheme.isBuiltIn
+                  ? null
+                  : () => _confirmDelete(context, scheme, provider),
+              onShare: (scheme.isBuiltIn || scheme.isImported)
+                  ? null
+                  : () => _shareScheme(context, scheme),
+            );
+          },
+        );
+      },
+    );
+
+    if (isEmbedded) return content;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Instruments'),
@@ -24,45 +54,20 @@ class InstrumentsScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'New Instrument',
-            onPressed: () => _createNew(context),
+            onPressed: () => createNew(context),
           ),
           IconButton(
             icon: const Icon(Icons.library_music),
             tooltip: 'Search Library',
-            onPressed: () => _openLibrary(context),
+            onPressed: () => openLibrary(context),
           ),
         ],
       ),
-      body: Consumer<InstrumentProvider>(
-        builder: (context, provider, _) {
-          final schemes = provider.allSchemes;
-          return ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: schemes.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 6),
-            itemBuilder: (context, index) {
-              final scheme = schemes[index];
-              return _SchemeCard(
-                scheme: scheme,
-                isActive: provider.activeId == scheme.id,
-                onActivate: () => provider.setActive(scheme.id),
-                onClone: () => provider.cloneScheme(scheme),
-                onConfigure: () => _openSetup(context, scheme, SetupMode.visuals),
-                onDelete: scheme.isBuiltIn
-                    ? null
-                    : () => _confirmDelete(context, scheme, provider),
-                onShare: (scheme.isBuiltIn || scheme.isImported)
-                    ? null
-                    : () => _shareScheme(context, scheme),
-              );
-            },
-          );
-        },
-      ),
+      body: content,
     );
   }
 
-  Future<void> _openLibrary(BuildContext context) async {
+  static Future<void> openLibrary(BuildContext context) async {
     final provider = context.read<InstrumentProvider>();
     final library = await provider.loadLibrary();
     if (!context.mounted) return;
@@ -93,7 +98,7 @@ class InstrumentsScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _createNew(BuildContext context) async {
+  static Future<void> createNew(BuildContext context) async {
     final provider = context.read<InstrumentProvider>();
     final result = await _promptNameIconEmoji(context, initialName: '', initialIcon: null, initialEmoji: null);
     if (result == null) return;
@@ -106,11 +111,11 @@ class InstrumentsScreen extends StatelessWidget {
       emoji: emoji.isNotEmpty ? emoji.trim() : null,
     );
     if (context.mounted) {
-      await _openSetup(context, scheme, SetupMode.visuals);
+      await openSetup(context, scheme, SetupMode.visuals);
     }
   }
 
-  Future<void> _openSetup(
+  static Future<void> openSetup(
     BuildContext context,
     InstrumentProfile scheme,
     SetupMode mode,
@@ -149,7 +154,7 @@ class InstrumentsScreen extends StatelessWidget {
     if (ok == true) await provider.deleteCustom(scheme.id);
   }
 
-  Future<Map<String, String>?> _promptNameIconEmoji(
+  static Future<Map<String, String>?> _promptNameIconEmoji(
     BuildContext context, {
     required String initialName,
     required String? initialIcon,

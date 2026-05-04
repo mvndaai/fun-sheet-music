@@ -6,10 +6,35 @@ import '../widgets/name_icon_emoji_dialog.dart';
 import 'sound_setup_screen.dart';
 
 class SoundsScreen extends StatelessWidget {
-  const SoundsScreen({super.key});
+  final bool isEmbedded;
+  const SoundsScreen({super.key, this.isEmbedded = false});
 
   @override
   Widget build(BuildContext context) {
+    final content = Consumer<SoundProvider>(
+      builder: (context, provider, _) {
+        final profiles = provider.allProfiles;
+        return ListView.separated(
+          padding: const EdgeInsets.all(12),
+          itemCount: profiles.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 6),
+          itemBuilder: (context, index) {
+            final profile = profiles[index];
+            return _SoundCard(
+              profile: profile,
+              isActive: provider.activeId == profile.id,
+              onActivate: () => provider.setActive(profile.id),
+              onClone: () => provider.cloneProfile(profile),
+              onConfigure: () => openSetup(context, profile),
+              onDelete: profile.isBuiltIn ? null : () => _confirmDelete(context, profile, provider),
+            );
+          },
+        );
+      },
+    );
+
+    if (isEmbedded) return content;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sound Sets'),
@@ -17,35 +42,15 @@ class SoundsScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: 'New Sound Set',
-            onPressed: () => _createNew(context),
+            onPressed: () => createNew(context),
           ),
         ],
       ),
-      body: Consumer<SoundProvider>(
-        builder: (context, provider, _) {
-          final profiles = provider.allProfiles;
-          return ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: profiles.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 6),
-            itemBuilder: (context, index) {
-              final profile = profiles[index];
-              return _SoundCard(
-                profile: profile,
-                isActive: provider.activeId == profile.id,
-                onActivate: () => provider.setActive(profile.id),
-                onClone: () => provider.cloneProfile(profile),
-                onConfigure: () => _openSetup(context, profile),
-                onDelete: profile.isBuiltIn ? null : () => _confirmDelete(context, profile, provider),
-              );
-            },
-          );
-        },
-      ),
+      body: content,
     );
   }
 
-  Future<void> _createNew(BuildContext context) async {
+  static Future<void> createNew(BuildContext context) async {
     final provider = context.read<SoundProvider>();
     final result = await showDialog<Map<String, String>>(
       context: context,
@@ -67,11 +72,11 @@ class SoundsScreen extends StatelessWidget {
       emoji: emoji.isNotEmpty ? emoji.trim() : null,
     );
     if (context.mounted) {
-      await _openSetup(context, profile);
+      await openSetup(context, profile);
     }
   }
 
-  Future<void> _openSetup(BuildContext context, SoundProfile profile) async {
+  static Future<void> openSetup(BuildContext context, SoundProfile profile) async {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => SoundSetupScreen(profile: profile)),

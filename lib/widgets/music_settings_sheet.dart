@@ -9,6 +9,7 @@ import '../providers/payment_provider.dart';
 import '../screens/instruments_screen.dart';
 import '../screens/keyboards_screen.dart';
 import '../screens/sounds_screen.dart';
+import '../screens/app_setup_screen.dart';
 import '../music_kit/models/music_display_mode.dart';
 import '../music_kit/models/legend_style.dart';
 
@@ -164,7 +165,7 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const InstrumentsScreen()),
+                        MaterialPageRoute(builder: (_) => const AppSetupScreen(initialIndex: 0)),
                       );
                     },
                   ),
@@ -179,7 +180,7 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const KeyboardsScreen()),
+                      MaterialPageRoute(builder: (_) => const AppSetupScreen(initialIndex: 1)),
                     );
                   },
                 ),
@@ -194,7 +195,7 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const SoundsScreen()),
+                      MaterialPageRoute(builder: (_) => const AppSetupScreen(initialIndex: 2)),
                     );
                   },
                 ),
