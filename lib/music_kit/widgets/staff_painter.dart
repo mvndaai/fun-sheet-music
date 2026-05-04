@@ -587,12 +587,13 @@ class StaffPainter extends CustomPainter {
             }
           }
 
+          final bool goUp = pos >= 5;
           if (foundNext) {
-            _drawTie(canvas, Offset(noteX, y), Offset(nextNoteX, nextNoteY), color, alpha);
+            _drawTie(canvas, Offset(noteX, y), Offset(nextNoteX, nextNoteY), color, alpha, goUp: goUp);
           } else {
             // Tie goes to next row
             // We project it further past the edge to make it look "printed on both rows"
-            _drawTie(canvas, Offset(noteX, y), Offset(totalWidth + 50, y), color, alpha, isEndPartial: true);
+            _drawTie(canvas, Offset(noteX, y), Offset(totalWidth + 50, y), color, alpha, isEndPartial: true, goUp: goUp);
           }
         }
 
@@ -614,8 +615,9 @@ class StaffPainter extends CustomPainter {
           }
 
           if (!foundPrev && !row.isFirstRow) {
+            final bool goUp = pos >= 5;
             // Coming from previous row, enter from the left margin
-            _drawTie(canvas, Offset(-50, y), Offset(noteX, y), color, alpha, isStartPartial: true);
+            _drawTie(canvas, Offset(-50, y), Offset(noteX, y), color, alpha, isStartPartial: true, goUp: goUp);
           }
         }
       }
@@ -952,7 +954,7 @@ class StaffPainter extends CustomPainter {
     }
   }
 
-  void _drawTie(Canvas canvas, Offset start, Offset end, Color color, double alpha, {bool isStartPartial = false, bool isEndPartial = false}) {
+  void _drawTie(Canvas canvas, Offset start, Offset end, Color color, double alpha, {bool isStartPartial = false, bool isEndPartial = false, bool goUp = false}) {
     final p = Paint()
       ..color = color.withValues(alpha: alpha * 0.7)
       ..style = PaintingStyle.stroke
@@ -960,8 +962,9 @@ class StaffPainter extends CustomPainter {
 
     final path = Path();
     // Offset slightly from the center of the note head
-    final startPt = Offset(start.dx + (isStartPartial ? 0 : 5), start.dy + 5);
-    final endPt = Offset(end.dx - (isEndPartial ? 0 : 5), end.dy + 5);
+    final yOffset = goUp ? -5.0 : 5.0;
+    final startPt = Offset(start.dx + (isStartPartial ? 0 : 5), start.dy + yOffset);
+    final endPt = Offset(end.dx - (isEndPartial ? 0 : 5), end.dy + yOffset);
 
     path.moveTo(startPt.dx, startPt.dy);
 
@@ -977,7 +980,9 @@ class StaffPainter extends CustomPainter {
       curveDepth = (dist * 0.22).clamp(7.0, 18.0);
     }
 
-    path.quadraticBezierTo(midX, startPt.dy + curveDepth, endPt.dx, endPt.dy);
+    final actualCurveDepth = goUp ? -curveDepth : curveDepth;
+
+    path.quadraticBezierTo(midX, startPt.dy + actualCurveDepth, endPt.dx, endPt.dy);
     canvas.drawPath(path, p);
   }
 
