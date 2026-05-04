@@ -80,15 +80,18 @@ ThemeData _buildTheme(Brightness brightness) {
       ? ThemeData.dark().textTheme 
       : null;
   
-  // Font fallback list for emoji and special characters
-  const fontFallbacks = <String>[
-    'NotoColorEmoji',
-    'NotoSansSymbols',
-    'NotoSansSymbols2',
-    'NotoMusic',
+  // Use actual GoogleFont family names to ensure the engine can resolve them
+  // this helps avoid the "Could not find a set of Noto fonts" warning.
+  final fontFallbacks = <String>[
+    GoogleFonts.notoColorEmoji().fontFamily!,
+    GoogleFonts.notoMusic().fontFamily!,
+    GoogleFonts.notoSansSymbols().fontFamily!,
+    GoogleFonts.notoSansSymbols2().fontFamily!,
   ];
-  
-  final textTheme = GoogleFonts.notoSansTextTheme(baseTextTheme);
+
+  final textTheme = GoogleFonts.notoSansTextTheme(baseTextTheme).apply(
+    fontFamilyFallback: fontFallbacks,
+  );
   
   return ThemeData(
     colorScheme: ColorScheme.fromSeed(
@@ -96,23 +99,7 @@ ThemeData _buildTheme(Brightness brightness) {
       brightness: brightness,
     ),
     useMaterial3: true,
-    textTheme: textTheme.copyWith(
-      displayLarge: textTheme.displayLarge?.copyWith(fontFamilyFallback: fontFallbacks),
-      displayMedium: textTheme.displayMedium?.copyWith(fontFamilyFallback: fontFallbacks),
-      displaySmall: textTheme.displaySmall?.copyWith(fontFamilyFallback: fontFallbacks),
-      headlineLarge: textTheme.headlineLarge?.copyWith(fontFamilyFallback: fontFallbacks),
-      headlineMedium: textTheme.headlineMedium?.copyWith(fontFamilyFallback: fontFallbacks),
-      headlineSmall: textTheme.headlineSmall?.copyWith(fontFamilyFallback: fontFallbacks),
-      titleLarge: textTheme.titleLarge?.copyWith(fontFamilyFallback: fontFallbacks),
-      titleMedium: textTheme.titleMedium?.copyWith(fontFamilyFallback: fontFallbacks),
-      titleSmall: textTheme.titleSmall?.copyWith(fontFamilyFallback: fontFallbacks),
-      bodyLarge: textTheme.bodyLarge?.copyWith(fontFamilyFallback: fontFallbacks),
-      bodyMedium: textTheme.bodyMedium?.copyWith(fontFamilyFallback: fontFallbacks),
-      bodySmall: textTheme.bodySmall?.copyWith(fontFamilyFallback: fontFallbacks),
-      labelLarge: textTheme.labelLarge?.copyWith(fontFamilyFallback: fontFallbacks),
-      labelMedium: textTheme.labelMedium?.copyWith(fontFamilyFallback: fontFallbacks),
-      labelSmall: textTheme.labelSmall?.copyWith(fontFamilyFallback: fontFallbacks),
-    ),
+    textTheme: textTheme,
     appBarTheme: AppBarTheme(
       centerTitle: false,
       elevation: brightness == Brightness.light ? 2 : null,

@@ -1008,7 +1008,19 @@ class StaffPainter extends CustomPainter {
   }
 
   void _drawText(Canvas canvas, String text, Offset topLeft, {double fontSize = 12, Color color = Colors.black, FontWeight fontWeight = FontWeight.normal}) {
-    final tp = TextPainter(text: TextSpan(text: text, style: TextStyle(fontSize: fontSize, color: color, fontWeight: fontWeight, fontFamily: 'serif')), textDirection: TextDirection.ltr)..layout();
+    // Avoid hardcoding 'serif' which can trigger font-not-found warnings.
+    // Use Noto Sans to match the rest of the app's theme.
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text, 
+        style: GoogleFonts.notoSans(
+          fontSize: fontSize, 
+          color: color, 
+          fontWeight: fontWeight,
+        ),
+      ), 
+      textDirection: TextDirection.ltr,
+    )..layout();
     if (labelRotation != 0) {
       canvas.save();
       final center = Offset(topLeft.dx + tp.width / 2, topLeft.dy + tp.height / 2);
