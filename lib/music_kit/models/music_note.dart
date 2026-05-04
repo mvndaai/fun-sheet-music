@@ -10,8 +10,10 @@ class MusicNote {
   final bool isRest;
   final bool isChordContinuation; // part of a chord (not the first note)
   final int dot; // number of dots
-  final String? beam; // 'begin', 'continue', 'end' or null
+  final String? beam; // 'begin', 'continue', 'end' or null (level 1)
+  final String? beam2; // 'begin', 'continue', 'end' or null (level 2)
   final bool isTied; // whether this note is tied to the next
+  final bool isTiedToPrevious; // whether this note is tied from the previous
   final bool isPlaceholder; // whether this note was auto-generated to fill a measure
 
   const MusicNote({
@@ -24,7 +26,9 @@ class MusicNote {
     this.isChordContinuation = false,
     this.dot = 0,
     this.beam,
+    this.beam2,
     this.isTied = false,
+    this.isTiedToPrevious = false,
     this.isPlaceholder = false,
   });
 
@@ -94,7 +98,9 @@ class MusicNote {
     bool? isChordContinuation,
     int? dot,
     String? beam,
+    String? beam2,
     bool? isTied,
+    bool? isTiedToPrevious,
     bool? isPlaceholder,
   }) {
     return MusicNote(
@@ -107,7 +113,9 @@ class MusicNote {
       isChordContinuation: isChordContinuation ?? this.isChordContinuation,
       dot: dot ?? this.dot,
       beam: beam ?? this.beam,
+      beam2: beam2 ?? this.beam2,
       isTied: isTied ?? this.isTied,
+      isTiedToPrevious: isTiedToPrevious ?? this.isTiedToPrevious,
       isPlaceholder: isPlaceholder ?? this.isPlaceholder,
     );
   }

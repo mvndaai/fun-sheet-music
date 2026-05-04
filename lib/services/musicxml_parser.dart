@@ -187,10 +187,13 @@ class MusicXmlParser {
     // Tie handling
     final tieEls = noteEl.findElements('tie');
     bool isTied = false;
+    bool isTiedToPrevious = false;
     for (final tie in tieEls) {
-      if (tie.getAttribute('type') == 'start') {
+      final type = tie.getAttribute('type');
+      if (type == 'start') {
         isTied = true;
-        break;
+      } else if (type == 'stop') {
+        isTiedToPrevious = true;
       }
     }
 
@@ -225,6 +228,7 @@ class MusicXmlParser {
       dot: dotCount,
       beam: beam,
       isTied: isTied,
+      isTiedToPrevious: isTiedToPrevious,
     );
   }
 }

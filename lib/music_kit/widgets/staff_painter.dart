@@ -161,7 +161,7 @@ class StaffPainter extends CustomPainter {
         _drawMeasureNumber(canvas, m.number, x);
       }
       
-      _drawMeasureNotes(canvas, m, x, currentMeasureW, noteOffset, clefColor, hasTimeSig: hasTimeSig);
+      _drawMeasureNotes(canvas, m, mi, measureWidths, size.width, x, currentMeasureW, noteOffset, clefColor, hasTimeSig: hasTimeSig);
       
       // Draw ghost note if it belongs to this measure
       if (ghostNoteIndex != null && ghostNote != null) {
@@ -270,6 +270,9 @@ class StaffPainter extends CustomPainter {
   void _drawMeasureNotes(
     Canvas canvas,
     Measure m,
+    int mi,
+    List<double> measureWidths,
+    double totalWidth,
     double startX,
     double measureWidth,
     int noteOffset,
@@ -412,6 +415,45 @@ class StaffPainter extends CustomPainter {
                 ..strokeWidth = 3.5;
               
               canvas.drawLine(Offset(beamStartX, beamY), Offset(beamEndX, beamY), beamPaint);
+
+              // 4. Double beam (Level 2)
+              if (note.beam2 == 'begin' || note.beam2 == 'continue') {
+                // Find next note with beam2 'continue' or 'end'
+                int nextBeam2Ni = ni + 1;
+                MusicNote? nextBeam2Note;
+                double nextBeam2NoteOffset = note.duration;
+                while (nextBeam2Ni < displayNotes.length) {
+                  final candidate = displayNotes[nextBeam2Ni];
+                  if (!candidate.isRest) {
+                    if (candidate.beam2 == 'continue' || candidate.beam2 == 'end') {
+                      nextBeam2Note = candidate;
+                    }
+                    break;
+                  }
+                  nextBeam2NoteOffset += candidate.duration;
+                  nextBeam2Ni++;
+                }
+
+                if (nextBeam2Note != null) {
+                  final nextBeam2X = StaffLayoutHelper.getBeamEndX(
+                    measure: m,
+                    startX: startX,
+                    measureWidth: measureWidth,
+                    hasTimeSig: hasTimeSig,
+                    cumulativeDuration: cumulativeDuration,
+                    nextNoteOffset: nextBeam2NoteOffset,
+                    nextNoteDuration: nextBeam2Note.duration,
+                    displayNotes: displayNotes,
+                  );
+
+                  final double beamSpacing = kLS * 0.45;
+                  final double secondBeamY = beamStemUp ? beamY + beamSpacing : beamY - beamSpacing;
+                  final double beam2EndX = nextBeam2X + (beamStemUp ? kNRx : -kNRx);
+
+                  canvas.drawLine(Offset(beamStartX, secondBeamY), Offset(beam2EndX, secondBeamY), beamOutlinePaint);
+                  canvas.drawLine(Offset(beamStartX, secondBeamY), Offset(beam2EndX, secondBeamY), beamPaint);
+                }
+              }
             }
           } else if (note.beam == 'end') {
             _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
@@ -428,6 +470,153 @@ class StaffPainter extends CustomPainter {
         if (!isBeamed) {
           _drawNote(canvas, note, noteX, isActive, isPast, clefColor, drawLabel: false);
           labelsToDraw.add((note: note, x: noteX, y: y, pos: pos, color: color, alpha: alpha, stemTipY: null));
+        }
+
+        // 5. Draw Tie if needed
+        if (note.isTied) {
+          MusicNote? nextNote;
+          double nextNoteX = 0;
+          double nextNoteY = 0;
+          bool foundNext = false;
+
+          // Look in current measure
+          int nextNi = ni + 1;
+          double nextNoteOffset = note.duration;
+          while (nextNi < displayNotes.length) {
+            final candidate = displayNotes[nextNi];
+            if (!candidate.isRest) {
+              nextNote = candidate;
+              nextNoteX = StaffLayoutHelper.getNoteX(
+                measure: m,
+                startX: startX,
+                measureWidth: measureWidth,
+                hasTimeSig: hasTimeSig,
+                cumulativeDuration: cumulativeDuration + nextNoteOffset,
+                noteDuration: nextNote.duration,
+                displayNotes: displayNotes,
+              );
+              nextNoteY = posToY(staffPos(nextNote.step, nextNote.octave));
+              foundNext = true;
+              break;
+            }
+            nextNoteOffset += candidate.duration;
+            nextNi++;
+          }
+
+          // Look in subsequent measures in this row
+          if (!foundNext) {
+            double searchX = startX + measureWidth;
+            for (int futureMi = mi + 1; futureMi < row.measures.length; futureMi++) {
+              final futureM = row.measures[futureMi];
+              final futureMW = measureWidths[futureMi];
+              final futureDisplayNotes = futureM.notes.where((n) => !n.isChordContinuation).toList();
+              
+              double futureNoteOffset = 0;
+              for (final fn in futureDisplayNotes) {
+                if (!fn.isRest) {
+                  nextNote = fn;
+                  nextNoteX = StaffLayoutHelper.getNoteX(
+                    measure: futureM,
+                    startX: searchX,
+                    measureWidth: futureMW,
+                    hasTimeSig: false,
+                    cumulativeDuration: futureNoteOffset,
+                    noteDuration: fn.duration,
+                    displayNotes: futureDisplayNotes,
+                  );
+                  nextNoteY = posToY(staffPos(fn.step, fn.octave));
+                  foundNext = true;
+                  break;
+                }
+                futureNoteOffset += fn.duration;
+              }
+              if (foundNext) break;
+              searchX += futureMW;
+            }
+          }
+
+          // Special case: Tie to ghost note in the editor
+          if (!foundNext && ghostNoteIndex != null && ghostNoteIndex! > globalIdx && ghostNote != null && !ghostNote!.isRest) {
+            double gX = 0;
+            double gY = posToY(staffPos(ghostNote!.step, ghostNote!.octave));
+            bool gFound = false;
+
+            // Search all measures in this row to find where the ghost note belongs
+            int currentNoteOffset = row.firstNoteIndex;
+            double measureX = startX;
+            Measure? searchPrevM = row.previousMeasure;
+            
+            for (int gMi = 0; gMi < row.measures.length; gMi++) {
+              final gM = row.measures[gMi];
+              final gMW = measureWidths[gMi];
+              final int notesInMeasure = gM.notes.length;
+              
+              if (ghostNoteIndex! >= currentNoteOffset && ghostNoteIndex! <= currentNoteOffset + notesInMeasure) {
+                final int localIdx = ghostNoteIndex! - currentNoteOffset;
+                final bool hasTS = (searchPrevM == null || gM.beats != searchPrevM.beats || gM.beatType != searchPrevM.beatType);
+                
+                final gDisplayNotes = gM.notes.where((n) => !n.isChordContinuation).toList();
+                double durBefore = 0;
+                for (int i = 0; i < localIdx && i < gM.notes.length; i++) {
+                  if (!gM.notes[i].isChordContinuation) {
+                    durBefore += gM.notes[i].duration;
+                  }
+                }
+                
+                gX = StaffLayoutHelper.getNoteX(
+                  measure: gM,
+                  startX: measureX,
+                  measureWidth: gMW,
+                  hasTimeSig: hasTS,
+                  cumulativeDuration: durBefore,
+                  noteDuration: ghostNote!.duration,
+                  displayNotes: gDisplayNotes,
+                );
+                gFound = true;
+                break;
+              }
+              currentNoteOffset += notesInMeasure;
+              measureX += gMW;
+              searchPrevM = gM;
+            }
+
+            if (gFound) {
+              nextNoteX = gX;
+              nextNoteY = gY;
+              foundNext = true;
+            }
+          }
+
+          if (foundNext) {
+            _drawTie(canvas, Offset(noteX, y), Offset(nextNoteX, nextNoteY), color, alpha);
+          } else {
+            // Tie goes to next row
+            // We project it further past the edge to make it look "printed on both rows"
+            _drawTie(canvas, Offset(noteX, y), Offset(totalWidth + 50, y), color, alpha, isEndPartial: true);
+          }
+        }
+
+        // 6. Tie from previous row
+        if (note.isTiedToPrevious) {
+          bool foundPrev = false;
+          // Look backwards in this row to see if the start of the tie is visible here
+          for (int pastMi = mi; pastMi >= 0; pastMi--) {
+            final pastM = row.measures[pastMi];
+            final pastNotes = pastM.notes.where((n) => !n.isChordContinuation).toList();
+            final startIdx = (pastMi == mi) ? ni - 1 : pastNotes.length - 1;
+            for (int pastNi = startIdx; pastNi >= 0; pastNi--) {
+              if (!pastNotes[pastNi].isRest) {
+                foundPrev = true;
+                break;
+              }
+            }
+            if (foundPrev) break;
+          }
+
+          if (!foundPrev && !row.isFirstRow) {
+            // Coming from previous row, enter from the left margin
+            _drawTie(canvas, Offset(-50, y), Offset(noteX, y), color, alpha, isStartPartial: true);
+          }
         }
       }
       cumulativeDuration += note.duration;
@@ -761,6 +950,35 @@ class StaffPainter extends CustomPainter {
       final fontSize = label.length > 2 ? kNRy * 0.95 : kNRy * 1.15;
       _drawTextCentered(canvas, label, Offset(x, y), fontSize: fontSize, color: finalTextColor, fontWeight: FontWeight.bold);
     }
+  }
+
+  void _drawTie(Canvas canvas, Offset start, Offset end, Color color, double alpha, {bool isStartPartial = false, bool isEndPartial = false}) {
+    final p = Paint()
+      ..color = color.withValues(alpha: alpha * 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    final path = Path();
+    // Offset slightly from the center of the note head
+    final startPt = Offset(start.dx + (isStartPartial ? 0 : 5), start.dy + 5);
+    final endPt = Offset(end.dx - (isEndPartial ? 0 : 5), end.dy + 5);
+
+    path.moveTo(startPt.dx, startPt.dy);
+
+    final midX = (startPt.dx + endPt.dx) / 2;
+    final dist = (endPt.dx - startPt.dx).abs();
+    
+    // Partial ties should look like they are continuing from/to another row
+    // so we make them flatter and project them further.
+    double curveDepth;
+    if (isStartPartial || isEndPartial) {
+      curveDepth = (dist * 0.15).clamp(4.0, 10.0);
+    } else {
+      curveDepth = (dist * 0.22).clamp(7.0, 18.0);
+    }
+
+    path.quadraticBezierTo(midX, startPt.dy + curveDepth, endPt.dx, endPt.dy);
+    canvas.drawPath(path, p);
   }
 
   void _drawDoubleBarLine(Canvas canvas, double x, Color color) {

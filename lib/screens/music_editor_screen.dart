@@ -42,7 +42,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   String _nextType = 'quarter';
   bool _nextIsRest = false;
   bool _nextIsDotted = false;
+  bool _nextIsTied = false;
   String? _nextBeam;
+  String? _nextBeam2;
 
   final PitchDetectionService _audio = PitchDetectionService();
   final TonePlayer _tonePlayer = TonePlayer();
@@ -80,6 +82,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     }
     _saveToHistory();
     _lastSavedHistoryIndex = _historyIndex;
+    _validateNextNoteDuration();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusNode.requestFocus();
     });
@@ -104,6 +107,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         _historyIndex--;
         _song = _history[_historyIndex];
         _selectedMeasureIndex = _selectedMeasureIndex.clamp(0, _song.measures.length - 1);
+        _validateNextNoteDuration();
       });
     }
   }
@@ -114,6 +118,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         _historyIndex++;
         _song = _history[_historyIndex];
         _selectedMeasureIndex = _selectedMeasureIndex.clamp(0, _song.measures.length - 1);
+        _validateNextNoteDuration();
       });
     }
   }
@@ -260,6 +265,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     } else {
       _addMeasureInternal();
     }
+    _validateNextNoteDuration();
   }
 
   void _deleteLastNote() {
@@ -272,6 +278,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       } else if (_selectedMeasureIndex > 0) {
         measures.removeAt(_selectedMeasureIndex);
         _selectedMeasureIndex--;
+        _validateNextNoteDuration();
       }
       _song = _song.copyWith(measures: measures);
       _saveToHistory();
@@ -631,9 +638,19 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
           } else if (mapping == keyboard.getEditorShortcut('toggleListening')) {
             _toggleListening();
           } else if (mapping == keyboard.getEditorShortcut('prevMeasure')) {
-            if (_selectedMeasureIndex > 0) setState(() => _selectedMeasureIndex--);
+            if (_selectedMeasureIndex > 0) {
+              setState(() {
+                _selectedMeasureIndex--;
+                _validateNextNoteDuration();
+              });
+            }
           } else if (mapping == keyboard.getEditorShortcut('nextMeasure')) {
-            if (_selectedMeasureIndex < _song.measures.length - 1) setState(() => _selectedMeasureIndex++);
+            if (_selectedMeasureIndex < _song.measures.length - 1) {
+              setState(() {
+                _selectedMeasureIndex++;
+                _validateNextNoteDuration();
+              });
+            }
           } else if (mapping == keyboard.getEditorShortcut('togglePlayback')) {
             _togglePlayback();
           } else {
@@ -731,11 +748,17 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   }
 
   void _changeDuration(int delta) {
+    final m = _song.measures[_selectedMeasureIndex];
+    final double maxCapacity = m.beats * (4.0 / m.beatType);
+
     final types = MusicConstants.typeToDuration.keys.toList();
     final List<({String type, bool dotted})> durations = [];
     for (final type in types) {
+      if (MusicConstants.typeToDuration[type]! > maxCapacity + 0.001) continue;
       durations.add((type: type, dotted: false));
-      durations.add((type: type, dotted: true));
+      if (MusicConstants.typeToDuration[type]! * 1.5 <= maxCapacity + 0.001) {
+        durations.add((type: type, dotted: true));
+      }
     }
     durations.sort((a, b) {
       double durA = MusicConstants.typeToDuration[a.type]! * (a.dotted ? 1.5 : 1.0);
@@ -751,6 +774,32 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       _nextType = durations[nextIdx].type;
       _nextIsDotted = durations[nextIdx].dotted;
     });
+  }
+
+  void _validateNextNoteDuration() {
+    final m = _song.measures[_selectedMeasureIndex];
+    final double maxCapacity = m.beats * (4.0 / m.beatType);
+    double currentDur = MusicConstants.typeToDuration[_nextType]! * (_nextIsDotted ? 1.5 : 1.0);
+    
+    if (currentDur > maxCapacity + 0.001) {
+      // Find longest valid duration
+      final types = ['breve', 'whole', 'half', 'quarter', 'eighth', '16th'];
+      for (final t in types) {
+        if (MusicConstants.typeToDuration[t]! * 1.5 <= maxCapacity + 0.001) {
+          _nextType = t;
+          _nextIsDotted = true;
+          return;
+        }
+        if (MusicConstants.typeToDuration[t]! <= maxCapacity + 0.001) {
+          _nextType = t;
+          _nextIsDotted = false;
+          return;
+        }
+      }
+      // Fallback to 16th if nothing fits (shouldn't happen with standard time sigs)
+      _nextType = '16th';
+      _nextIsDotted = false;
+    }
   }
 
   void _toggleBeam() {
@@ -779,16 +828,26 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       dot: _nextIsDotted ? 1 : 0,
       isRest: _nextIsRest,
       beam: canBeam ? _nextBeam : null,
+      beam2: (canBeam && _nextType == '16th') ? _nextBeam2 : null,
+      isTied: _nextIsTied,
     );
     _addNote(note);
 
-    // Auto-advance beam state
+    // Auto-advance beam states
     if (canBeam) {
       setState(() {
         if (_nextBeam == 'begin') {
           _nextBeam = 'continue';
         } else if (_nextBeam == 'end') {
           _nextBeam = null;
+        }
+
+        if (_nextType == '16th') {
+          if (_nextBeam2 == 'begin') {
+            _nextBeam2 = 'continue';
+          } else if (_nextBeam2 == 'end') {
+            _nextBeam2 = null;
+          }
         }
       });
     }
@@ -1013,6 +1072,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                           final measures = List<Measure>.from(_song.measures);
                           measures[_selectedMeasureIndex] = m.copyWith(beats: v);
                           _song = _song.copyWith(measures: measures);
+                          _validateNextNoteDuration();
                           _saveToHistory();
                         });
                         Navigator.pop(context);
@@ -1032,6 +1092,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                           final measures = List<Measure>.from(_song.measures);
                           measures[_selectedMeasureIndex] = m.copyWith(beatType: v);
                           _song = _song.copyWith(measures: measures);
+                          _validateNextNoteDuration();
                           _saveToHistory();
                         });
                         Navigator.pop(context);
@@ -1093,54 +1154,104 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   }
 
   Widget _buildLargeScreenSelectorRow2() {
-    return Row(
+    final showBeamingArea = !_nextIsRest && (_nextType == 'eighth' || _nextType == '16th');
+    return Column(
       children: [
-        Expanded(
-          flex: 3,
-          child: _buildAccidentalSegmentedButton(),
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: _buildAccidentalSegmentedButton(),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 7,
+              child: _buildDurationSegmentedButton(),
+            ),
+            const SizedBox(width: 8),
+            _buildModifierButton(
+              isSelected: _nextIsDotted,
+              onPressed: () {
+                final m = _song.measures[_selectedMeasureIndex];
+                final double maxCapacity = m.beats * (4.0 / m.beatType);
+                final double currentDuration = MusicConstants.typeToDuration[_nextType]!;
+                if (!_nextIsDotted && currentDuration * 1.5 > maxCapacity + 0.001) {
+                  return;
+                }
+                setState(() => _nextIsDotted = !_nextIsDotted);
+              },
+              label: '.',
+            ),
+            const SizedBox(width: 8),
+            _buildModifierButton(
+              isSelected: _nextIsRest,
+              onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
+              icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
+            ),
+            if (!_nextIsRest) ...[
+              const SizedBox(width: 8),
+              _buildModifierButton(
+                isSelected: _nextIsTied,
+                onPressed: () => setState(() => _nextIsTied = !_nextIsTied),
+                icon: '⁀',
+              ),
+            ],
+          ],
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 7,
-          child: _buildDurationSegmentedButton(),
-        ),
-        const SizedBox(width: 8),
-        _buildModifierButton(
-          isSelected: _nextIsDotted,
-          onPressed: () => setState(() => _nextIsDotted = !_nextIsDotted),
-          label: '.',
-        ),
-        const SizedBox(width: 8),
-        _buildModifierButton(
-          isSelected: _nextIsRest,
-          onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
-          icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
-        ),
-        if (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ...[
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 5,
-            child: _buildBeamSegmentedButton(),
+        if (showBeamingArea) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Beam 1', style: TextStyle(fontSize: 10)),
+                    const SizedBox(height: 2),
+                    _buildBeamSegmentedButton(1),
+                  ],
+                ),
+              ),
+              if (_nextType == '16th') ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Beam 2', style: TextStyle(fontSize: 10)),
+                      const SizedBox(height: 2),
+                      _buildBeamSegmentedButton(2),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ],
     );
   }
 
-  Widget _buildBeamSegmentedButton() {
+  Widget _buildBeamSegmentedButton(int level) {
     final style = SegmentedButton.styleFrom(
       shape: const StadiumBorder(),
       visualDensity: VisualDensity.compact,
     );
     return SegmentedButton<String?>(
       segments: [
-        const ButtonSegment(value: null, label: Text('None', style: TextStyle(fontSize: 11))),
-        const ButtonSegment(value: 'begin', label: Text('Start', style: TextStyle(fontSize: 11))),
-        const ButtonSegment(value: 'continue', label: Text('Cont.', style: TextStyle(fontSize: 11))),
-        const ButtonSegment(value: 'end', label: Text('End', style: TextStyle(fontSize: 11))),
+        const ButtonSegment(value: null, label: Text('None', style: TextStyle(fontSize: 10))),
+        const ButtonSegment(value: 'begin', label: Text('Start', style: TextStyle(fontSize: 10))),
+        const ButtonSegment(value: 'continue', label: Text('Cont.', style: TextStyle(fontSize: 10))),
+        const ButtonSegment(value: 'end', label: Text('End', style: TextStyle(fontSize: 10))),
       ],
-      selected: {_nextBeam},
-      onSelectionChanged: (val) => setState(() => _nextBeam = val.first),
+      selected: {level == 1 ? _nextBeam : _nextBeam2},
+      onSelectionChanged: (val) => setState(() {
+        if (level == 1) {
+          _nextBeam = val.first;
+        } else {
+          _nextBeam2 = val.first;
+        }
+      }),
       showSelectedIcon: false,
       style: style,
     );
@@ -1201,8 +1312,15 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       shape: const StadiumBorder(),
       visualDensity: VisualDensity.compact,
     );
+
+    final m = _song.measures[_selectedMeasureIndex];
+    final double maxCapacity = m.beats * (4.0 / m.beatType);
+
     // Reversed: shortest (16th) to longest (whole) to match arrow key directions
-    final durationTypes = ['16th', 'eighth', 'quarter', 'half', 'whole'];
+    final durationTypes = ['16th', 'eighth', 'quarter', 'half', 'whole', 'breve']
+        .where((t) => MusicConstants.typeToDuration[t]! <= maxCapacity + 0.001)
+        .toList();
+
     return SegmentedButton<String>(
       segments: durationTypes
           .map((t) => ButtonSegment(
@@ -1246,6 +1364,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   }
 
   Widget _buildDurationAndModifierSelectors() {
+    final showBeamingArea = !_nextIsRest && (_nextType == 'eighth' || _nextType == '16th');
     return Column(
       children: [
         Row(
@@ -1256,7 +1375,15 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             const SizedBox(width: 8),
             _buildModifierButton(
               isSelected: _nextIsDotted,
-              onPressed: () => setState(() => _nextIsDotted = !_nextIsDotted),
+              onPressed: () {
+                final m = _song.measures[_selectedMeasureIndex];
+                final double maxCapacity = m.beats * (4.0 / m.beatType);
+                final double currentDuration = MusicConstants.typeToDuration[_nextType]!;
+                if (!_nextIsDotted && currentDuration * 1.5 > maxCapacity + 0.001) {
+                  return;
+                }
+                setState(() => _nextIsDotted = !_nextIsDotted);
+              },
               label: '.',
             ),
             const SizedBox(width: 8),
@@ -1265,13 +1392,30 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
               onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
               icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
             ),
+            if (!_nextIsRest) ...[
+              const SizedBox(width: 8),
+              _buildModifierButton(
+                isSelected: _nextIsTied,
+                onPressed: () => setState(() => _nextIsTied = !_nextIsTied),
+                icon: '⁀',
+              ),
+            ],
           ],
         ),
-        if (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ...[
+        if (showBeamingArea) ...[
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: _buildBeamSegmentedButton(),
+          Row(
+            children: [
+              Expanded(
+                child: _buildBeamSegmentedButton(1),
+              ),
+              if (_nextType == '16th') ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildBeamSegmentedButton(2),
+                ),
+              ],
+            ],
           ),
         ],
       ],
@@ -1301,6 +1445,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   }
 
   String _getNoteLabel(String type) => switch (type) {
+        'breve' => '𝅜',
         'whole' => '𝅝',
         'half' => '𝅗𝅥',
         'quarter' => '𝅘𝅥',
@@ -1310,6 +1455,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       };
 
   String _getRestLabel(String type) => switch (type) {
+        'breve' => '𝄺',
         'whole' => '𝄻',
         'half' => '𝄼',
         'quarter' => '𝄽',
