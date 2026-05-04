@@ -8,14 +8,13 @@ class MusicXmlGenerator {
   static String generate(Song song) {
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8"?>');
-    buffer.writeln('<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">');
     buffer.writeln('<score-partwise version="4.0">');
-    
+
     // Work/Movement Title
     buffer.writeln('  <work>');
     buffer.writeln('    <work-title>${_escape(song.title)}</work-title>');
     buffer.writeln('  </work>');
-    
+
     // Identification / Composer & Arranger
     buffer.writeln('  <identification>');
     if (song.composer.isNotEmpty) {
