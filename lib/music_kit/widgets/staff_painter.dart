@@ -118,7 +118,13 @@ class StaffPainter extends CustomPainter {
     }
 
     if (showStaffLines) {
-      _drawStaffLines(canvas, totalStaffW, linePaint);
+      final clefStaffPaint = Paint()
+        ..color = clefColor.withValues(alpha: 0.4)
+        ..strokeWidth = 1.0;
+      for (int i = 0; i < 5; i++) {
+        final y = kTopMargin + i * kLS;
+        canvas.drawLine(Offset(0, y), Offset(startX, y), clefStaffPaint);
+      }
     }
 
     int noteOffset = row.firstNoteIndex;
@@ -128,6 +134,16 @@ class StaffPainter extends CustomPainter {
       final m = row.measures[mi];
       final currentMeasureW = measureWidths[mi];
 
+      if (showStaffLines) {
+        final measureStaffPaint = Paint()
+          ..color = clefColor.withValues(alpha: m.isPlaceholder ? 0.05 : 0.4)
+          ..strokeWidth = 1.0;
+        for (int i = 0; i < 5; i++) {
+          final y = kTopMargin + i * kLS;
+          canvas.drawLine(Offset(x, y), Offset(x + currentMeasureW, y), measureStaffPaint);
+        }
+      }
+
       final bool hasTimeSig = (currentPrevMeasure == null || 
           m.beats != currentPrevMeasure.beats || 
           m.beatType != currentPrevMeasure.beatType);
@@ -136,7 +152,7 @@ class StaffPainter extends CustomPainter {
         _drawTimeSig(canvas, m.beats, m.beatType, x, clefColor);
       }
 
-      if (m.number > 0) {
+      if (m.number > 0 && !m.isPlaceholder) {
         _drawMeasureNumber(canvas, m.number, x);
       }
       
@@ -181,12 +197,12 @@ class StaffPainter extends CustomPainter {
       currentPrevMeasure = m;
 
       final isLastMeasureInRow = mi == row.measures.length - 1;
-      if (isLastMeasureInRow && row.isLastRow && showStaffLines) {
+      if (isLastMeasureInRow && row.isLastRow && !m.isPlaceholder && showStaffLines) {
         _drawDoubleBarLine(canvas, x, clefColor);
       } else if (showStaffLines) {
         final bp = Paint()
-          ..color = clefColor.withValues(alpha: 0.6)
-          ..strokeWidth = isLastMeasureInRow ? 2.0 : 1.2;
+          ..color = clefColor.withValues(alpha: m.isPlaceholder ? 0.05 : 0.6)
+          ..strokeWidth = (isLastMeasureInRow && !row.isLastRow) ? 2.0 : 1.2;
         canvas.drawLine(
           Offset(x, kTopMargin),
           Offset(x, kTopMargin + kStaffH),
@@ -276,7 +292,9 @@ class StaffPainter extends CustomPainter {
       );
 
       if (note.isRest) {
-        _drawRest(canvas, noteX, note.type, clefColor, isActive: isActive, isPast: isPast, note: note);
+        if (!note.isPlaceholder) {
+          _drawRest(canvas, noteX, note.type, clefColor, isActive: isActive, isPast: isPast, note: note);
+        }
       } else {
         final pos = staffPos(note.step, note.octave);
         final y = posToY(pos);

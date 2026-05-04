@@ -68,16 +68,13 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     if (widget.initialSong != null) {
       _song = widget.initialSong!;
     } else {
-      final view = WidgetsBinding.instance.platformDispatcher.views.first;
-      final isSmallScreen = view.physicalSize.width / view.devicePixelRatio < 600;
       _song = Song(
         id: '',
         title: 'Make My Own',
         composer: 'Me',
-        measures: List.generate(
-          isSmallScreen ? 2 : 1,
-          (i) => Measure(number: i + 1, notes: [], beats: 4, beatType: 4),
-        ),
+        measures: [
+          Measure(number: 1, notes: [], beats: 4, beatType: 4),
+        ],
         createdAt: DateTime.now(),
       );
     }
@@ -406,6 +403,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
           type: type,
           isRest: true,
           dot: isDotted ? 1 : 0,
+          isPlaceholder: true,
         ));
         remaining -= entry.value;
       }
@@ -558,6 +556,35 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         false;
   }
 
+  List<Measure> _getDisplayMeasures() {
+    final List<Measure> measures = [..._song.measures];
+    
+    // Find where the real content ends
+    int lastContentIndex = -1;
+    for (int i = measures.length - 1; i >= 0; i--) {
+      if (measures[i].notes.isNotEmpty) {
+        lastContentIndex = i;
+        break;
+      }
+    }
+
+    // Remove all empty measures at the end
+    if (lastContentIndex < measures.length - 1) {
+      measures.removeRange(lastContentIndex + 1, measures.length);
+    }
+
+    // Always add exactly one placeholder measure at the end
+    measures.add(Measure(
+      number: measures.isEmpty ? 1 : measures.last.number + 1,
+      notes: [],
+      beats: measures.isEmpty ? 4 : (measures.last.beats),
+      beatType: measures.isEmpty ? 4 : (measures.last.beatType),
+      isPlaceholder: true,
+    ));
+    
+    return _fillRests(measures);
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -667,7 +694,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             children: [
               Expanded(
                 child: SheetMusicWidget(
-                  song: _song.copyWith(measures: _fillRests(_song.measures)),
+                  song: _song.copyWith(
+                    measures: _getDisplayMeasures(),
+                  ),
                   measuresPerRow: 2,
                   includePickupInFirstRow: _includePickupInFirstRow,
                   activeNoteIndex: _getGlobalActiveIndex(),
@@ -786,7 +815,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   }
 
   int _getGhostNoteGlobalIndex() {
-    final displaySong = _song.copyWith(measures: _fillRests(_song.measures));
+    final displaySong = _song.copyWith(
+      measures: _getDisplayMeasures(),
+    );
     if (_selectedMeasureIndex >= displaySong.measures.length) return 0;
 
     int targetMeasureIndex = _selectedMeasureIndex;
@@ -809,11 +840,11 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       idx += displaySong.measures[i].notes.length;
     }
 
-    if (targetMeasureIndex == _selectedMeasureIndex) {
+    if (targetMeasureIndex == _selectedMeasureIndex && targetMeasureIndex < _song.measures.length) {
       // Position at the end of REAL notes in the current measure
       return idx + _song.measures[targetMeasureIndex].notes.length;
     } else {
-      // Position at the start of the next measure
+      // Position at the start of the next measure (which might be the placeholder)
       return idx;
     }
   }
@@ -1457,6 +1488,7 @@ class _SongMetadataDialogState extends State<_SongMetadataDialog> {
       setState(() => _selectedEmoji = result);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

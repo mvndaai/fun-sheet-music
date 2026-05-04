@@ -12,6 +12,7 @@ class MusicNote {
   final int dot; // number of dots
   final String? beam; // 'begin', 'continue', 'end' or null
   final bool isTied; // whether this note is tied to the next
+  final bool isPlaceholder; // whether this note was auto-generated to fill a measure
 
   const MusicNote({
     required this.step,
@@ -24,6 +25,7 @@ class MusicNote {
     this.dot = 0,
     this.beam,
     this.isTied = false,
+    this.isPlaceholder = false,
   });
 
   bool get isDotted => dot > 0;
@@ -93,6 +95,7 @@ class MusicNote {
     int? dot,
     String? beam,
     bool? isTied,
+    bool? isPlaceholder,
   }) {
     return MusicNote(
       step: step ?? this.step,
@@ -105,6 +108,7 @@ class MusicNote {
       dot: dot ?? this.dot,
       beam: beam ?? this.beam,
       isTied: isTied ?? this.isTied,
+      isPlaceholder: isPlaceholder ?? this.isPlaceholder,
     );
   }
 }
