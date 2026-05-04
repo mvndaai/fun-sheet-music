@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -7,12 +6,9 @@ import '../music_kit/models/instrument_profile.dart'; // For kNoteKeys
 import '../music_kit/models/keyboard_profile.dart';
 import '../providers/keyboard_provider.dart';
 import '../music_kit/utils/keyboard_utils.dart';
-import '../services/tone_player.dart';
-import '../platform/platform.dart' as platform;
 import '../widgets/name_icon_emoji_dialog.dart';
-import '../main.dart' show showToast;
 
-enum KeyboardSetupMode { keys, sounds, editor }
+enum KeyboardSetupMode { keys, editor }
 
 class KeyboardSetupScreen extends StatefulWidget {
   final KeyboardProfile profile;
@@ -33,39 +29,26 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   int? _selectedOctave;
 
   late Map<String, String> _keyboardOverrides;
-  late Map<String, String> _noteSounds;
   late Map<String, String> _editorShortcuts;
   late String _name;
   late String? _icon;
   late String? _emoji;
 
-  final platform.PlatformAudioRecorder _audioRecorder = platform.createAudioRecorder();
-  final TonePlayer _tonePlayer = TonePlayer();
-
   String? _pendingNote;
-  bool _isActionActive = false;
 
   @override
   void initState() {
     super.initState();
     _mode = widget.initialMode;
     _keyboardOverrides = Map.from(widget.profile.keyboardOverrides);
-    _noteSounds = Map.from(widget.profile.noteSounds);
     _editorShortcuts = Map.from(widget.profile.editorShortcuts);
     _name = widget.profile.name;
     _icon = widget.profile.icon;
     _emoji = widget.profile.emoji;
   }
 
-  @override
-  void dispose() {
-    _audioRecorder.dispose();
-    _tonePlayer.dispose();
-    super.dispose();
-  }
-
   void _save() {
-    if (widget.profile.isBuiltIn) return; // Prevent modifying built-in keyboards
+    if (widget.profile.isBuiltIn) return;
 
     final provider = context.read<KeyboardProvider>();
     final updated = widget.profile.copyWith(
@@ -73,7 +56,6 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
       icon: _icon,
       emoji: _emoji,
       keyboardOverrides: _keyboardOverrides,
-      noteSounds: _noteSounds,
       editorShortcuts: _editorShortcuts,
     );
     provider.updateProfile(updated);
@@ -101,7 +83,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   }
 
   void _onKey(KeyEvent event) {
-    if ((_mode != KeyboardSetupMode.keys && _mode != KeyboardSetupMode.editor) || _pendingNote == null || event is! KeyDownEvent) return;
+    if (_pendingNote == null || event is! KeyDownEvent) return;
     final mapping = KeyboardUtils.getMappingName(event);
 
     if (_mode == KeyboardSetupMode.keys) {
@@ -126,31 +108,6 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
     _save();
   }
 
-  Future<void> _toggleRecording(String note) async {
-    final noteKey = _getMappingKey(note);
-    if (_isActionActive) {
-      final key = await _audioRecorder.stopRecording();
-      if (!mounted) return;
-      setState(() {
-        if (key != null && _pendingNote != null) _noteSounds[noteKey] = key;
-        _isActionActive = false;
-        _pendingNote = null;
-      });
-      _save();
-    } else {
-      try {
-        await _audioRecorder.startRecording(widget.profile.id, noteKey);
-        if (!mounted) return;
-        setState(() {
-          _pendingNote = note;
-          _isActionActive = true;
-        });
-      } catch (e) {
-        showToast('Failed: $e', isError: true);
-      }
-    }
-  }
-
   String _getMappingKey(String step) => _selectedOctave != null ? '$step$_selectedOctave' : step;
 
   @override
@@ -159,7 +116,7 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
       autofocus: true,
       onKeyEvent: (node, event) {
         _onKey(event);
-        return (_mode == KeyboardSetupMode.keys || _mode == KeyboardSetupMode.editor) && _pendingNote != null ? KeyEventResult.handled : KeyEventResult.ignored;
+        return _pendingNote != null ? KeyEventResult.handled : KeyEventResult.ignored;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -190,12 +147,10 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                     child: SegmentedButton<KeyboardSetupMode>(
                       segments: const [
                         ButtonSegment(value: KeyboardSetupMode.keys, icon: Icon(Icons.keyboard), label: Text('Keys')),
-                        ButtonSegment(value: KeyboardSetupMode.sounds, icon: Icon(Icons.mic), label: Text('Sounds')),
                         ButtonSegment(value: KeyboardSetupMode.editor, icon: Icon(Icons.edit_note), label: Text('Editor')),
                       ],
                       selected: {_mode},
                       onSelectionChanged: (val) {
-                        if (_isActionActive) return;
                         setState(() { _mode = val.first; _pendingNote = null; });
                       },
                     ),
@@ -213,7 +168,6 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                       ],
                       selected: {_selectedOctave},
                       onSelectionChanged: (val) {
-                        if (_isActionActive) return;
                         setState(() { _selectedOctave = val.first; _pendingNote = null; });
                       },
                     ),
@@ -262,14 +216,9 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                   final step = kNoteKeys[index];
                   final noteKey = _getMappingKey(step);
                   
-                  // Check if this specific note has a custom override in the current mode
                   final hasCustomKey = _keyboardOverrides.containsKey(noteKey);
-                  final hasCustomSound = _noteSounds.containsKey(noteKey);
-                  final isInherited = _mode == KeyboardSetupMode.keys 
-                      ? !hasCustomKey 
-                      : !hasCustomSound;
+                  final isInherited = !hasCustomKey;
                   
-                  // Get current instrument color for this note
                   final instrument = context.watch<InstrumentProvider>().activeScheme;
                   final isHidden = instrument.hiddenKeys.contains(step);
                   final color = instrument.colorForNote(step, 0, octave: _selectedOctave, context: context);
@@ -279,7 +228,6 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                     opacity: isHidden ? 0.4 : 1.0,
                     child: ListTile(
                       onTap: widget.profile.isBuiltIn ? null : () {
-                        if (_isActionActive) return;
                         setState(() => _pendingNote = _pendingNote == step ? null : step);
                       },
                       selected: _pendingNote == step,
@@ -315,41 +263,12 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
                         ],
                       ),
                       subtitle: Text(_getSubtitleText(noteKey, isInherited, isHidden)),
-                      trailing: widget.profile.isBuiltIn ? null : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_mode == KeyboardSetupMode.sounds) ...[
-                            // Play button - check both custom and default sounds
-                            if (_noteSounds[noteKey] != null || KeyboardProfile.standard.noteSounds[noteKey] != null) 
-                              IconButton(
-                                icon: const Icon(Icons.play_arrow), 
-                                onPressed: () {
-                                  final samplePath = _noteSounds[noteKey] ?? KeyboardProfile.standard.noteSounds[noteKey];
-                                  _tonePlayer.playNote(440, samplePath: samplePath);
-                                },
-                              ),
-                            IconButton(
-                              icon: Icon(_isActionActive && _pendingNote == step ? Icons.stop : Icons.mic), 
-                              color: _isActionActive && _pendingNote == step ? Colors.red : null, 
-                              onPressed: () => _toggleRecording(step),
-                            ),
-                          ],
-                          // Only show close button if this specific note has a custom value in the current mode
-                          if (!isInherited && !_isActionActive) 
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 20), 
-                              onPressed: () {
-                                setState(() {
-                                  if (_mode == KeyboardSetupMode.keys) {
-                                    _keyboardOverrides.remove(noteKey);
-                                  } else if (_mode == KeyboardSetupMode.sounds) {
-                                    _noteSounds.remove(noteKey);
-                                  }
-                                });
-                                _save();
-                              },
-                            ),
-                        ],
+                      trailing: widget.profile.isBuiltIn || isInherited ? null : IconButton(
+                        icon: const Icon(Icons.close, size: 20), 
+                        onPressed: () {
+                          setState(() => _keyboardOverrides.remove(noteKey));
+                          _save();
+                        },
                       ),
                     ),
                   );
@@ -365,29 +284,17 @@ class _KeyboardSetupScreenState extends State<KeyboardSetupScreen> {
   String _getInstructionText() {
     final octaveLabel = _selectedOctave != null ? 'Octave $_selectedOctave' : 'Default settings';
     if (_mode == KeyboardSetupMode.keys) return _pendingNote == null ? 'Tap a note to map it for $octaveLabel.' : 'Press a key for $_pendingNote...';
-    if (_mode == KeyboardSetupMode.sounds) return 'Record custom sounds for $octaveLabel.';
     return _pendingNote == null ? 'Tap an action to remap its shortcut.' : 'Press a key for ${_formatActionName(_pendingNote!)}...';
   }
 
   String _formatActionName(String action) {
-    // Convert camelCase to Space Case
     final result = action.replaceAllMapped(RegExp(r'([A-Z])'), (match) => ' ${match.group(0)}');
     return result[0].toUpperCase() + result.substring(1);
   }
 
   String _getSubtitleText(String noteKey, bool isInherited, bool isHidden) {
     String prefix = isHidden ? '[HIDDEN] ' : '';
-    if (_mode == KeyboardSetupMode.keys) {
-      final mapping = _keyboardOverrides[noteKey] ?? KeyboardProfile.standard.keyboardOverrides[noteKey];
-      return '$prefix${isInherited ? 'Default: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}' : 'Specific: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}'}';
-    }
-    // For sounds mode
-    final hasDefaultSound = KeyboardProfile.standard.noteSounds[noteKey] != null;
-    if (isInherited && hasDefaultSound) {
-      return '${prefix}Default sound';
-    } else if (isInherited) {
-      return '${prefix}No sound';
-    }
-    return '${prefix}Specific Recording';
+    final mapping = _keyboardOverrides[noteKey] ?? KeyboardProfile.standard.keyboardOverrides[noteKey];
+    return '$prefix${isInherited ? 'Default: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}' : 'Specific: ${KeyboardUtils.formatForDisplay(mapping ?? 'Not mapped')}'}';
   }
 }

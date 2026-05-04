@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'providers/song_provider.dart';
 import 'providers/instrument_provider.dart';
 import 'providers/keyboard_provider.dart';
+import 'providers/sound_provider.dart';
 import 'providers/payment_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/database.dart';
@@ -58,6 +59,9 @@ void main() async {
   final keyboardProvider = KeyboardProvider();
   await keyboardProvider.load();
 
+  final soundProvider = SoundProvider();
+  await soundProvider.load();
+
   // Ensure Google Fonts can fetch missing characters (like emojis/symbols) at runtime
   GoogleFonts.config.allowRuntimeFetching = true;
 
@@ -66,6 +70,7 @@ void main() async {
     storageService: storageService,
     instrumentProvider: instrumentProvider,
     keyboardProvider: keyboardProvider,
+    soundProvider: soundProvider,
   ));
 }
 
@@ -131,6 +136,7 @@ class FunSheetMusic extends StatelessWidget {
   final StorageService storageService;
   final InstrumentProvider instrumentProvider;
   final KeyboardProvider keyboardProvider;
+  final SoundProvider soundProvider;
 
   const FunSheetMusic({
     super.key,
@@ -138,6 +144,7 @@ class FunSheetMusic extends StatelessWidget {
     required this.storageService,
     required this.instrumentProvider,
     required this.keyboardProvider,
+    required this.soundProvider,
   });
 
   @override
@@ -152,6 +159,9 @@ class FunSheetMusic extends StatelessWidget {
         ),
         ChangeNotifierProvider.value(
           value: keyboardProvider,
+        ),
+        ChangeNotifierProvider.value(
+          value: soundProvider,
         ),
         ChangeNotifierProvider(
           create: (_) => PaymentProvider(instrumentProvider: instrumentProvider),

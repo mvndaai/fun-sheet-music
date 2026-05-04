@@ -4,9 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/instrument_provider.dart';
 import '../providers/keyboard_provider.dart';
+import '../providers/sound_provider.dart';
 import '../providers/payment_provider.dart';
 import '../screens/instruments_screen.dart';
 import '../screens/keyboards_screen.dart';
+import '../screens/sounds_screen.dart';
 import '../music_kit/models/music_display_mode.dart';
 import '../music_kit/models/legend_style.dart';
 
@@ -101,8 +103,8 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
           top: 12,
           bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         ),
-        child: Consumer2<InstrumentProvider, KeyboardProvider>(
-          builder: (context, provider, keyboardProvider, _) => SingleChildScrollView(
+        child: Consumer3<InstrumentProvider, KeyboardProvider, SoundProvider>(
+          builder: (context, provider, keyboardProvider, soundProvider, _) => SingleChildScrollView(
             primary: true,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -170,7 +172,7 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                 // 2.1 Keyboard
                 ListTile(
                   leading: const Icon(Icons.keyboard),
-                  title: const Text('Keyboard & Sounds'),
+                  title: const Text('Keyboard Mappings'),
                   subtitle: Text(keyboardProvider.activeProfile.name),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
@@ -178,6 +180,21 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const KeyboardsScreen()),
+                    );
+                  },
+                ),
+
+                // 2.2 Sounds
+                ListTile(
+                  leading: const Icon(Icons.volume_up),
+                  title: const Text('Sound Sets'),
+                  subtitle: Text(soundProvider.activeProfile.name),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SoundsScreen()),
                     );
                   },
                 ),

@@ -11,6 +11,7 @@ import '../services/musicxml_parser.dart';
 import '../providers/song_provider.dart';
 import '../providers/instrument_provider.dart';
 import '../providers/keyboard_provider.dart';
+import '../providers/sound_provider.dart';
 import '../music_kit/utils/keyboard_utils.dart';
 import '../main.dart' show showToast;
 import 'instruments_screen.dart';
@@ -334,8 +335,8 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
     final note = m.notes[_playbackNoteIndex];
     if (!note.isRest) {
-      final keyboardProvider = context.read<KeyboardProvider>();
-      final samplePath = keyboardProvider.activeProfile.getSamplePath(note.letterName);
+      final soundProvider = context.read<SoundProvider>();
+      final samplePath = soundProvider.activeProfile.getSamplePath(note.letterName);
       _tonePlayer.playNote(note.frequency, samplePath: samplePath);
     }
 

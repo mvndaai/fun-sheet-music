@@ -9,6 +9,7 @@ import '../music_kit/models/music_note.dart';
 import '../music_kit/models/music_display_mode.dart';
 import '../providers/instrument_provider.dart';
 import '../providers/keyboard_provider.dart';
+import '../providers/sound_provider.dart';
 import '../services/pitch_detection_service.dart';
 import '../services/tone_player.dart';
 import '../music_kit/utils/music_pdf_service.dart';
@@ -144,7 +145,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
 
     final note = _notes[_activeNoteIndex];
     final keyboardProvider = context.read<KeyboardProvider>();
-    final samplePath = keyboardProvider.activeProfile.getSamplePath(note.letterName);
+    final samplePath = context.read<SoundProvider>().activeProfile.getSamplePath(note.letterName);
     _tonePlayer.playNote(note.frequency, samplePath: samplePath);
 
     final quarterNoteDuration = 60000.0 / _tempo;
@@ -396,6 +397,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   Widget build(BuildContext context) {
     final provider = context.watch<InstrumentProvider>();
     final keyboardProvider = context.watch<KeyboardProvider>();
+    final soundProvider = context.watch<SoundProvider>();
     final mode = provider.displayMode;
 
     // Detect mode change to trigger scroll
@@ -450,7 +452,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           if (noteName != null) {
             final midi = MusicConstants.noteNameToMidi(noteName);
             if (midi >= 0) {
-              final samplePath = keyboardProvider.activeProfile.getSamplePath(noteName);
+              final samplePath = soundProvider.activeProfile.getSamplePath(noteName);
               _tonePlayer.stopNote(MusicConstants.midiToFrequency(midi), samplePath: samplePath);
             }
           }
@@ -469,7 +471,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           _keyToNote[event.logicalKey] = noteName;
           final midi = MusicConstants.noteNameToMidi(noteName);
           if (midi >= 0) {
-            final samplePath = keyboardProvider.activeProfile.getSamplePath(noteName);
+            final samplePath = soundProvider.activeProfile.getSamplePath(noteName);
             _tonePlayer.startNote(MusicConstants.midiToFrequency(midi), samplePath: samplePath);
           }
           setState(() => _lastPhysicalKey = KeyboardUtils.formatForDisplay(mapping));

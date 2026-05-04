@@ -2,18 +2,18 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import '../music_kit/models/keyboard_profile.dart';
+import '../music_kit/models/sound_profile.dart';
 
-class KeyboardProvider extends ChangeNotifier {
-  static const String _activeIdKey = 'keyboard_active_id';
-  static const String _customKey = 'keyboard_custom';
+class SoundProvider extends ChangeNotifier {
+  static const String _activeIdKey = 'sound_active_id';
+  static const String _customKey = 'sound_custom';
 
   final Uuid _uuid = const Uuid();
   SharedPreferences? _prefs;
 
-  String _activeId = KeyboardProfile.standard.id;
-  List<KeyboardProfile> _customProfiles = [];
-  List<KeyboardProfile> _builtInProfiles = [KeyboardProfile.standard];
+  String _activeId = SoundProfile.standard.id;
+  List<SoundProfile> _customProfiles = [];
+  List<SoundProfile> _builtInProfiles = [SoundProfile.standard];
 
   Future<SharedPreferences> get _preferences async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -21,27 +21,26 @@ class KeyboardProvider extends ChangeNotifier {
   }
 
   String get activeId => _activeId;
-  List<KeyboardProfile> get allProfiles => [..._builtInProfiles, ..._customProfiles];
+  List<SoundProfile> get allProfiles => [..._builtInProfiles, ..._customProfiles];
 
-  KeyboardProfile get activeProfile =>
+  SoundProfile get activeProfile =>
       allProfiles.firstWhere(
         (s) => s.id == _activeId,
-        orElse: () => KeyboardProfile.standard,
+        orElse: () => SoundProfile.standard,
       );
 
   Future<void> load() async {
     final prefs = await _preferences;
     
-    // Always reset built-in profiles to ensure they're pristine
-    _builtInProfiles = [KeyboardProfile.standard];
+    _builtInProfiles = [SoundProfile.standard];
     
-    _activeId = prefs.getString(_activeIdKey) ?? KeyboardProfile.standard.id;
+    _activeId = prefs.getString(_activeIdKey) ?? SoundProfile.standard.id;
 
     final raw = prefs.getString(_customKey);
     if (raw != null) {
       try {
         final list = jsonDecode(raw) as List<dynamic>;
-        _customProfiles = list.map((e) => KeyboardProfile.fromJson(e as Map<String, dynamic>)).toList();
+        _customProfiles = list.map((e) => SoundProfile.fromJson(e as Map<String, dynamic>)).toList();
       } catch (_) {}
     }
     notifyListeners();
@@ -55,13 +54,13 @@ class KeyboardProvider extends ChangeNotifier {
     await prefs.setString(_activeIdKey, id);
   }
 
-  Future<KeyboardProfile> createCustom({String? name, String? icon, String? emoji}) async {
-    final profile = KeyboardProfile(
+  Future<SoundProfile> createCustom({String? name, String? icon, String? emoji}) async {
+    final profile = SoundProfile(
       id: _uuid.v7(),
-      name: name ?? 'Custom Keyboard ${_customProfiles.length + 1}',
+      name: name ?? 'Custom Sound Set ${_customProfiles.length + 1}',
       icon: icon,
       emoji: emoji,
-      keyboardOverrides: {}, // Start empty - user can clone if they want to copy
+      noteSounds: {},
     );
     _customProfiles.add(profile);
     await _persistCustom();
@@ -69,8 +68,7 @@ class KeyboardProvider extends ChangeNotifier {
     return profile;
   }
 
-  Future<void> updateProfile(KeyboardProfile updated) async {
-    // Don't allow modifying built-in profiles
+  Future<void> updateProfile(SoundProfile updated) async {
     if (updated.isBuiltIn) return;
     
     final idx = _customProfiles.indexWhere((s) => s.id == updated.id);
@@ -83,12 +81,12 @@ class KeyboardProvider extends ChangeNotifier {
 
   Future<void> deleteCustom(String id) async {
     _customProfiles.removeWhere((s) => s.id == id);
-    if (_activeId == id) await setActive(KeyboardProfile.standard.id);
+    if (_activeId == id) await setActive(SoundProfile.standard.id);
     await _persistCustom();
     notifyListeners();
   }
 
-  Future<void> cloneProfile(KeyboardProfile profile) async {
+  Future<void> cloneProfile(SoundProfile profile) async {
     final cloned = profile.copyWith(
       id: _uuid.v7(),
       name: '${profile.name} (Copy)',

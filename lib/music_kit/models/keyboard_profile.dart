@@ -13,9 +13,6 @@ class KeyboardProfile {
   /// E.g. `{'C4': 'KeyA'}`.
   final Map<String, String> keyboardOverrides;
 
-  /// Optional mapping from note names to recorded sound file paths.
-  final Map<String, String> noteSounds;
-
   /// Optional keyboard shortcuts for the music editor.
   /// E.g. `{'pitchUp': 'ArrowUp'}`.
   final Map<String, String> editorShortcuts;
@@ -28,7 +25,6 @@ class KeyboardProfile {
     this.isBuiltIn = false,
     this.isImported = false,
     this.keyboardOverrides = const {},
-    this.noteSounds = const {},
     this.editorShortcuts = const {},
   });
 
@@ -38,7 +34,6 @@ class KeyboardProfile {
     String? icon,
     String? emoji,
     Map<String, String>? keyboardOverrides,
-    Map<String, String>? noteSounds,
     Map<String, String>? editorShortcuts,
     bool? isBuiltIn,
     bool? isImported,
@@ -51,21 +46,7 @@ class KeyboardProfile {
       isBuiltIn: isBuiltIn ?? this.isBuiltIn,
       isImported: isImported ?? this.isImported,
       keyboardOverrides: keyboardOverrides ?? Map.from(this.keyboardOverrides),
-      noteSounds: noteSounds ?? Map.from(this.noteSounds),
       editorShortcuts: editorShortcuts ?? Map.from(this.editorShortcuts),
-    );
-  }
-
-  /// Gets a sample path for a note.
-  /// Looks for exact octave match first, then step-only "default", then standard profile.
-  String? getSamplePath(String noteName) {
-    return NoteMapLookup.lookup<String>(
-      noteName: noteName,
-      primaryMap: noteSounds,
-      fallbackMap: id != KeyboardProfile.standard.id 
-          ? KeyboardProfile.standard.noteSounds 
-          : null,
-      isEmpty: (value) => value.isEmpty,
     );
   }
 
@@ -104,13 +85,11 @@ class KeyboardProfile {
         if (icon != null) 'icon': icon,
         if (emoji != null) 'emoji': emoji,
         if (keyboardOverrides.isNotEmpty) 'keyboardOverrides': keyboardOverrides,
-        if (noteSounds.isNotEmpty) 'noteSounds': noteSounds,
         if (editorShortcuts.isNotEmpty) 'editorShortcuts': editorShortcuts,
       };
 
   factory KeyboardProfile.fromJson(Map<String, dynamic> json, {String? fallbackId}) {
     final rawKeyboard = json['keyboardOverrides'] as Map<String, dynamic>? ?? {};
-    final rawSounds = json['noteSounds'] as Map<String, dynamic>? ?? {};
     final rawEditor = json['editorShortcuts'] as Map<String, dynamic>? ?? {};
     return KeyboardProfile(
       id: (json['id'] as String?) ?? fallbackId ?? const Uuid().v7(),
@@ -120,7 +99,6 @@ class KeyboardProfile {
       isBuiltIn: json['isBuiltIn'] as bool? ?? false,
       isImported: json['isImported'] as bool? ?? false,
       keyboardOverrides: rawKeyboard.cast<String, String>(),
-      noteSounds: rawSounds.cast<String, String>(),
       editorShortcuts: rawEditor.cast<String, String>(),
     );
   }

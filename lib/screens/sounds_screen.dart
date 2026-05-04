@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../music_kit/models/keyboard_profile.dart';
-import '../providers/keyboard_provider.dart';
+import '../music_kit/models/sound_profile.dart';
+import '../providers/sound_provider.dart';
 import '../widgets/name_icon_emoji_dialog.dart';
-import 'keyboard_setup_screen.dart';
+import 'sound_setup_screen.dart';
 
-class KeyboardsScreen extends StatelessWidget {
-  const KeyboardsScreen({super.key});
+class SoundsScreen extends StatelessWidget {
+  const SoundsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Keyboards'),
+        title: const Text('Sound Sets'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            tooltip: 'New Keyboard',
+            tooltip: 'New Sound Set',
             onPressed: () => _createNew(context),
           ),
         ],
       ),
-      body: Consumer<KeyboardProvider>(
+      body: Consumer<SoundProvider>(
         builder: (context, provider, _) {
           final profiles = provider.allProfiles;
           return ListView.separated(
@@ -30,7 +30,7 @@ class KeyboardsScreen extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 6),
             itemBuilder: (context, index) {
               final profile = profiles[index];
-              return _KeyboardCard(
+              return _SoundCard(
                 profile: profile,
                 isActive: provider.activeId == profile.id,
                 onActivate: () => provider.setActive(profile.id),
@@ -46,15 +46,15 @@ class KeyboardsScreen extends StatelessWidget {
   }
 
   Future<void> _createNew(BuildContext context) async {
-    final provider = context.read<KeyboardProvider>();
+    final provider = context.read<SoundProvider>();
     final result = await showDialog<Map<String, String>>(
       context: context,
       builder: (_) => const NameIconEmojiDialog(
         initialName: '',
         initialIcon: null,
         initialEmoji: null,
-        title: 'New keyboard',
-        nameHint: 'e.g. My Custom Keyboard',
+        title: 'New sound set',
+        nameHint: 'e.g. My Custom Sounds',
       ),
     );
     if (result == null) return;
@@ -71,18 +71,18 @@ class KeyboardsScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _openSetup(BuildContext context, KeyboardProfile profile) async {
+  Future<void> _openSetup(BuildContext context, SoundProfile profile) async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => KeyboardSetupScreen(profile: profile)),
+      MaterialPageRoute(builder: (_) => SoundSetupScreen(profile: profile)),
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, KeyboardProfile profile, KeyboardProvider provider) async {
+  Future<void> _confirmDelete(BuildContext context, SoundProfile profile, SoundProvider provider) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete keyboard'),
+        title: const Text('Delete sound set'),
         content: Text('Delete "${profile.name}"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
@@ -98,15 +98,15 @@ class KeyboardsScreen extends StatelessWidget {
   }
 }
 
-class _KeyboardCard extends StatelessWidget {
-  final KeyboardProfile profile;
+class _SoundCard extends StatelessWidget {
+  final SoundProfile profile;
   final bool isActive;
   final VoidCallback onActivate;
   final VoidCallback onClone;
   final VoidCallback onConfigure;
   final VoidCallback? onDelete;
 
-  const _KeyboardCard({
+  const _SoundCard({
     required this.profile,
     required this.isActive,
     required this.onActivate,
@@ -126,13 +126,12 @@ class _KeyboardCard extends StatelessWidget {
         ),
         title: Row(
           children: [
-            // Using InstrumentIcon but passing a temporary profile-like object
-            Text(profile.emoji ?? '⌨️', style: const TextStyle(fontSize: 24)),
+            Text(profile.emoji ?? '🔊', style: const TextStyle(fontSize: 24)),
             const SizedBox(width: 12),
             Text(profile.name, style: TextStyle(fontWeight: FontWeight.bold, color: isActive ? Theme.of(context).colorScheme.primary : null)),
           ],
         ),
-        subtitle: Text('${profile.keyboardOverrides.length} keys mapped'),
+        subtitle: Text('${profile.noteSounds.length} custom sounds'),
         trailing: PopupMenuButton<String>(
           onSelected: (v) {
             if (v == 'configure') onConfigure();
