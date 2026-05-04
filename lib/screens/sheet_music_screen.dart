@@ -640,7 +640,7 @@ class _GameView extends StatelessWidget {
                       child: CustomPaint(
                         painter: StaffPainter(
                           row: StaffRowData(
-                            measures: [Measure(number: 0, notes: [], beats: song.measures.isNotEmpty ? song.measures[0].beats : 4, beatType: song.measures.isNotEmpty ? song.measures[0].beatType : 4)],
+                            measures: [Measure(number: 0, notes: [], beats: song.measures.isNotEmpty ? song.measures[0].beats : 4, beatType: song.measures.isNotEmpty ? song.measures[0].beatType : 4, isPlaceholder: true)],
                             firstNoteIndex: 0, isFirstRow: true, isLastRow: false, measuresPerRow: 1,
                           ),
                           activeNoteIndex: -1, showSolfege: false, showLetter: false, labelsBelow: false, coloredLabels: false,

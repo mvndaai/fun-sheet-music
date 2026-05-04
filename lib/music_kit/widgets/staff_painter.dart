@@ -75,7 +75,11 @@ class StaffPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final clefColor = isDark ? Colors.white70 : Colors.black87;
+    final baseClefColor = isDark ? Colors.white70 : Colors.black87;
+    
+    // If the entire row is placeholder measures, fade the clef
+    final bool allPlaceholders = row.measures.isNotEmpty && row.measures.every((m) => m.isPlaceholder);
+    final clefColor = allPlaceholders ? baseClefColor.withValues(alpha: 0.1) : baseClefColor;
 
     final linePaint = Paint()
       ..color = clefColor.withValues(alpha: 0.6)
@@ -118,8 +122,9 @@ class StaffPainter extends CustomPainter {
     }
 
     if (showStaffLines) {
+      final bool firstIsPlaceholder = row.measures.isNotEmpty && row.measures.first.isPlaceholder;
       final clefStaffPaint = Paint()
-        ..color = clefColor.withValues(alpha: 0.4)
+        ..color = baseClefColor.withValues(alpha: firstIsPlaceholder ? 0.05 : 0.4)
         ..strokeWidth = 1.0;
       for (int i = 0; i < 5; i++) {
         final y = kTopMargin + i * kLS;
@@ -136,7 +141,7 @@ class StaffPainter extends CustomPainter {
 
       if (showStaffLines) {
         final measureStaffPaint = Paint()
-          ..color = clefColor.withValues(alpha: m.isPlaceholder ? 0.05 : 0.4)
+          ..color = baseClefColor.withValues(alpha: m.isPlaceholder ? 0.05 : 0.4)
           ..strokeWidth = 1.0;
         for (int i = 0; i < 5; i++) {
           final y = kTopMargin + i * kLS;
@@ -201,7 +206,7 @@ class StaffPainter extends CustomPainter {
         _drawDoubleBarLine(canvas, x, clefColor);
       } else if (showStaffLines) {
         final bp = Paint()
-          ..color = clefColor.withValues(alpha: m.isPlaceholder ? 0.05 : 0.6)
+          ..color = baseClefColor.withValues(alpha: m.isPlaceholder ? 0.05 : 0.6)
           ..strokeWidth = (isLastMeasureInRow && !row.isLastRow) ? 2.0 : 1.2;
         canvas.drawLine(
           Offset(x, kTopMargin),
