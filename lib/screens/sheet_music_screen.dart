@@ -462,6 +462,14 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           backgroundColor: mode == MusicDisplayMode.game ? Colors.transparent : null,
           elevation: mode == MusicDisplayMode.game ? 0 : null,
           title: Text(widget.song.title),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 4,
+              backgroundColor: mode == MusicDisplayMode.game ? Colors.white.withValues(alpha: 0.1) : null,
+            ),
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.chevron_left),
@@ -498,7 +506,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
         ),
         body: Column(
           children: [
-            if (mode != MusicDisplayMode.game) LinearProgressIndicator(value: progress, minHeight: 4),
             if (mode == MusicDisplayMode.sheetMusic && current != null)
               _CurrentNoteCard(
                 note: current,
