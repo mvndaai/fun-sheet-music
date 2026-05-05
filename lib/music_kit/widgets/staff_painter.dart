@@ -81,9 +81,10 @@ class StaffPainter extends CustomPainter {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final baseClefColor = isDark ? Colors.white70 : Colors.black87;
     
-    // If the entire row is placeholder measures, fade the clef
-    final bool allPlaceholders = row.measures.isNotEmpty && row.measures.every((m) => m.isPlaceholder);
-    final clefColor = allPlaceholders ? baseClefColor.withValues(alpha: 0.1) : baseClefColor;
+    // If there are real measures in this row, draw clef full opacity.
+    // In game mode, we use buffer placeholders, so we check if any real measures exist.
+    final bool hasRealMeasures = row.measures.any((m) => !m.isPlaceholder);
+    final clefColor = hasRealMeasures ? baseClefColor : baseClefColor.withValues(alpha: 0.1);
 
     double x = _drawClefAndTimeSig(canvas, clefColor);
     final double startX = x;
