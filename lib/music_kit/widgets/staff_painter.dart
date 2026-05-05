@@ -81,17 +81,12 @@ class StaffPainter extends CustomPainter {
     final bool allPlaceholders = row.measures.isNotEmpty && row.measures.every((m) => m.isPlaceholder);
     final clefColor = allPlaceholders ? baseClefColor.withValues(alpha: 0.1) : baseClefColor;
 
-    final linePaint = Paint()
-      ..color = clefColor.withValues(alpha: 0.6)
-      ..strokeWidth = 1.0;
-
     double x = _drawClefAndTimeSig(canvas, clefColor);
     final double startX = x;
     final availW = size.width - startX;
     final measureW = availW / row.measuresPerRow;
 
     // Calculate total staff width first to avoid lines overextending
-    double totalStaffW = startX;
     final List<double> measureWidths = [];
     Measure? currentPrevMeasureForW = row.previousMeasure;
     for (final m in row.measures) {
@@ -117,7 +112,6 @@ class StaffPainter extends CustomPainter {
       }
 
       measureWidths.add(w);
-      totalStaffW += w;
       currentPrevMeasureForW = m;
     }
 
@@ -214,13 +208,6 @@ class StaffPainter extends CustomPainter {
           bp,
         );
       }
-    }
-  }
-
-  void _drawStaffLines(Canvas canvas, double width, Paint p) {
-    for (int i = 0; i < 5; i++) {
-      final y = kTopMargin + i * kLS;
-      canvas.drawLine(Offset(0, y), Offset(width, y), p);
     }
   }
 
@@ -334,7 +321,7 @@ class StaffPainter extends CustomPainter {
           int groupMaxPos = -1000;
           for (final bn in beamNotes) {
             final p = staffPos(bn.step, bn.octave);
-            if (p < 4) upCount++; else downCount++;
+            if (p < 4) { upCount++; } else { downCount++; }
             if (p < groupMinPos) groupMinPos = p;
             if (p > groupMaxPos) groupMaxPos = p;
           }
@@ -464,7 +451,7 @@ class StaffPainter extends CustomPainter {
                   double next2Ratio = (lastNoteX == firstNoteX) ? 1 : (nextBeam2X - firstNoteX) / (lastNoteX - firstNoteX);
                   double next2BeamY = startBeamY + (endBeamY - startBeamY) * next2Ratio;
 
-                  final double bSpacing = kLS * 0.45;
+                  const double bSpacing = kLS * 0.45;
                   final double b2Y1 = beamStemUp ? currentNoteBeamY + bSpacing : currentNoteBeamY - bSpacing;
                   final double b2Y2 = beamStemUp ? next2BeamY + bSpacing : next2BeamY - bSpacing;
                   final double b2EndX = nextBeam2X + (beamStemUp ? kNRx : -kNRx);

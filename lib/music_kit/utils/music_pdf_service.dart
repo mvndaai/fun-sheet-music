@@ -456,7 +456,7 @@ class MusicPdfService {
             int groupMaxPos = -1000;
             for (final bn in beamNotes) {
               final p = staffPos(bn.step, bn.octave);
-              if (p < 4) upCount++; else downCount++;
+              if (p < 4) { upCount++; } else { downCount++; }
               if (p < groupMinPos) groupMinPos = p;
               if (p > groupMaxPos) groupMaxPos = p;
             }

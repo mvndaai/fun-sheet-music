@@ -14,7 +14,6 @@ import '../providers/keyboard_provider.dart';
 import '../providers/sound_provider.dart';
 import '../music_kit/utils/keyboard_utils.dart';
 import '../main.dart' show showToast;
-import 'instruments_screen.dart';
 import '../widgets/music_settings_sheet.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../music_kit/utils/music_pdf_service.dart';
@@ -55,7 +54,6 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   Timer? _playbackTimer;
   int _playbackMeasureIndex = -1;
   int _playbackNoteIndex = -1;
-  bool _playWholeSong = false;
   bool _includePickupInFirstRow = true;
 
   final List<Song> _history = [];
@@ -75,7 +73,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         title: 'Make My Own',
         composer: 'Me',
         measures: [
-          Measure(number: 1, notes: [], beats: 4, beatType: 4),
+          const Measure(number: 1, notes: [], beats: 4, beatType: 4),
         ],
         createdAt: DateTime.now(),
       );

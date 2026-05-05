@@ -210,8 +210,8 @@ class SongProvider extends ChangeNotifier {
   /// Loads metadata for all bundled songs from assets.
   Future<void> _loadBundledMetadata(List<String> songAssets) async {
     try {
-      final uri = Uri.base;
-      final isTestingEnabled = kDebugMode || (kIsWeb && (uri.host == 'localhost' || uri.queryParameters.containsKey('testing')));
+      //final uri = Uri.base;
+      //final isTestingEnabled = kDebugMode || (kIsWeb && (uri.host == 'localhost' || uri.queryParameters.containsKey('testing')));
 
       // Load all XML contents in parallel
       // We process in smaller batches to avoid saturating the platform channel

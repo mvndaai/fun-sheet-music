@@ -72,7 +72,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     // Sheet Music/Game mode: jump past initial rests
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final mode = context.read<InstrumentProvider>().displayMode;
         _jumpPastRests();
       }
     });
@@ -143,7 +142,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     }
 
     final note = _notes[_activeNoteIndex];
-    final keyboardProvider = context.read<KeyboardProvider>();
     final samplePath = context.read<SoundProvider>().activeProfile.getSamplePath(note.letterName);
     _tonePlayer.playNote(note.frequency, samplePath: samplePath);
 
@@ -251,7 +249,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     if (_activeNoteIndex < _notes.length - 1) {
       setState(() {
         _activeNoteIndex++;
-        final mode = context.read<InstrumentProvider>().displayMode;
         _jumpPastRests();
       });
       _scrollToCurrentNoteSmooth();
@@ -264,7 +261,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     if (_activeNoteIndex > 0) {
       setState(() {
         _activeNoteIndex--;
-        final mode = context.read<InstrumentProvider>().displayMode;
         while (_activeNoteIndex > 0 && _notes[_activeNoteIndex].isRest) {
           _activeNoteIndex--;
         }
@@ -319,33 +315,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     _stopPlayback();
     
     showToast('⭐ Congratulations! Song Complete!');
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('🎉 Congratulations!'),
-        content: const Text('You completed the song!'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() {
-                _activeNoteIndex = 0;
-                //_statusMessage = null;
-              });
-            },
-            child: const Text('Play Again'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text('Done'),
-          ),
-        ],
-      ),
-    );
   }
 
   // --- Shared Logic ---
