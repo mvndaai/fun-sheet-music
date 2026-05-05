@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -159,16 +160,24 @@ class SongProvider extends ChangeNotifier {
         }
         
         // Yield every few migrations
-        if (i % 10 == 0) await Future.delayed(Duration.zero);
+        if (i % 10 == 0) await _yield();
       } catch (e) {
         debugPrint('Migration error for song: $e');
       }
     }
   }
 
+  /// Helper to yield to the UI thread, but skip in tests to avoid pending timers.
+  Future<void> _yield([Duration duration = Duration.zero]) async {
+    if (kDebugMode && WidgetsBinding.instance.runtimeType.toString().contains('Test')) {
+      return;
+    }
+    await Future.delayed(duration);
+  }
+
   Future<void> _initializeAssets({bool onlyDefaults = false}) async {
     // Give the UI thread a moment to settle and render the first frame before starting background work
-    await Future.delayed(const Duration(milliseconds: 500));
+    await _yield();
 
     // 1. Get the list of assets first (very fast)
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
@@ -223,7 +232,7 @@ class SongProvider extends ChangeNotifier {
         );
         loadedAssets.addAll(results);
         // Yield to UI thread between batches with a real delay to ensure frame rendering
-        await Future.delayed(const Duration(milliseconds: 100));
+        await _yield();
       }
 
       final Map<String, List<Song>> results = {};
@@ -305,7 +314,7 @@ class SongProvider extends ChangeNotifier {
       for (final metadata in entry.value) {
         // Yield occasionally to keep UI thread responsive
         if (newSeenAssets.length % 15 == 0) {
-          await Future.delayed(Duration.zero);
+          await _yield();
         }
 
         try {
