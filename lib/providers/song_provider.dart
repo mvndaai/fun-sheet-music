@@ -173,44 +173,12 @@ class SongProvider extends ChangeNotifier {
       );
 
       final Map<String, List<Song>> results = {};
-      for (final asset in loadedAssets) {
-        if (asset.content.isEmpty) continue;
-        
-        try {
-          // Determine library name from folder
-          String libraryName = builtinLibraryName;
-          final parts = asset.path.split('/');
-          final musicIndex = parts.indexOf('music');
-          
-          if (musicIndex != -1 && musicIndex + 1 < parts.length) {
-            final folderName = parts[musicIndex + 1];
-            if (folderName == 'shared_by_users') {
-              libraryName = 'Shared by Users';
-            } else if (folderName == 'testing') {
-              if (!isTestingEnabled) continue;
-              libraryName = 'Testing';
-            } else if (folderName == 'defaults') {
-              libraryName = builtinLibraryName;
-            } else {
-              // Capitalize folder name: my_folder -> My Folder
-              libraryName = folderName
-                  .split('_')
-                  .map((s) => s.isNotEmpty ? s[0].toUpperCase() + s.substring(1) : '')
-                  .join(' ');
-            }
-          }
+      
+      // Perform metadata parsing in parallel using isolates to keep the UI thread free
+      final List<Song> parsedMetadatas = await compute(_parseMultipleMetadatas, loadedAssets);
 
-          final metadata = MusicXmlParser.parseMetadata(
-            asset.content,
-            id: asset.path, // Use asset path as temp ID
-            library: libraryName,
-            localPath: asset.path,
-          );
-          
-          results.putIfAbsent(libraryName, () => []).add(metadata);
-        } catch (e) {
-          debugPrint('Failed to parse metadata for bundled song (${asset.path}): $e');
-        }
+      for (final metadata in parsedMetadatas) {
+        results.putIfAbsent(metadata.library, () => []).add(metadata);
       }
       _bundledSongsMetadata = results;
       
@@ -281,6 +249,11 @@ class SongProvider extends ChangeNotifier {
     for (final entry in _bundledSongsMetadata.entries) {
       final libraryName = entry.key;
       for (final metadata in entry.value) {
+        // Yield every few songs to keep UI thread from locking up
+        if (newSeenAssets.length % 5 == 0) {
+          await Future.delayed(Duration.zero);
+        }
+
         try {
           final assetPath = metadata.localPath;
           if (assetPath == null) continue; // Skip remote songs
@@ -614,4 +587,45 @@ Song _parseSongInIsolate(Map<String, dynamic> params) {
     return song.copyWith(icon: params['icon'] as String);
   }
   return song;
+}
+
+/// Helper for parsing multiple metadatas in an isolate to unblock the UI thread.
+List<Song> _parseMultipleMetadatas(List<({String path, String content})> assets) {
+  final List<Song> results = [];
+  for (final asset in assets) {
+    if (asset.content.isEmpty) continue;
+    try {
+      // Determine library name from folder
+      String libraryName = SongProvider.builtinLibraryName;
+      final parts = asset.path.split('/');
+      final musicIndex = parts.indexOf('music');
+
+      if (musicIndex != -1 && musicIndex + 1 < parts.length) {
+        final folderName = parts[musicIndex + 1];
+        if (folderName == 'shared_by_users') {
+          libraryName = 'Shared by Users';
+        } else if (folderName == 'testing') {
+          libraryName = 'Testing';
+        } else if (folderName == 'defaults') {
+          libraryName = SongProvider.builtinLibraryName;
+        } else {
+          libraryName = folderName
+              .split('_')
+              .map((s) => s.isNotEmpty ? s[0].toUpperCase() + s.substring(1) : '')
+              .join(' ');
+        }
+      }
+
+      final metadata = MusicXmlParser.parseMetadata(
+        asset.content,
+        id: asset.path,
+        library: libraryName,
+        localPath: asset.path,
+      );
+      results.add(metadata);
+    } catch (_) {
+      // Ignore individual failures
+    }
+  }
+  return results;
 }
