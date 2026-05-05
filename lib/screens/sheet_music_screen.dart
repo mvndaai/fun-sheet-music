@@ -399,15 +399,23 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
             // Normalize to sharps for consistent lookup (Db -> C#)
             final normalizedTarget = NoteMapLookup.normalizeToSharps(targetNoteName);
             if (overrides[normalizedTarget] == mapping) return normalizedTarget;
-            // Fallback for keyboard mappings across octaves if only one was mapped
-            // (Standard Keyboard already has many mapped, but we can do a quick check)
+
             final step = normalizedTarget.replaceAll(RegExp(r'\d+$'), '');
+            // Check for generic "any octave" mapping (e.g. 'C')
+            if (overrides[step] == mapping) return '$step${current.octave}';
+
+            // Fallback for keyboard mappings across octaves if only one was mapped
             for (int oct = 1; oct <= 8; oct++) {
               if (overrides['$step$oct'] == mapping) return '$step$oct';
             }
           }
           for (final entry in overrides.entries) {
-            if (entry.value == mapping) return entry.key;
+            if (entry.value == mapping) {
+              final key = entry.key;
+              // If it's a generic note (no octave), default to octave 4 for sound
+              if (RegExp(r'^[A-G][#b]?$').hasMatch(key)) return '${key}4';
+              return key;
+            }
           }
           return null;
         }

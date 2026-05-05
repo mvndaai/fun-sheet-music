@@ -11,9 +11,9 @@ class KeyboardProvider extends ChangeNotifier {
   final Uuid _uuid = const Uuid();
   SharedPreferences? _prefs;
 
-  String _activeId = KeyboardProfile.standard.id;
+  String _activeId = KeyboardProfile.simple.id;
   List<KeyboardProfile> _customProfiles = [];
-  List<KeyboardProfile> _builtInProfiles = [KeyboardProfile.standard];
+  List<KeyboardProfile> _builtInProfiles = [KeyboardProfile.simple, KeyboardProfile.standard];
 
   Future<SharedPreferences> get _preferences async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -26,16 +26,16 @@ class KeyboardProvider extends ChangeNotifier {
   KeyboardProfile get activeProfile =>
       allProfiles.firstWhere(
         (s) => s.id == _activeId,
-        orElse: () => KeyboardProfile.standard,
+        orElse: () => KeyboardProfile.simple,
       );
 
   Future<void> load() async {
     final prefs = await _preferences;
     
     // Always reset built-in profiles to ensure they're pristine
-    _builtInProfiles = [KeyboardProfile.standard];
+    _builtInProfiles = [KeyboardProfile.simple, KeyboardProfile.standard];
     
-    _activeId = prefs.getString(_activeIdKey) ?? KeyboardProfile.standard.id;
+    _activeId = prefs.getString(_activeIdKey) ?? KeyboardProfile.simple.id;
 
     final raw = prefs.getString(_customKey);
     if (raw != null) {

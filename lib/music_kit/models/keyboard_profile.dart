@@ -103,6 +103,35 @@ class KeyboardProfile {
     );
   }
 
+  static const KeyboardProfile simple = KeyboardProfile(
+    id: 'builtin_keyboard_simple',
+    name: 'Simple QWERTY (Any Octave)',
+    emoji: '🎹',
+    isBuiltIn: true,
+    keyboardOverrides: {
+      'C': 'KeyA', 'C#': 'KeyW', 'D': 'KeyS', 'D#': 'KeyE', 'E': 'KeyD',
+      'F': 'KeyF', 'F#': 'KeyT', 'G': 'KeyG', 'G#': 'KeyY', 'A': 'KeyH',
+      'A#': 'KeyU', 'B': 'KeyJ',
+    },
+    editorShortcuts: {
+      'pitchUp': 'ArrowUp',
+      'pitchDown': 'ArrowDown',
+      'durationUp': 'ArrowRight',
+      'durationDown': 'ArrowLeft',
+      'toggleBeam': 'KeyB',
+      'addNote': 'Space',
+      'deleteNote': 'Backspace',
+      'undo': 'Control+KeyZ',
+      'redo': 'Control+KeyY',
+      'print': 'Control+KeyP',
+      'save': 'Control+KeyS',
+      'toggleListening': 'KeyL',
+      'prevMeasure': 'BracketLeft',
+      'nextMeasure': 'BracketRight',
+      'togglePlayback': 'Control+Space',
+    },
+  );
+
   static const KeyboardProfile standard = KeyboardProfile(
     id: 'builtin_keyboard_standard',
     name: 'Standard QWERTY',
