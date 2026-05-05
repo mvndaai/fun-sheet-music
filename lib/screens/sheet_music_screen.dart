@@ -134,10 +134,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
 
   void _scheduleNextNote() {
     if (_activeNoteIndex >= _notes.length) {
-      setState(() {
-        _isPlaying = false;
-        _activeNoteIndex = 0;
-      });
+      _onSongComplete();
       return;
     }
 
@@ -150,16 +147,13 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
 
     _playbackTimer = Timer(Duration(milliseconds: noteDurationMs), () {
       if (_isPlaying && mounted) {
-        setState(() {
-          if (_activeNoteIndex < _notes.length - 1) {
-            _activeNoteIndex++;
-            _scrollToCurrentNoteSmooth();
-            _scheduleNextNote();
-          } else {
-            _isPlaying = false;
-            _activeNoteIndex = 0;
-          }
-        });
+        if (_activeNoteIndex < _notes.length - 1) {
+          setState(() => _activeNoteIndex++);
+          _scrollToCurrentNoteSmooth();
+          _scheduleNextNote();
+        } else {
+          _onSongComplete();
+        }
       }
     });
   }
@@ -313,7 +307,11 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   void _onSongComplete() {
     _stopMic();
     _stopPlayback();
-    
+    setState(() {
+      _activeNoteIndex = 0;
+      _jumpPastRests();
+    });
+    _scrollToCurrentNoteSmooth();
     showToast('⭐ Congratulations! Song Complete!');
   }
 
