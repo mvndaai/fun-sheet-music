@@ -167,6 +167,9 @@ class SongProvider extends ChangeNotifier {
   }
 
   Future<void> _initializeAssets({bool onlyDefaults = false}) async {
+    // Give the UI thread a moment to settle and render the first frame before starting background work
+    await Future.delayed(const Duration(milliseconds: 500));
+
     // 1. Get the list of assets first (very fast)
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
     final songAssets = manifest.listAssets().where((p) => p.endsWith('.xml') && (p.contains('assets/music/') || p.contains('music/'))).toList();
@@ -295,12 +298,13 @@ class SongProvider extends ChangeNotifier {
     final Map<String, int> newAvailableByLibrary = {};
     // We consider it a "clean slate" only if they have no songs and haven't seen assets before.
     bool isFirstRun = seenAssets.isEmpty && _songs.isEmpty;
+    final List<({Song song, String xml})> songsToBatchSave = [];
 
     for (final entry in _bundledSongsMetadata.entries) {
       final libraryName = entry.key;
       for (final metadata in entry.value) {
-        // Yield every few songs to keep UI thread from locking up
-        if (newSeenAssets.length % 5 == 0) {
+        // Yield occasionally to keep UI thread responsive
+        if (newSeenAssets.length % 15 == 0) {
           await Future.delayed(Duration.zero);
         }
 
@@ -311,23 +315,18 @@ class SongProvider extends ChangeNotifier {
           final isAutoAdd = assetPath.contains('/auto-add/');
           if (onlyDefaults && !isAutoAdd) continue;
 
-          // Check if this specific asset is already imported
+          // Check if already in library
           final alreadyExists = _songs.any((s) => s.localPath == assetPath && s.library == libraryName);
-
           if (alreadyExists) {
             newSeenAssets.add(assetPath);
             continue;
           }
 
-          // If we've "seen" it before, it means the user deleted it or we notified them about it already.
-          if (seenAssets.contains(assetPath)) {
-            continue;
-          }
+          if (seenAssets.contains(assetPath)) continue;
 
-          // Double check by title to avoid duplicates
+          // Duplicate check by title
           if (_songs.any((s) => s.title == metadata.title && s.library == libraryName)) {
             final existing = _songs.firstWhere((s) => s.title == metadata.title && s.library == libraryName);
-            // If the icon is missing in the DB version, update it from the asset metadata
             final needsIcon = existing.icon.isEmpty && metadata.icon.isNotEmpty;
             if (existing.localPath != assetPath || needsIcon) {
               await _storage.updateMetadata(
@@ -335,15 +334,13 @@ class SongProvider extends ChangeNotifier {
                 localPath: assetPath,
                 icon: needsIcon ? metadata.icon : null,
               );
-              // Update in-memory state so UI updates
+              // Update in-memory
               final idx = _songs.indexWhere((s) => s.id == existing.id);
               if (idx >= 0) {
                 _songs[idx] = _songs[idx].copyWith(
                   localPath: assetPath,
                   icon: needsIcon ? metadata.icon : null,
                 );
-                _invalidateCache();
-                notifyListeners();
               }
             }
             newSeenAssets.add(assetPath);
@@ -351,26 +348,31 @@ class SongProvider extends ChangeNotifier {
           }
 
           // DECISION POINT: Auto-add vs Notify
-          // We only auto-add to the home screen if it's the very first run AND the song is in auto-add.
           if (isAutoAdd && isFirstRun) {
             final xmlContent = await rootBundle.loadString(assetPath);
-            await addSongFromXml(
-              xmlContent,
-              tags: metadata.tags,
-              library: libraryName,
-              localPath: assetPath,
-            );
+            // We use the metadata object we already have instead of re-parsing everything
+            final songToSave = metadata.copyWith(id: _uuid.v7());
+            songsToBatchSave.add((song: songToSave, xml: xmlContent));
             newSeenAssets.add(assetPath);
           } else {
-            // It's a new song we haven't seen before. 
-            // We don't auto-add (to avoid being intrusive), but we notify.
             newAvailableByLibrary[libraryName] = (newAvailableByLibrary[libraryName] ?? 0) + 1;
             newSeenAssets.add(assetPath);
           }
         } catch (e) {
-          debugPrint('Failed to load sample song (${metadata.title}): $e');
+          debugPrint('Failed to process sample song (${metadata.title}): $e');
         }
       }
+    }
+
+    // Perform batch save if needed
+    if (songsToBatchSave.isNotEmpty) {
+      debugPrint('Batch saving ${songsToBatchSave.length} auto-added songs...');
+      for (final item in songsToBatchSave) {
+        await _storage.saveSong(item.song, xmlContent: item.xml);
+        _songs.insert(0, item.song);
+      }
+      _invalidateCache();
+      notifyListeners();
     }
 
     if (newSeenAssets.length != seenAssets.length) {

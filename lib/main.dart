@@ -82,18 +82,7 @@ ThemeData _buildTheme(Brightness brightness) {
       ? ThemeData.dark().textTheme 
       : null;
   
-  // Use actual GoogleFont family names to ensure the engine can resolve them
-  // this helps avoid the "Could not find a set of Noto fonts" warning.
-  final fontFallbacks = <String>[
-    GoogleFonts.notoColorEmoji().fontFamily!,
-    GoogleFonts.notoMusic().fontFamily!,
-    GoogleFonts.notoSansSymbols().fontFamily!,
-    GoogleFonts.notoSansSymbols2().fontFamily!,
-  ];
-
-  final textTheme = GoogleFonts.notoSansTextTheme(baseTextTheme).apply(
-    fontFamilyFallback: fontFallbacks,
-  );
+  final textTheme = GoogleFonts.notoSansTextTheme(baseTextTheme);
   
   return ThemeData(
     colorScheme: ColorScheme.fromSeed(

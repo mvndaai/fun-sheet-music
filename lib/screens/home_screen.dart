@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/song_provider.dart';
 import '../providers/instrument_provider.dart';
@@ -438,7 +439,18 @@ class _SongCard extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: Theme.of(context).colorScheme.primaryContainer,
           child: song.icon.isNotEmpty
-              ? Text(song.icon, style: const TextStyle(fontSize: 20))
+              ? Text(
+                  song.icon,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontFamilyFallback: [
+                      'Apple Color Emoji',
+                      'Segoe UI Emoji',
+                      'Noto Color Emoji',
+                      'Android Emoji',
+                    ],
+                  ),
+                )
               : Text(
                   _getInitials(song.title),
                   style: TextStyle(
