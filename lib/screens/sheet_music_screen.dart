@@ -38,11 +38,11 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   int _activeNoteIndex = 0;
   double _tempo = 140.0;
 
-  // View Mode State
+  // Sheet Music Mode State
   bool _isPlaying = false;
   Timer? _playbackTimer;
 
-  // Practice/Game Mode State
+  // Sheet Music/Game Mode State
   final PitchDetectionService _audio = PitchDetectionService();
   bool _micActive = false;
   String _detectedNote = '';
@@ -69,13 +69,11 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
       }
     });
 
-    // Practice/Game mode: jump past initial rests
+    // Sheet Music/Game mode: jump past initial rests
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final mode = context.read<InstrumentProvider>().displayMode;
-        if (mode != MusicDisplayMode.view) {
-          _jumpPastRests();
-        }
+        _jumpPastRests();
       }
     });
   }
@@ -101,7 +99,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     super.dispose();
   }
 
-  // --- View Mode Logic ---
+  // --- Sheet Music Mode Logic ---
 
   void _togglePlayback() {
     if (_isPlaying) {
@@ -113,6 +111,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
 
   void _startPlayback() {
     if (_notes.isEmpty) return;
+    _stopMic();
     setState(() {
       _isPlaying = true;
       if (_activeNoteIndex >= _notes.length - 1) {
@@ -156,6 +155,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
         setState(() {
           if (_activeNoteIndex < _notes.length - 1) {
             _activeNoteIndex++;
+            _scrollToCurrentNoteSmooth();
             _scheduleNextNote();
           } else {
             _isPlaying = false;
@@ -166,7 +166,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     });
   }
 
-  // --- Practice/Game Mode Logic ---
+  // --- Sheet Music/Game Mode Logic ---
 
   Future<void> _toggleMic() async {
     if (_micActive) {
@@ -177,6 +177,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   }
 
   Future<void> _startMic() async {
+    _pausePlayback();
     //setState(() => _statusMessage = 'Starting microphone...');
     final success = await _audio.startListening();
     if (!mounted) return;
@@ -251,9 +252,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
       setState(() {
         _activeNoteIndex++;
         final mode = context.read<InstrumentProvider>().displayMode;
-        if (mode != MusicDisplayMode.view) {
-          _jumpPastRests();
-        }
+        _jumpPastRests();
       });
       _scrollToCurrentNoteSmooth();
     } else {
@@ -266,10 +265,8 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
       setState(() {
         _activeNoteIndex--;
         final mode = context.read<InstrumentProvider>().displayMode;
-        if (mode != MusicDisplayMode.view) {
-          while (_activeNoteIndex > 0 && _notes[_activeNoteIndex].isRest) {
-            _activeNoteIndex--;
-          }
+        while (_activeNoteIndex > 0 && _notes[_activeNoteIndex].isRest) {
+          _activeNoteIndex--;
         }
       });
       _scrollToCurrentNoteSmooth();
@@ -422,7 +419,6 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
         focusNode: _focusNode,
         autofocus: true,
         onKeyEvent: (node, event) {
-          if (mode == MusicDisplayMode.view) return KeyEventResult.ignored;
           if (event is KeyRepeatEvent) return KeyEventResult.handled;
         final mapping = KeyboardUtils.getMappingName(event);
         final overrides = keyboardProvider.activeProfile.getAllKeyMappings();
@@ -502,19 +498,17 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
               onPressed: _activeNoteIndex < _notes.length - 1 ? _advance : null,
               tooltip: 'Next Note',
             ),
-            if (mode == MusicDisplayMode.view)
-              IconButton(
-                icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-                onPressed: _togglePlayback,
-                tooltip: _isPlaying ? 'Pause' : 'Play',
-              )
-            else
-              IconButton(
-                icon: Icon(_micActive ? Icons.mic : Icons.mic_off),
-                onPressed: _toggleMic,
-                color: _micActive ? Colors.green : null,
-                tooltip: _micActive ? 'Stop Mic' : 'Start Mic',
-              ),
+            IconButton(
+              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+              onPressed: _togglePlayback,
+              tooltip: _isPlaying ? 'Pause' : 'Play',
+            ),
+            IconButton(
+              icon: Icon(_micActive ? Icons.mic : Icons.mic_off),
+              onPressed: _toggleMic,
+              color: _micActive ? Colors.green : null,
+              tooltip: _micActive ? 'Stop Mic' : 'Start Mic',
+            ),
             IconButton(
               icon: Icon(_tonePlayer.isMetronomeRunning ? Icons.stop : Icons.av_timer),
               onPressed: _toggleMetronome,
@@ -530,7 +524,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
         body: Column(
           children: [
             if (mode != MusicDisplayMode.game) LinearProgressIndicator(value: progress, minHeight: 4),
-            if (mode == MusicDisplayMode.practice && current != null)
+            if (mode == MusicDisplayMode.sheetMusic && current != null)
               _CurrentNoteCard(
                 note: current,
                 showSolfege: provider.showSolfege,

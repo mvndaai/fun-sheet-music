@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#1565C0",
     "theme_color": "#1565C0",
-    "description": "An app for displaying colored sheet music with practice modes.",
+    "description": "An app for displaying colored sheet music.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": []

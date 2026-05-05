@@ -10,7 +10,7 @@ class AppConfig {
   static const String title = 'Fun Sheet Music';
 
   /// App description
-  static const String description = 'An app for displaying colored sheet music with practice modes.';
+  static const String description = 'An app for displaying colored sheet music.';
 
   /// Package name / directory name (e.g., "fun_sheet_music")
   static String get appName => title.toLowerCase().replaceAll(' ', '_');

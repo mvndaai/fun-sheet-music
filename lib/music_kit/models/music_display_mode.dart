@@ -1,5 +1,4 @@
 enum MusicDisplayMode {
-  view,
-  practice,
+  sheetMusic,
   game,
 }

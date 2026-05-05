@@ -25,7 +25,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Fun Sheet Music needs microphone access to detect notes you are playing in practice mode.</string>
+	<string>Fun Sheet Music needs microphone access to detect notes you are playing in sheet music mode.</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>https</string>

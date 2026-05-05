@@ -1,6 +1,6 @@
 # Fun Sheet Music
 
-An app for displaying colored sheet music with practice modes.
+An app for displaying colored sheet music.
 
 ## Features
 
@@ -8,7 +8,7 @@ An app for displaying colored sheet music with practice modes.
 - **Color-Coded Sheet Music** – Notes are displayed as colored circles matching a children's xylophone (C = Red, D = Orange, E = Yellow, F = Green, G = Teal, A = Blue, B = Purple).
 - **Dual Note Names** – Toggle between letter notation (A, B, C), solfège (Do, Re, Mi), or both simultaneously.
 - **Song Library with Tags** – All uploaded songs are stored locally in a Drift database and can be organized with custom tags for easy filtering.
-- **Practice Mode (Mic & Keyboard)** – The app listens to the microphone or physical keyboard, detects the pitch/key being played, highlights the current note, and automatically advances when the correct note is heard.
+- **Sheet Music Mode (Mic & Keyboard)** – The app listens to the microphone or physical keyboard, detects the pitch/key being played, highlights the current note, and automatically advances when the correct note is heard.
 - **Tone Playback** – Play back songs using a built-in synthesizer to hear how they should sound.
 - **PDF Export & Printing** – Export your color-coded sheet music to PDF or print directly from the app.
 - **Sharing** – Share songs via QR codes or direct links.
@@ -57,7 +57,7 @@ lib/
 ├── providers/                 # State management (Song, Instrument, Keyboard)
 ├── screens/
 │   ├── home_screen.dart       # Song library + tag filtering
-│   ├── sheet_music_screen.dart# Main viewer with playback & practice modes
+│   ├── sheet_music_screen.dart# Main viewer with playback & interactive modes
 │   ├── upload_screen.dart     # File upload and URL import
 │   ├── instruments_screen.dart# Instrument list & selection
 │   ├── instrument_setup_screen.dart # Add/Edit instrument details
@@ -74,9 +74,9 @@ Several sample MusicXML files are included in `assets/sample_songs/`, including:
 - Mary Had a Little Lamb
 - Concerning Hobbits
 
-## Practice Mode
+## Sheet Music Mode
 
-1. Open a song and tap **Practice**.
+1. Open a song and tap **Sheet Music**.
 2. **Microphone**: Tap the microphone button (🎙) to start listening. Play the note on your instrument – the app advances when the correct pitch is detected.
 3. **Keyboard**: Connect a physical keyboard (or use your laptop keys). The app maps keys to musical notes for silent practice.
 4. The current note is highlighted on the staff, and its name/color is shown at the top.
@@ -86,6 +86,6 @@ Several sample MusicXML files are included in `assets/sample_songs/`, including:
 
 | Platform | Permission       | Purpose                     |
 |----------|------------------|-----------------------------|
-| Android  | `RECORD_AUDIO`   | Microphone for practice mode|
-| iOS      | `NSMicrophoneUsageDescription` | Microphone for practice mode |
-| Web      | Browser mic prompt | Microphone for practice mode |
+| Android  | `RECORD_AUDIO`   | Microphone for sheet music mode|
+| iOS      | `NSMicrophoneUsageDescription` | Microphone for sheet music mode |
+| Web      | Browser mic prompt | Microphone for sheet music mode |

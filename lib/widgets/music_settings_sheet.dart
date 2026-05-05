@@ -148,8 +148,7 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                   title: 'Display Mode',
                   value: provider.displayMode,
                   options: const [
-                    (value: MusicDisplayMode.view, label: 'View', icon: Icons.visibility),
-                    (value: MusicDisplayMode.practice, label: 'Practice', icon: Icons.mic),
+                    (value: MusicDisplayMode.sheetMusic, label: 'Sheet Music', icon: Icons.mic),
                     (value: MusicDisplayMode.game, label: 'Game', icon: Icons.sports_esports),
                   ],
                   onChanged: (v) => provider.setDisplayMode(v),

@@ -49,7 +49,7 @@ class InstrumentProvider extends ChangeNotifier {
   LegendStyle _legendStyle = LegendStyle.circles;
   ThemeMode _themeMode = ThemeMode.system;
   String _metronomeSound = 'tick';
-  MusicDisplayMode _displayMode = MusicDisplayMode.view;
+  MusicDisplayMode _displayMode = MusicDisplayMode.sheetMusic;
   bool _pdfLandscape = false;
   bool _isAdFree = false;
   double _tempo = 120.0;
