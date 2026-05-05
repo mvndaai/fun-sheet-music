@@ -287,15 +287,14 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     if (measureIdx == -1) return;
 
     const double measureW = 350.0;
-    const int bufferMeasures = 3; 
     final double noteProgress = totalNotesInMeasure > 0 ? noteInMeasureIdx / totalNotesInMeasure : 0;
     
-    // Total offset includes Clef width + any buffer measures at the start
-    final double noteX = (bufferMeasures * measureW) + kClefW + (measureIdx * measureW) + (noteProgress * measureW);
+    // Total offset includes Clef width
+    final double noteX = kClefW + (measureIdx * measureW) + (noteProgress * measureW);
     
     final maxScroll = _gameScrollController.position.maxScrollExtent;
     final viewportHeight = _gameScrollController.position.viewportDimension;
-    final totalWidth = kClefW + (widget.song.measures.length + 2 * bufferMeasures) * measureW;
+    final totalWidth = kClefW + widget.song.measures.length * measureW;
     
     final double noteYInContent = totalWidth - noteX;
     final double strikeLineYInViewport = viewportHeight * 0.75;
@@ -556,14 +555,6 @@ class _GameView extends StatelessWidget {
     final provider = context.watch<InstrumentProvider>();
     final surfaceColor = Theme.of(context).colorScheme.surface;
 
-    const int bufferMeasures = 3;
-    final displayMeasures = [
-      ...List.generate(bufferMeasures, (_) => Measure(number: 0, notes: [], beats: 4, beatType: 4, isPlaceholder: true)),
-      ...song.measures,
-      ...List.generate(bufferMeasures, (_) => Measure(number: 0, notes: [], beats: 4, beatType: 4, isPlaceholder: true)),
-    ];
-    final displaySong = song.copyWith(measures: displayMeasures);
-
     return LayoutBuilder(builder: (context, constraints) {
       final viewportHeight = constraints.maxHeight;
       return Stack(
@@ -594,18 +585,19 @@ class _GameView extends StatelessWidget {
                           quarterTurns: 3,
                           child: Center(
                             child: SizedBox(
-                              width: kClefW + displayMeasures.length * 350.0,
+                              width: kClefW + song.measures.length * 350.0,
                               child: SheetMusicWidget(
-                                song: displaySong,
+                                song: song,
                                 activeNoteIndex: activeNoteIndex,
                                 showSolfege: provider.showSolfege,
                                 showLetter: provider.showLetter,
                                 labelsBelow: provider.labelsBelow,
                                 coloredLabels: provider.coloredLabels,
-                                measuresPerRow: displayMeasures.length,
+                                measuresPerRow: song.measures.length,
                                 showHeader: false,
                                 scrollable: false,
                                 labelRotation: math.pi / 2,
+                                extendLines: true,
                               ),
                             ),
                           ),

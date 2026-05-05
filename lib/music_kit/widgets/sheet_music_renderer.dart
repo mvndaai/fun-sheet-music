@@ -25,6 +25,8 @@ class SheetMusicRenderer extends StatefulWidget {
   final double labelRotation;
   final ScrollController? scrollController;
 
+  final bool extendLines;
+
   const SheetMusicRenderer({
     super.key,
     required this.instrument,
@@ -43,6 +45,7 @@ class SheetMusicRenderer extends StatefulWidget {
     this.scrollable = true,
     this.labelRotation = 0,
     this.scrollController,
+    this.extendLines = false,
   });
 
   @override
@@ -168,6 +171,7 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
                 instrument: widget.instrument,
                 showNoteLabels: widget.showNoteLabels,
                 labelRotation: widget.labelRotation,
+                extendLines: widget.extendLines,
               );
             }),
           ],
@@ -198,6 +202,7 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
                 coloredLabels: widget.coloredLabels,
                 instrument: widget.instrument,
                 showNoteLabels: widget.showNoteLabels,
+                extendLines: widget.extendLines,
               );
             }),
           ],
@@ -251,6 +256,8 @@ class _StaffRow extends StatelessWidget {
   final bool showNoteLabels;
   final double labelRotation;
 
+  final bool extendLines;
+
   const _StaffRow({
     super.key,
     required this.row,
@@ -264,6 +271,7 @@ class _StaffRow extends StatelessWidget {
     required this.instrument,
     required this.showNoteLabels,
     this.labelRotation = 0,
+    this.extendLines = false,
   });
 
   @override
@@ -288,6 +296,7 @@ class _StaffRow extends StatelessWidget {
               showNoteLabels: showNoteLabels,
               context: context,
               labelRotation: labelRotation,
+              extendLines: extendLines,
             ),
           ),
         ),

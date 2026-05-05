@@ -41,6 +41,8 @@ class StaffPainter extends CustomPainter {
   final double labelRotation;
   final bool showStaffLines;
 
+  final bool extendLines;
+
   StaffPainter({
     required this.row,
     required this.activeNoteIndex,
@@ -55,6 +57,7 @@ class StaffPainter extends CustomPainter {
     required this.context,
     this.labelRotation = 0,
     this.showStaffLines = true,
+    this.extendLines = false,
   });
 
   @override
@@ -70,7 +73,8 @@ class StaffPainter extends CustomPainter {
       old.instrument != instrument ||
       old.showNoteLabels != showNoteLabels ||
       old.labelRotation != labelRotation ||
-      old.showStaffLines != showStaffLines;
+      old.showStaffLines != showStaffLines ||
+      old.extendLines != extendLines;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -122,7 +126,7 @@ class StaffPainter extends CustomPainter {
         ..strokeWidth = 1.0;
       for (int i = 0; i < 5; i++) {
         final y = kTopMargin + i * kLS;
-        canvas.drawLine(Offset(0, y), Offset(startX, y), clefStaffPaint);
+        canvas.drawLine(Offset(extendLines ? -2000 : 0, y), Offset(startX, y), clefStaffPaint);
       }
     }
 
@@ -198,6 +202,15 @@ class StaffPainter extends CustomPainter {
       final isLastMeasureInRow = mi == row.measures.length - 1;
       if (isLastMeasureInRow && row.isLastRow && !m.isPlaceholder && showStaffLines) {
         _drawDoubleBarLine(canvas, x, clefColor);
+        if (extendLines) {
+          final measureStaffPaint = Paint()
+            ..color = baseClefColor.withValues(alpha: 0.4)
+            ..strokeWidth = 1.0;
+          for (int i = 0; i < 5; i++) {
+            final y = kTopMargin + i * kLS;
+            canvas.drawLine(Offset(x, y), Offset(x + 2000, y), measureStaffPaint);
+          }
+        }
       } else if (showStaffLines) {
         final bp = Paint()
           ..color = baseClefColor.withValues(alpha: m.isPlaceholder ? 0.05 : 0.6)

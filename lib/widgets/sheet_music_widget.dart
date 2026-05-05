@@ -25,6 +25,8 @@ class SheetMusicWidget extends StatelessWidget {
   final double labelRotation;
   final ScrollController? scrollController;
 
+  final bool extendLines;
+
   const SheetMusicWidget({
     super.key,
     required this.song,
@@ -41,6 +43,7 @@ class SheetMusicWidget extends StatelessWidget {
     this.scrollable = true,
     this.labelRotation = 0,
     this.scrollController,
+    this.extendLines = false,
   });
 
   @override
@@ -65,6 +68,7 @@ class SheetMusicWidget extends StatelessWidget {
       scrollable: scrollable,
       labelRotation: labelRotation,
       scrollController: scrollController,
+      extendLines: extendLines,
     );
   }
 }
