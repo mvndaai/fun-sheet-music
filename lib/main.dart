@@ -36,14 +36,19 @@ void main() async {
     debugPrint('FLUTTER ERROR: ${details.exception}\n${details.stack}');
     // Avoid spamming snackbars for layout overflow errors
     if (details.exception is! FlutterError || !(details.exception as FlutterError).message.contains('A RenderFlex overflowed')) {
-      showToast('App Error: ${details.exception}', isError: true);
+      // Use addPostFrameCallback to avoid showing snackbar during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showToast('App Error: ${details.exception}', isError: true);
+      });
     }
   };
 
   // Global error handling for asynchronous errors
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
     debugPrint('ASYNC ERROR: $error\n$stack');
-    showToast('Async Error: $error', isError: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showToast('Async Error: $error', isError: true);
+    });
     return true; // Error was handled
   };
 

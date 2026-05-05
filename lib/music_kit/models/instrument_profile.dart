@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../utils/note_map_lookup.dart';
 
+enum LegendStyle {
+  circles,
+  piano,
+  none,
+}
+
 /// The canonical 12 chromatic note keys used as keys in a color scheme.
 const List<String> kNoteKeys = [
   'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'

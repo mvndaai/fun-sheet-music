@@ -9,7 +9,8 @@ import '../providers/sound_provider.dart';
 import '../providers/payment_provider.dart';
 import '../screens/app_setup_screen.dart';
 import '../music_kit/models/music_display_mode.dart';
-import '../music_kit/models/legend_style.dart';
+import '../music_kit/models/music_note.dart';
+import '../music_kit/models/instrument_profile.dart';
 
 /// A shared settings bottom sheet for music display and playback settings.
 class MusicSettingsSheet extends StatefulWidget {
@@ -248,71 +249,53 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                   onChanged: (v) => provider.setThemeMode(v),
                 ),
 
-                // 6. Note Letters (A, B, C…)
-                _SegmentedSetting<bool>(
-                  title: 'Note Letters (A, B, C…)',
-                  value: provider.showLetter,
+                // 6. Note Labels
+                _SegmentedSetting<NoteLabelMode>(
+                  title: 'Note Labels',
+                  value: provider.noteLabelMode,
                   options: const [
-                    (value: true, label: 'Show', icon: null),
-                    (value: false, label: 'Hide', icon: null),
+                    (value: NoteLabelMode.letters, label: 'A, B, C', icon: null),
+                    (value: NoteLabelMode.solfege, label: 'Solfège (Do, Re, Mi)', icon: null),
+                    (value: NoteLabelMode.none, label: 'None', icon: Icons.visibility_off),
                   ],
-                  onChanged: (v) => provider.setShowLetter(v),
+                  onChanged: (v) => provider.setNoteLabelMode(v),
                 ),
 
-                // 7. Solfège Names (Do, Re, Mi…)
-                _SegmentedSetting<bool>(
-                  title: 'Solfège Names (Do, Re, Mi…)',
-                  value: provider.showSolfege,
-                  options: const [
-                    (value: true, label: 'Show', icon: null),
-                    (value: false, label: 'Hide', icon: null),
-                  ],
-                  onChanged: (v) => provider.setShowSolfege(v),
-                ),
-
-                // 8. Label Position
-                _SegmentedSetting<bool>(
-                  title: 'Label Position',
-                  value: provider.labelsBelow,
-                  options: const [
-                    (value: true, label: 'Below Note', icon: null),
-                    (value: false, label: 'Inside Note', icon: null),
-                  ],
-                  onChanged: (v) => provider.setLabelsBelow(v),
-                ),
-
-                // 9. Label Color
-                _SegmentedSetting<bool>(
-                  title: 'Label Color',
-                  value: provider.coloredLabels,
-                  options: const [
-                    (value: true, label: 'Match Note', icon: null),
-                    (value: false, label: 'Standard', icon: null),
-                  ],
-                  onChanged: (v) => provider.setColoredLabels(v),
-                ),
-
-                // 10. Top Color Legend
-                _SegmentedSetting<bool>(
-                  title: 'Top Color Legend',
-                  value: provider.showLegend,
-                  options: const [
-                    (value: true, label: 'Show', icon: null),
-                    (value: false, label: 'Hide', icon: null),
-                  ],
-                  onChanged: (v) => provider.setShowLegend(v),
-                ),
-
-                if (provider.showLegend)
-                  _SegmentedSetting<LegendStyle>(
-                    title: 'Legend Style',
-                    value: provider.legendStyle,
+                if (provider.showNoteLabels) ...[
+                  // 8. Label Position
+                  _SegmentedSetting<bool>(
+                    title: 'Label Position',
+                    value: provider.labelsBelow,
                     options: const [
-                      (value: LegendStyle.circles, label: 'Circles', icon: Icons.circle),
-                      (value: LegendStyle.piano, label: 'Piano', icon: Icons.piano),
+                      (value: true, label: 'Below Note', icon: null),
+                      (value: false, label: 'Inside Note', icon: null),
                     ],
-                    onChanged: (v) => provider.setLegendStyle(v),
+                    onChanged: (v) => provider.setLabelsBelow(v),
                   ),
+
+                  // 9. Label Color
+                  _SegmentedSetting<bool>(
+                    title: 'Label Color',
+                    value: provider.coloredLabels,
+                    options: const [
+                      (value: true, label: 'Match Note', icon: null),
+                      (value: false, label: 'Standard', icon: null),
+                    ],
+                    onChanged: (v) => provider.setColoredLabels(v),
+                  ),
+                ],
+
+                // 10. Color Legend Style
+                _SegmentedSetting<LegendStyle>(
+                  title: 'Color Legend Style',
+                  value: provider.legendStyle,
+                  options: const [
+                    (value: LegendStyle.circles, label: 'Circles', icon: Icons.circle),
+                    (value: LegendStyle.piano, label: 'Piano', icon: Icons.piano),
+                    (value: LegendStyle.none, label: 'None', icon: Icons.visibility_off),
+                  ],
+                  onChanged: (v) => provider.setLegendStyle(v),
+                ),
 
                 const Divider(height: 24),
                 const _SectionHeader(title: 'Sound'),

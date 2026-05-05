@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../providers/instrument_provider.dart';
 import '../main.dart' show showToast;
-import '../music_kit/models/legend_style.dart';
 import '../widgets/legend_circle.dart';
 import '../widgets/legend_piano.dart';
 import '../widgets/name_icon_emoji_dialog.dart';

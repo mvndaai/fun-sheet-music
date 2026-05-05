@@ -5,19 +5,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../music_kit/models/instrument_profile.dart';
 import '../music_kit/models/music_display_mode.dart';
-import '../music_kit/models/legend_style.dart';
+import '../music_kit/models/music_note.dart';
 
 /// Manages the active instrument color scheme and the global note-label setting.
 class InstrumentProvider extends ChangeNotifier {
   static const String _activeIdKey = 'color_scheme_active_id';
   static const String _customSchemesKey = 'color_scheme_custom';
   static const String _showLabelsKey = 'color_scheme_show_labels';
-  static const String _showLetterKey = 'settings_show_letter';
-  static const String _showSolfegeKey = 'settings_show_solfege';
+  static const String _noteLabelModeKey = 'settings_note_label_mode';
   static const String _labelsBelowKey = 'settings_labels_below';
   static const String _coloredLabelsKey = 'settings_colored_labels';
   static const String _measuresPerRowKey = 'settings_measures_per_row';
-  static const String _showLegendKey = 'settings_show_legend';
   static const String _legendStyleKey = 'settings_legend_style';
   static const String _themeModeKey = 'app_theme_mode';
   static const String _metronomeSoundKey = 'settings_metronome_sound';
@@ -39,13 +37,10 @@ class InstrumentProvider extends ChangeNotifier {
   List<InstrumentProfile> _customSchemes = [];
   List<InstrumentProfile> _builtInSchemes = [InstrumentProfile.black];
 
-  bool _showNoteLabels = true;
-  bool _showLetter = true;
-  bool _showSolfege = false;
+  NoteLabelMode _noteLabelMode = NoteLabelMode.letters;
   bool _labelsBelow = true;
   bool _coloredLabels = false;
   int _measuresPerRow = 4;
-  bool _showLegend = true;
   LegendStyle _legendStyle = LegendStyle.circles;
   ThemeMode _themeMode = ThemeMode.system;
   String _metronomeSound = 'tick';
@@ -54,13 +49,14 @@ class InstrumentProvider extends ChangeNotifier {
   bool _isAdFree = false;
   double _tempo = 120.0;
 
-  bool get showNoteLabels => _showNoteLabels;
-  bool get showLetter => _showLetter;
-  bool get showSolfege => _showSolfege;
+  bool get showNoteLabels => _noteLabelMode != NoteLabelMode.none;
+  bool get showLetter => _noteLabelMode == NoteLabelMode.letters;
+  bool get showSolfege => _noteLabelMode == NoteLabelMode.solfege;
+  NoteLabelMode get noteLabelMode => _noteLabelMode;
   bool get labelsBelow => _labelsBelow;
   bool get coloredLabels => _coloredLabels;
   int get measuresPerRow => _measuresPerRow;
-  bool get showLegend => _showLegend;
+  bool get showLegend => _legendStyle != LegendStyle.none;
   LegendStyle get legendStyle => _legendStyle;
   String get activeId => _activeId;
   ThemeMode get themeMode => _themeMode;
@@ -89,16 +85,33 @@ class InstrumentProvider extends ChangeNotifier {
     await _loadDefaults();
 
     _activeId = prefs.getString(_activeIdKey) ?? 'builtin_rainbow';
-    _showNoteLabels = prefs.getBool(_showLabelsKey) ?? true;
-    _showLetter = prefs.getBool(_showLetterKey) ?? true;
-    _showSolfege = prefs.getBool(_showSolfegeKey) ?? false;
+
+    if (prefs.containsKey(_noteLabelModeKey)) {
+      final index = prefs.getInt(_noteLabelModeKey) ?? 0;
+      _noteLabelMode = NoteLabelMode.values[index.clamp(0, NoteLabelMode.values.length - 1)];
+    } else {
+      // Migration
+      final showLabels = prefs.getBool(_showLabelsKey) ?? true;
+      if (!showLabels) {
+        _noteLabelMode = NoteLabelMode.none;
+      } else {
+        final showSolfege = prefs.getBool('settings_show_solfege') ?? false;
+        _noteLabelMode = showSolfege ? NoteLabelMode.solfege : NoteLabelMode.letters;
+      }
+    }
+
     _labelsBelow = prefs.getBool(_labelsBelowKey) ?? true;
     _coloredLabels = prefs.getBool(_coloredLabelsKey) ?? false;
     _measuresPerRow = prefs.getInt(_measuresPerRowKey) ?? 4;
-    _showLegend = prefs.getBool(_showLegendKey) ?? true;
 
-    final legendStyleIndex = prefs.getInt(_legendStyleKey) ?? 0;
-    _legendStyle = LegendStyle.values[legendStyleIndex.clamp(0, LegendStyle.values.length - 1)];
+    if (prefs.containsKey(_legendStyleKey)) {
+      final legendStyleIndex = prefs.getInt(_legendStyleKey) ?? 0;
+      _legendStyle = LegendStyle.values[legendStyleIndex.clamp(0, LegendStyle.values.length - 1)];
+    } else {
+      // Migration
+      final showLegend = prefs.getBool('settings_show_legend') ?? true;
+      _legendStyle = showLegend ? LegendStyle.circles : LegendStyle.none;
+    }
 
     _metronomeSound = prefs.getString(_metronomeSoundKey) ?? 'tick';
     _pdfLandscape = prefs.getBool(_pdfLandscapeKey) ?? false;
@@ -172,19 +185,11 @@ class InstrumentProvider extends ChangeNotifier {
     await prefs.setString(_activeIdKey, id);
   }
 
-  Future<void> setShowNoteLabels(bool value) async {
-    _showNoteLabels = value; notifyListeners();
-    final prefs = await _preferences; await prefs.setBool(_showLabelsKey, value);
-  }
-
-  Future<void> setShowLetter(bool value) async {
-    _showLetter = value; _showNoteLabels = _showLetter || _showSolfege; notifyListeners();
-    final prefs = await _preferences; await prefs.setBool(_showLetterKey, value); await prefs.setBool(_showLabelsKey, _showNoteLabels);
-  }
-
-  Future<void> setShowSolfege(bool value) async {
-    _showSolfege = value; _showNoteLabels = _showLetter || _showSolfege; notifyListeners();
-    final prefs = await _preferences; await prefs.setBool(_showSolfegeKey, value); await prefs.setBool(_showLabelsKey, _showNoteLabels);
+  Future<void> setNoteLabelMode(NoteLabelMode mode) async {
+    _noteLabelMode = mode;
+    notifyListeners();
+    final prefs = await _preferences;
+    await prefs.setInt(_noteLabelModeKey, mode.index);
   }
 
   Future<void> setLabelsBelow(bool value) async {
@@ -200,11 +205,6 @@ class InstrumentProvider extends ChangeNotifier {
   Future<void> setMeasuresPerRow(int value) async {
     _measuresPerRow = value; notifyListeners();
     final prefs = await _preferences; await prefs.setInt(_measuresPerRowKey, value);
-  }
-
-  Future<void> setShowLegend(bool value) async {
-    _showLegend = value; notifyListeners();
-    final prefs = await _preferences; await prefs.setBool(_showLegendKey, value);
   }
 
   Future<void> setLegendStyle(LegendStyle style) async {

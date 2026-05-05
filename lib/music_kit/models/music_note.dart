@@ -1,5 +1,11 @@
 import 'dart:math' as math;
 
+enum NoteLabelMode {
+  letters,
+  solfege,
+  none,
+}
+
 /// Represents a musical note parsed from MusicXML.
 class MusicNote {
   final String step; // C, D, E, F, G, A, B
@@ -61,6 +67,16 @@ class MusicNote {
     if (alter == 1) return '$base#';
     if (alter == -1) return '${base}b';
     return base;
+  }
+
+  /// Returns a display label for the note based on the given mode.
+  String labelFor(NoteLabelMode mode) {
+    if (isRest) return '';
+    return switch (mode) {
+      NoteLabelMode.letters => letterName.replaceAll(RegExp(r'\d'), ''),
+      NoteLabelMode.solfege => solfegeName,
+      NoteLabelMode.none => '',
+    };
   }
 
   /// MIDI note number (C4 = 60).

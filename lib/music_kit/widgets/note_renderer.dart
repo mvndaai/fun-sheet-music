@@ -43,9 +43,8 @@ class NoteRenderer extends StatelessWidget {
     final textColor = NoteColors.textColorFor(color);
 
     final showLabels = showNoteLabels && (showLetter || showSolfege);
-    final displayName = showSolfege
-        ? note.solfegeName
-        : note.letterName.replaceAll(_octaveDigits, '');
+    final labelMode = showSolfege ? NoteLabelMode.solfege : NoteLabelMode.letters;
+    final displayName = note.labelFor(labelMode);
 
     final double scale = isActive ? 1.35 : 1.0;
     final opacity = isPast ? 0.4 : 1.0;
