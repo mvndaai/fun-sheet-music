@@ -54,13 +54,15 @@ void main() async {
   final storageService = StorageService(db: database);
   
   final instrumentProvider = InstrumentProvider();
-  await instrumentProvider.load();
-  
   final keyboardProvider = KeyboardProvider();
-  await keyboardProvider.load();
-
   final soundProvider = SoundProvider();
-  await soundProvider.load();
+
+  // Load providers in parallel to speed up initialization
+  await Future.wait([
+    instrumentProvider.load(),
+    keyboardProvider.load(),
+    soundProvider.load(),
+  ]);
 
   // Ensure Google Fonts can fetch missing characters (like emojis/symbols) at runtime
   GoogleFonts.config.allowRuntimeFetching = true;

@@ -99,59 +99,17 @@ class SongProvider extends ChangeNotifier {
       _songs = await _storage.getAllSongs();
       _applySongOrder();
 
-      // Migration & Icon Repair
-      for (int i = 0; i < _songs.length; i++) {
-        try {
-          final song = _songs[i];
-          bool needsUpdate = false;
-          String? newLibrary;
-          String? newIcon;
-
-          if (song.library == AppConfig.appName || song.library == 'Built In') {
-            newLibrary = builtinLibraryName;
-            needsUpdate = true;
-          }
-
-          if (needsUpdate) {
-            _songs[i] = song.copyWith(
-              library: newLibrary ?? song.library,
-              icon: newIcon ?? song.icon,
-            );
-            await _storage.updateMetadata(
-              _songs[i].id,
-              library: newLibrary,
-              icon: newIcon,
-            );
-          }
-        } catch (e) {
-          debugPrint('Migration error for song at index $i: $e');
-        }
-      }
-
-      // Repair: detect songs with empty XML content and remove them so they can be re-imported
-      final List<String> corruptedIds = [];
-      for (final song in _songs) {
-        try {
-          final xml = await _storage.getXmlContent(song.id);
-          if (xml == null || xml.trim().isEmpty) {
-            corruptedIds.add(song.id);
-          }
-        } catch (e) {
-          debugPrint('Repair check error for song ${song.id}: $e');
-        }
-      }
-      for (final id in corruptedIds) {
-        await _storage.deleteSong(id);
-        _songs.removeWhere((s) => s.id == id);
+      // Only perform migrations if needed
+      final lastMigrated = _prefs!.getInt('last_migration_version') ?? 0;
+      if (lastMigrated < 1) {
+        await _performMigrations();
+        await _prefs!.setInt('last_migration_version', 1);
       }
 
       _invalidateCache();
-      // Load bundled song metadata for the "Add Song" screen
-      await _loadBundledMetadata();
-      // Load remote samples if in testing mode
-      await _loadRemoteTestingMetadata();
-      // Ensure all default bundled songs are present in the library
-      await _loadSampleSongs(onlyDefaults: true);
+      
+      // Load bundled metadata and handle sample songs in the background
+      _initializeAssets(onlyDefaults: true);
     } catch (e) {
       _error = e.toString();
       showToast('Error loading library: $e', isError: true);
@@ -161,21 +119,67 @@ class SongProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _performMigrations() async {
+    for (int i = 0; i < _songs.length; i++) {
+      try {
+        final song = _songs[i];
+        bool needsUpdate = false;
+        String? newLibrary;
+
+        if (song.library == AppConfig.appName || song.library == 'Built In') {
+          newLibrary = builtinLibraryName;
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+          _songs[i] = song.copyWith(library: newLibrary ?? song.library);
+          await _storage.updateMetadata(_songs[i].id, library: newLibrary);
+        }
+      } catch (e) {
+        debugPrint('Migration error for song: $e');
+      }
+    }
+  }
+
+  Future<void> _initializeAssets({bool onlyDefaults = false}) async {
+    // Load bundled song metadata for the "Add Song" screen
+    await _loadBundledMetadata();
+    // Load remote samples if in testing mode
+    await _loadRemoteTestingMetadata();
+    // Ensure all default bundled songs are present in the library
+    await _loadSampleSongs(onlyDefaults: onlyDefaults);
+  }
+
   /// Loads metadata for all bundled songs from assets.
   Future<void> _loadBundledMetadata() async {
     try {
       final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-      final songAssets = manifest.listAssets().where((p) => p.endsWith('.xml') && (p.contains('assets/music/') || p.contains('music/')));
+      final songAssets = manifest.listAssets().where((p) => p.endsWith('.xml') && (p.contains('assets/music/') || p.contains('music/'))).toList();
 
       final uri = Uri.base;
       final isTestingEnabled = kDebugMode || (kIsWeb && (uri.host == 'localhost' || uri.queryParameters.containsKey('testing')));
 
+      // Load all XML contents in parallel
+      final List<({String path, String content})> loadedAssets = await Future.wait(
+        songAssets.map((path) async {
+          try {
+            final content = await rootBundle.loadString(path);
+            return (path: path, content: content);
+          } catch (e) {
+            debugPrint('Error loading asset $path: $e');
+            return (path: path, content: '');
+          }
+        }),
+      );
+
       final Map<String, List<Song>> results = {};
-      for (final assetPath in songAssets) {
+      for (final asset in loadedAssets) {
+        if (asset.content.isEmpty) continue;
+        
         try {
           // Determine library name from folder
           String libraryName = builtinLibraryName;
-          final parts = assetPath.split('/');
+          final parts = asset.path.split('/');
           final musicIndex = parts.indexOf('music');
           
           if (musicIndex != -1 && musicIndex + 1 < parts.length) {
@@ -196,17 +200,16 @@ class SongProvider extends ChangeNotifier {
             }
           }
 
-          final xmlContent = await rootBundle.loadString(assetPath);
           final metadata = MusicXmlParser.parseMetadata(
-            xmlContent,
-            id: assetPath, // Use asset path as temp ID
+            asset.content,
+            id: asset.path, // Use asset path as temp ID
             library: libraryName,
-            localPath: assetPath,
+            localPath: asset.path,
           );
           
           results.putIfAbsent(libraryName, () => []).add(metadata);
         } catch (e) {
-          debugPrint('Failed to load metadata for bundled song ($assetPath): $e');
+          debugPrint('Failed to parse metadata for bundled song (${asset.path}): $e');
         }
       }
       _bundledSongsMetadata = results;
