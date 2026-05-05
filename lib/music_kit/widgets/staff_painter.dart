@@ -316,55 +316,69 @@ class StaffPainter extends CustomPainter {
 
         bool isBeamed = false;
         if (note.beam != null) {
-          // 1. Find all notes in this beam group to determine a consistent direction and beam line
+          // 1. Find the bounds of the current beam group
           int startOfBeam = ni;
           while (startOfBeam > 0 && displayNotes[startOfBeam].beam != 'begin') {
             startOfBeam--;
           }
-          
           int endOfBeam = ni;
           while (endOfBeam < displayNotes.length - 1 && displayNotes[endOfBeam].beam != 'end') {
             endOfBeam++;
           }
-
           final beamNotes = displayNotes.sublist(startOfBeam, endOfBeam + 1);
-          
-          // 2. Determine stem direction: majority rule with tie-break towards furthest from center
+
+          // 2. Determine stem direction: majority rule
           int upCount = 0;
           int downCount = 0;
-          double maxDist = 0;
-          bool distPrefersUp = true;
-          
+          int groupMinPos = 1000;
+          int groupMaxPos = -1000;
           for (final bn in beamNotes) {
             final p = staffPos(bn.step, bn.octave);
-            if (p < 4) {upCount++; } else {downCount++;}
-            final dist = (p - 4).abs().toDouble();
-            if (dist > maxDist) {
-              maxDist = dist;
-              distPrefersUp = p < 4;
-            }
+            if (p < 4) upCount++; else downCount++;
+            if (p < groupMinPos) groupMinPos = p;
+            if (p > groupMaxPos) groupMaxPos = p;
           }
-          final bool beamStemUp = (upCount == downCount) ? distPrefersUp : (upCount > downCount);
+          // If average position is below middle line (4), stems UP
+          bool beamStemUp = (groupMinPos + groupMaxPos) < 8;
+          if (upCount != downCount) beamStemUp = upCount > downCount;
 
-          // 3. Determine beam Y positions (simple straight beam for now, using extreme pitches)
-          // To make it look better, we find the "outer" y for the stems
-          double beamY;
-          if (beamStemUp) {
-            // Find the lowest pitch (highest pos) to ensure beam is above all notes
-            int minPos = 100;
-            for (final bn in beamNotes) {
-              minPos = math.min(minPos, staffPos(bn.step, bn.octave));
+          // 3. Calculate X positions for the whole beam group to handle slanting
+          double firstNoteX = 0, lastNoteX = 0, tempDur = 0;
+          for (int i = 0; i < displayNotes.length; i++) {
+            if (i == startOfBeam || i == endOfBeam) {
+              final xPos = StaffLayoutHelper.getNoteX(
+                measure: m, startX: startX, measureWidth: measureWidth,
+                hasTimeSig: hasTimeSig, cumulativeDuration: tempDur,
+                noteDuration: displayNotes[i].duration, displayNotes: displayNotes,
+              );
+              if (i == startOfBeam) firstNoteX = xPos;
+              if (i == endOfBeam) lastNoteX = xPos;
             }
-            // Beam is at least kStem above the highest note head, but also above middle line
-            beamY = posToY(math.max(minPos, 4)) - kStem;
-          } else {
-            // Find the highest pitch (lowest pos) to ensure beam is below all notes
-            int maxPos = -100;
-            for (final bn in beamNotes) {
-              maxPos = math.max(maxPos, staffPos(bn.step, bn.octave));
-            }
-            beamY = posToY(math.min(maxPos, 4)) + kStem;
+            tempDur += displayNotes[i].duration;
           }
+
+          // 4. Calculate slanted beam Y positions
+          final firstNotePos = staffPos(beamNotes.first.step, beamNotes.first.octave);
+          final lastNotePos = staffPos(beamNotes.last.step, beamNotes.last.octave);
+          
+          double startBeamY, endBeamY;
+          final double slant = ((lastNotePos - firstNotePos) * (kLS / 4)).clamp(-kLS, kLS);
+
+          if (beamStemUp) {
+            // Beam is ABOVE. Use highest note (maxPos).
+            double refY = posToY(math.max(groupMaxPos, 4)) - kStem;
+            startBeamY = refY + slant / 2;
+            endBeamY = refY - slant / 2;
+          } else {
+            // Beam is BELOW. Use lowest note (minPos).
+            double refY = posToY(math.min(groupMinPos, 4)) + kStem;
+            startBeamY = refY + slant / 2;
+            endBeamY = refY - slant / 2;
+          }
+
+          // Interpolate current note's beam Y
+          double ratio = (lastNoteX == firstNoteX) ? 0 : (noteX - firstNoteX) / (lastNoteX - firstNoteX);
+          double currentNoteBeamY = startBeamY + (endBeamY - startBeamY) * ratio;
 
           if (note.beam == 'begin' || note.beam == 'continue') {
             int nextNi = ni + 1;
@@ -393,32 +407,33 @@ class StaffPainter extends CustomPainter {
                 displayNotes: displayNotes,
               );
               
+              double nextRatio = (lastNoteX == firstNoteX) ? 1 : (nextX - firstNoteX) / (lastNoteX - firstNoteX);
+              double nextNoteBeamY = startBeamY + (endBeamY - startBeamY) * nextRatio;
+
               _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
                 forcedStemUp: beamStemUp, 
                 noFlags: true, 
-                stemTipY: beamY,
+                stemTipY: currentNoteBeamY,
                 drawLabel: false,
               );
-              labelsToDraw.add((note: note, x: noteX, y: y, pos: pos, color: color, alpha: alpha, stemTipY: beamY));
+              labelsToDraw.add((note: note, x: noteX, y: y, pos: pos, color: color, alpha: alpha, stemTipY: currentNoteBeamY));
 
-              // Draw a subtle outline for the beam to improve visibility of light colors
               final beamOutlinePaint = Paint()
                 ..color = clefColor.withValues(alpha: (isPast ? 0.3 : 0.7) * 0.4)
                 ..strokeWidth = 4.8;
               
-              final beamStartX = noteX + (beamStemUp ? kNRx : -kNRx);
-              final beamEndX = nextX + (beamStemUp ? kNRx : -kNRx);
-              canvas.drawLine(Offset(beamStartX, beamY), Offset(beamEndX, beamY), beamOutlinePaint);
+              final bStartX = noteX + (beamStemUp ? kNRx : -kNRx);
+              final bEndX = nextX + (beamStemUp ? kNRx : -kNRx);
+              canvas.drawLine(Offset(bStartX, currentNoteBeamY), Offset(bEndX, nextNoteBeamY), beamOutlinePaint);
 
               final beamPaint = Paint()
                 ..color = color.withValues(alpha: isPast ? 0.3 : 0.7)
                 ..strokeWidth = 3.5;
               
-              canvas.drawLine(Offset(beamStartX, beamY), Offset(beamEndX, beamY), beamPaint);
+              canvas.drawLine(Offset(bStartX, currentNoteBeamY), Offset(bEndX, nextNoteBeamY), beamPaint);
 
-              // 4. Double beam (Level 2)
+              // 5. Double beam (Level 2)
               if (note.beam2 == 'begin' || note.beam2 == 'continue') {
-                // Find next note with beam2 'continue' or 'end'
                 int nextBeam2Ni = ni + 1;
                 MusicNote? nextBeam2Note;
                 double nextBeam2NoteOffset = note.duration;
@@ -445,13 +460,17 @@ class StaffPainter extends CustomPainter {
                     nextNoteDuration: nextBeam2Note.duration,
                     displayNotes: displayNotes,
                   );
+                  
+                  double next2Ratio = (lastNoteX == firstNoteX) ? 1 : (nextBeam2X - firstNoteX) / (lastNoteX - firstNoteX);
+                  double next2BeamY = startBeamY + (endBeamY - startBeamY) * next2Ratio;
 
-                  final double beamSpacing = kLS * 0.45;
-                  final double secondBeamY = beamStemUp ? beamY + beamSpacing : beamY - beamSpacing;
-                  final double beam2EndX = nextBeam2X + (beamStemUp ? kNRx : -kNRx);
+                  final double bSpacing = kLS * 0.45;
+                  final double b2Y1 = beamStemUp ? currentNoteBeamY + bSpacing : currentNoteBeamY - bSpacing;
+                  final double b2Y2 = beamStemUp ? next2BeamY + bSpacing : next2BeamY - bSpacing;
+                  final double b2EndX = nextBeam2X + (beamStemUp ? kNRx : -kNRx);
 
-                  canvas.drawLine(Offset(beamStartX, secondBeamY), Offset(beam2EndX, secondBeamY), beamOutlinePaint);
-                  canvas.drawLine(Offset(beamStartX, secondBeamY), Offset(beam2EndX, secondBeamY), beamPaint);
+                  canvas.drawLine(Offset(bStartX, b2Y1), Offset(b2EndX, b2Y2), beamOutlinePaint);
+                  canvas.drawLine(Offset(bStartX, b2Y1), Offset(b2EndX, b2Y2), beamPaint);
                 }
               }
             }
@@ -459,10 +478,10 @@ class StaffPainter extends CustomPainter {
             _drawNote(canvas, note, noteX, isActive, isPast, clefColor, 
               forcedStemUp: beamStemUp, 
               noFlags: true, 
-              stemTipY: beamY,
+              stemTipY: currentNoteBeamY,
               drawLabel: false,
             );
-            labelsToDraw.add((note: note, x: noteX, y: y, pos: pos, color: color, alpha: alpha, stemTipY: beamY));
+            labelsToDraw.add((note: note, x: noteX, y: y, pos: pos, color: color, alpha: alpha, stemTipY: currentNoteBeamY));
             isBeamed = true;
           }
         }

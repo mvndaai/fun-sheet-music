@@ -438,56 +438,70 @@ class MusicPdfService {
 
           bool isBeamed = false;
           if (note.beam != null) {
-            // 1. Find all notes in this beam group to determine a consistent direction and beam line
+            // 1. Find the bounds of the current beam group
             int startOfBeam = ni;
             while (startOfBeam > 0 && displayNotes[startOfBeam].beam != 'begin') {
               startOfBeam--;
             }
-            
             int endOfBeam = ni;
             while (endOfBeam < displayNotes.length - 1 && displayNotes[endOfBeam].beam != 'end') {
               endOfBeam++;
             }
-
             final beamNotes = displayNotes.sublist(startOfBeam, endOfBeam + 1);
-            
-            // 2. Determine stem direction: majority rule with tie-break towards furthest from center
+
+            // 2. Determine stem direction: majority rule
             int upCount = 0;
             int downCount = 0;
-            double maxDist = 0;
-            bool distPrefersUp = true;
-            
+            int groupMinPos = 1000;
+            int groupMaxPos = -1000;
             for (final bn in beamNotes) {
               final p = staffPos(bn.step, bn.octave);
-              if (p < 4) {upCount++; }else {downCount++;}
-              final dist = (p - 4).abs().toDouble();
-              if (dist > maxDist) {
-                maxDist = dist;
-                distPrefersUp = p < 4;
-              }
+              if (p < 4) upCount++; else downCount++;
+              if (p < groupMinPos) groupMinPos = p;
+              if (p > groupMaxPos) groupMaxPos = p;
             }
-            final bool beamStemUp = (upCount == downCount) ? distPrefersUp : (upCount > downCount);
+            // If average position is below middle line (4), stems UP
+            bool beamStemUp = (groupMinPos + groupMaxPos) < 8;
+            if (upCount != downCount) beamStemUp = upCount > downCount;
 
-            // 3. Determine beam Y positions
-            final stemLength = ls * 3.4;
-            double beamY;
-            if (beamStemUp) {
-              int minPos = 100;
-              for (final bn in beamNotes) {
-                final p = staffPos(bn.step, bn.octave);
-                if (p < minPos) minPos = p;
+            // 3. Calculate X positions for the whole beam group to handle slanting
+            double firstNoteX = 0, lastNoteX = 0, tempDur = 0;
+            for (int i = 0; i < displayNotes.length; i++) {
+              if (i == startOfBeam || i == endOfBeam) {
+                final xPos = StaffLayoutHelper.getNoteX(
+                  measure: measure, startX: x, measureWidth: measureWidth,
+                  hasTimeSig: hasTimeSig, cumulativeDuration: tempDur,
+                  noteDuration: displayNotes[i].duration, displayNotes: displayNotes,
+                );
+                if (i == startOfBeam) firstNoteX = xPos;
+                if (i == endOfBeam) lastNoteX = xPos;
               }
-              final basePos = math.max(minPos, 4);
-              beamY = topMargin + staffHeight - basePos * ls / 2 - stemLength;
-            } else {
-              int maxPos = -100;
-              for (final bn in beamNotes) {
-                final p = staffPos(bn.step, bn.octave);
-                if (p > maxPos) maxPos = p;
-              }
-              final basePos = math.min(maxPos, 4);
-              beamY = topMargin + staffHeight - basePos * ls / 2 + stemLength;
+              tempDur += displayNotes[i].duration;
             }
+
+            // 4. Calculate slanted beam Y positions
+            final firstNotePos = staffPos(beamNotes.first.step, beamNotes.first.octave);
+            final lastNotePos = staffPos(beamNotes.last.step, beamNotes.last.octave);
+            final stemLength = ls * 3.4;
+            
+            double startBeamY, endBeamY;
+            final double slant = ((lastNotePos - firstNotePos) * (ls / 4)).clamp(-ls, ls);
+
+            if (beamStemUp) {
+              // Beam is ABOVE. Use highest note (maxPos).
+              double refY = topMargin + staffHeight - math.max(groupMaxPos, 4) * ls / 2 - stemLength;
+              startBeamY = refY + slant / 2;
+              endBeamY = refY - slant / 2;
+            } else {
+              // Beam is BELOW. Use lowest note (minPos).
+              double refY = topMargin + staffHeight - math.min(groupMinPos, 4) * ls / 2 + stemLength;
+              startBeamY = refY + slant / 2;
+              endBeamY = refY - slant / 2;
+            }
+
+            // Interpolate current note's beam Y
+            double ratio = (lastNoteX == firstNoteX) ? 0 : (noteX - firstNoteX) / (lastNoteX - firstNoteX);
+            double currentNoteBeamY = startBeamY + (endBeamY - startBeamY) * ratio;
 
             if (note.beam == 'begin' || note.beam == 'continue') {
               int nextNi = ni + 1;
@@ -515,6 +529,9 @@ class MusicPdfService {
                   nextNoteDuration: nextNote.duration,
                   displayNotes: displayNotes,
                 );
+                
+                double nextRatio = (lastNoteX == firstNoteX) ? 1 : (nextX - firstNoteX) / (lastNoteX - firstNoteX);
+                double nextNoteBeamY = startBeamY + (endBeamY - startBeamY) * nextRatio;
 
                 widgets.addAll(_buildNote(
                   note: note,
@@ -526,7 +543,7 @@ class MusicPdfService {
                   musicFont: musicFont,
                   forcedStemUp: beamStemUp,
                   noFlags: true,
-                  stemTipY: beamY,
+                  stemTipY: currentNoteBeamY,
                   drawLabel: false,
                 ));
 
@@ -543,12 +560,12 @@ class MusicPdfService {
                     showLetter: showLetter,
                     labelsBelow: labelsBelow,
                     coloredLabels: coloredLabels,
-                    stemTipY: beamY,
+                    stemTipY: currentNoteBeamY,
                   ));
                 }
 
-                final beamStartX = noteX + (beamStemUp ? (ls * 0.78) : -(ls * 0.78));
-                final beamEndX = nextX + (beamStemUp ? (ls * 0.78) : -(ls * 0.78));
+                final bStartX = noteX + (beamStemUp ? (ls * 0.78) : -(ls * 0.78));
+                final bEndX = nextX + (beamStemUp ? (ls * 0.78) : -(ls * 0.78));
 
                 widgets.add(
                   pw.Positioned(
@@ -557,20 +574,83 @@ class MusicPdfService {
                     child: pw.CustomPaint(
                       size: const PdfPoint(0, 0),
                       painter: (PdfGraphics canvas, PdfPoint size) {
-                        // Draw a subtle outline for the beam to improve visibility of light colors
                         canvas.setStrokeColor(PdfColors.grey400);
+                        canvas.setGraphicState(const PdfGraphicState(strokeOpacity: 0.28));
                         canvas.setLineWidth(4.8);
-                        canvas.drawLine(beamStartX, -beamY, beamEndX, -beamY);
+                        canvas.drawLine(bStartX, -currentNoteBeamY, bEndX, -nextNoteBeamY);
                         canvas.strokePath();
 
                         canvas.setStrokeColor(pdfColor);
+                        canvas.setGraphicState(const PdfGraphicState(strokeOpacity: 0.7));
                         canvas.setLineWidth(3.5);
-                        canvas.drawLine(beamStartX, -beamY, beamEndX, -beamY);
+                        canvas.drawLine(bStartX, -currentNoteBeamY, bEndX, -nextNoteBeamY);
                         canvas.strokePath();
                       },
                     ),
                   ),
                 );
+
+                // 5. Double beam (Level 2)
+                if (note.beam2 == 'begin' || note.beam2 == 'continue') {
+                  int nextBeam2Ni = ni + 1;
+                  MusicNote? nextBeam2Note;
+                  double nextBeam2NoteOffset = note.duration;
+                  while (nextBeam2Ni < displayNotes.length) {
+                    final candidate = displayNotes[nextBeam2Ni];
+                    if (!candidate.isRest) {
+                      if (candidate.beam2 == 'continue' || candidate.beam2 == 'end') {
+                        nextBeam2Note = candidate;
+                      }
+                      break;
+                    }
+                    nextBeam2NoteOffset += candidate.duration;
+                    nextBeam2Ni++;
+                  }
+
+                  if (nextBeam2Note != null) {
+                    final nextBeam2X = StaffLayoutHelper.getBeamEndX(
+                      measure: measure,
+                      startX: x,
+                      measureWidth: measureWidth,
+                      hasTimeSig: hasTimeSig,
+                      cumulativeDuration: cumulativeDuration,
+                      nextNoteOffset: nextBeam2NoteOffset,
+                      nextNoteDuration: nextBeam2Note.duration,
+                      displayNotes: displayNotes,
+                    );
+                    
+                    double next2Ratio = (lastNoteX == firstNoteX) ? 1 : (nextBeam2X - firstNoteX) / (lastNoteX - firstNoteX);
+                    double next2BeamY = startBeamY + (endBeamY - startBeamY) * next2Ratio;
+
+                    final double bSpacing = ls * 0.45;
+                    final double b2Y1 = beamStemUp ? currentNoteBeamY + bSpacing : currentNoteBeamY - bSpacing;
+                    final double b2Y2 = beamStemUp ? next2BeamY + bSpacing : next2BeamY - bSpacing;
+                    final double b2EndX = nextBeam2X + (beamStemUp ? (ls * 0.78) : -(ls * 0.78));
+
+                    widgets.add(
+                      pw.Positioned(
+                        left: 0,
+                        top: 0,
+                        child: pw.CustomPaint(
+                          size: const PdfPoint(0, 0),
+                          painter: (PdfGraphics canvas, PdfPoint size) {
+                            canvas.setStrokeColor(PdfColors.grey400);
+                            canvas.setGraphicState(const PdfGraphicState(strokeOpacity: 0.28));
+                            canvas.setLineWidth(4.8);
+                            canvas.drawLine(bStartX, -b2Y1, b2EndX, -b2Y2);
+                            canvas.strokePath();
+
+                            canvas.setStrokeColor(pdfColor);
+                            canvas.setGraphicState(const PdfGraphicState(strokeOpacity: 0.7));
+                            canvas.setLineWidth(3.5);
+                            canvas.drawLine(bStartX, -b2Y1, b2EndX, -b2Y2);
+                            canvas.strokePath();
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                }
               }
             } else if (note.beam == 'end') {
               widgets.addAll(_buildNote(
@@ -583,9 +663,10 @@ class MusicPdfService {
                 musicFont: musicFont,
                 forcedStemUp: beamStemUp,
                 noFlags: true,
-                stemTipY: beamY,
+                stemTipY: currentNoteBeamY,
                 drawLabel: false,
               ));
+
               if (showLetter || showSolfege) {
                 labelWidgets.add(_buildNoteLabel(
                   note: note,
@@ -599,7 +680,7 @@ class MusicPdfService {
                   showLetter: showLetter,
                   labelsBelow: labelsBelow,
                   coloredLabels: coloredLabels,
-                  stemTipY: beamY,
+                  stemTipY: currentNoteBeamY,
                 ));
               }
               isBeamed = true;
