@@ -274,7 +274,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     
     int count = 0;
     for (int i = 0; i < widget.song.measures.length; i++) {
-      final playable = widget.song.measures[i].allDisplayNotes.length;
+      final playable = widget.song.measures[i].notes.length;
       if (noteIndex < count + playable) {
         measureIdx = i;
         noteInMeasureIdx = noteIndex - count;
@@ -287,12 +287,16 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     if (measureIdx == -1) return;
 
     const double measureW = 350.0;
+    const int bufferMeasures = 3; 
     final double noteProgress = totalNotesInMeasure > 0 ? noteInMeasureIdx / totalNotesInMeasure : 0;
-    final double noteX = kClefW + (measureIdx * measureW) + (noteProgress * measureW);
+    
+    // Total offset includes Clef width + any buffer measures at the start
+    final double noteX = (bufferMeasures * measureW) + kClefW + (measureIdx * measureW) + (noteProgress * measureW);
     
     final maxScroll = _gameScrollController.position.maxScrollExtent;
     final viewportHeight = _gameScrollController.position.viewportDimension;
-    final totalWidth = kClefW + widget.song.measures.length * measureW;
+    final totalWidth = kClefW + (widget.song.measures.length + 2 * bufferMeasures) * measureW;
+    
     final double noteYInContent = totalWidth - noteX;
     final double strikeLineYInViewport = viewportHeight * 0.75;
     final double scrollPosition = noteYInContent - strikeLineYInViewport;
@@ -457,17 +461,13 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
         return KeyEventResult.ignored;
       },
       child: Scaffold(
-        extendBodyBehindAppBar: mode == MusicDisplayMode.game,
         appBar: AppBar(
-          backgroundColor: mode == MusicDisplayMode.game ? Colors.transparent : null,
-          elevation: mode == MusicDisplayMode.game ? 0 : null,
           title: Text(widget.song.title),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(4),
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 4,
-              backgroundColor: mode == MusicDisplayMode.game ? Colors.white.withValues(alpha: 0.1) : null,
             ),
           ),
           actions: [
@@ -504,37 +504,39 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
             ),
           ],
         ),
-        body: Column(
-          children: [
-            if (mode == MusicDisplayMode.sheetMusic && current != null)
-              _CurrentNoteCard(
-                note: current,
-                showSolfege: provider.showSolfege,
-                detectedNote: _detectedNote,
-                isKeyboardInput: _isKeyboardInput,
-                lastPhysicalKey: _lastPhysicalKey,
-                targetNoteName: NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme),
-                keyboardOverrides: keyboardProvider.activeProfile.getAllKeyMappings(),
-              ),
-            Expanded(
-              child: mode == MusicDisplayMode.game ? _GameView(
+        body: mode == MusicDisplayMode.game
+            ? _GameView(
                 song: widget.song,
                 activeNoteIndex: _activeNoteIndex,
                 detectedNote: _detectedNote,
                 scrollController: _gameScrollController,
-              ) : SheetMusicWidget(
-                key: ValueKey(mode),
-                song: widget.song,
-                activeNoteIndex: _activeNoteIndex,
-                showSolfege: provider.showSolfege,
-                showLetter: provider.showLetter,
-                labelsBelow: provider.labelsBelow,
-                coloredLabels: provider.coloredLabels,
-                measuresPerRow: provider.measuresPerRow,
+              )
+            : Column(
+                children: [
+                  if (current != null)
+                    _CurrentNoteCard(
+                      note: current,
+                      showSolfege: provider.showSolfege,
+                      detectedNote: _detectedNote,
+                      isKeyboardInput: _isKeyboardInput,
+                      lastPhysicalKey: _lastPhysicalKey,
+                      targetNoteName: NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme),
+                      keyboardOverrides: keyboardProvider.activeProfile.getAllKeyMappings(),
+                    ),
+                  Expanded(
+                    child: SheetMusicWidget(
+                      key: ValueKey(mode),
+                      song: widget.song,
+                      activeNoteIndex: _activeNoteIndex,
+                      showSolfege: provider.showSolfege,
+                      showLetter: provider.showLetter,
+                      labelsBelow: provider.labelsBelow,
+                      coloredLabels: provider.coloredLabels,
+                      measuresPerRow: provider.measuresPerRow,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     ),
   );
@@ -552,43 +554,60 @@ class _GameView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<InstrumentProvider>();
-    return Stack(
-      children: [
-        Container(
-          color: Theme.of(context).colorScheme.surface,
-          child: ShaderMask(
-            shaderCallback: (Rect bounds) => const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.transparent, Colors.white, Colors.white],
-              stops: [0.0, 0.1, 1.0],
-            ).createShader(bounds),
-            blendMode: BlendMode.dstIn,
-            child: ClipRect(
-              child: Transform(
-                transform: Matrix4.identity()..setEntry(3, 2, 0.001)..rotateX(-0.3),
-                alignment: Alignment.bottomCenter,
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  child: Transform.scale(
-                    scaleX: 2.2,
-                    child: RotatedBox(
-                      quarterTurns: 3,
-                      child: Center(
-                        child: SizedBox(
-                          width: kClefW + song.measures.length * 350.0,
-                          child: SheetMusicWidget(
-                            song: song,
-                            activeNoteIndex: activeNoteIndex,
-                            showSolfege: provider.showSolfege,
-                            showLetter: provider.showLetter,
-                            labelsBelow: provider.labelsBelow,
-                            coloredLabels: provider.coloredLabels,
-                            measuresPerRow: song.measures.length,
-                            showHeader: false,
-                            scrollable: false,
-                            labelRotation: math.pi / 2,
+    final surfaceColor = Theme.of(context).colorScheme.surface;
+
+    const int bufferMeasures = 3;
+    final displayMeasures = [
+      ...List.generate(bufferMeasures, (_) => Measure(number: 0, notes: [], beats: 4, beatType: 4, isPlaceholder: true)),
+      ...song.measures,
+      ...List.generate(bufferMeasures, (_) => Measure(number: 0, notes: [], beats: 4, beatType: 4, isPlaceholder: true)),
+    ];
+    final displaySong = song.copyWith(measures: displayMeasures);
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final viewportHeight = constraints.maxHeight;
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              color: surfaceColor,
+              child: ShaderMask(
+                shaderCallback: (Rect bounds) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
+                  stops: [0.0, 0.05, 0.98, 1.0],
+                ).createShader(bounds),
+                blendMode: BlendMode.dstIn,
+                child: ClipRect(
+                  child: Transform(
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0012)
+                      ..rotateX(-0.15),
+                    alignment: Alignment.center,
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: Transform.scale(
+                        scaleX: 2.2,
+                        child: RotatedBox(
+                          quarterTurns: 3,
+                          child: Center(
+                            child: SizedBox(
+                              width: kClefW + displayMeasures.length * 350.0,
+                              child: SheetMusicWidget(
+                                song: displaySong,
+                                activeNoteIndex: activeNoteIndex,
+                                showSolfege: provider.showSolfege,
+                                showLetter: provider.showLetter,
+                                labelsBelow: provider.labelsBelow,
+                                coloredLabels: provider.coloredLabels,
+                                measuresPerRow: displayMeasures.length,
+                                showHeader: false,
+                                scrollable: false,
+                                labelRotation: math.pi / 2,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -598,55 +617,52 @@ class _GameView extends StatelessWidget {
               ),
             ),
           ),
-        ),
-        // Floating symbols
-        Positioned(
-          bottom: 0, left: 0, right: 0,
-          child: IgnorePointer(
-            child: Transform(
-              transform: Matrix4.identity()..setEntry(3, 2, 0.001)..rotateX(-0.3),
-              alignment: Alignment.bottomCenter,
-              child: Transform.scale(
-                scaleX: 2.2,
-                child: RotatedBox(
-                  quarterTurns: 3,
-                  child: Center(
-                    child: SizedBox(
-                      width: kClefW + 10, height: kRowH,
-                      child: CustomPaint(
-                        painter: StaffPainter(
-                          row: StaffRowData(
-                            measures: [Measure(number: 0, notes: [], beats: song.measures.isNotEmpty ? song.measures[0].beats : 4, beatType: song.measures.isNotEmpty ? song.measures[0].beatType : 4, isPlaceholder: true)],
-                            firstNoteIndex: 0, isFirstRow: true, isLastRow: false, measuresPerRow: 1,
-                          ),
-                          activeNoteIndex: -1, showSolfege: false, showLetter: false, labelsBelow: false, coloredLabels: false,
-                          instrument: provider.activeScheme, showNoteLabels: false, context: context, labelRotation: math.pi / 2, showStaffLines: false,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (detectedNote.isNotEmpty)
+          // Horizon "Fog/Clouds" - Moved higher to avoid AppBar
           Positioned(
-            bottom: 120, left: 0, right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(30)),
-                child: Text(detectedNote, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+            top: -20, left: -100, right: -100,
+            child: IgnorePointer(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(6, (i) => Icon(
+                  Icons.cloud,
+                  size: 60.0 + (i % 3) * 30,
+                  color: surfaceColor.withValues(alpha: 0.6),
+                )),
               ),
             ),
           ),
-        Positioned(
-          bottom: MediaQuery.of(context).size.height * 0.25 - 40, left: 0, right: 0,
-          child: IgnorePointer(child: Container(height: 2, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5))),
-        ),
-      ],
-    );
+          // Bottom "Fog/Clouds"
+          Positioned(
+            bottom: -30, left: -100, right: -100,
+            child: IgnorePointer(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(6, (i) => Icon(
+                  Icons.cloud,
+                  size: 80.0 + (i % 3) * 40,
+                  color: surfaceColor.withValues(alpha: 0.7),
+                )),
+              ),
+            ),
+          ),
+          if (detectedNote.isNotEmpty)
+            Positioned(
+              bottom: 120, left: 0, right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(30)),
+                  child: Text(detectedNote, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
+          Positioned(
+            bottom: viewportHeight * 0.25, left: 0, right: 0,
+            child: IgnorePointer(child: Container(height: 2, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5))),
+          ),
+        ],
+      );
+    });
   }
 }
 
