@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,6 +15,7 @@ class SongProvider extends ChangeNotifier {
   static const String builtinLibraryName = 'Fun Sheet Music';
   static const String _songOrderKey = 'song_order';
   static const String _seenAssetsKey = 'seen_auto_add_assets';
+  static const String _assetManifestHashKey = 'asset_manifest_hash';
   final StorageService _storage;
   final CloudService _cloud;
   final Uuid _uuid = const Uuid();
@@ -120,21 +122,44 @@ class SongProvider extends ChangeNotifier {
   }
 
   Future<void> _performMigrations() async {
+    // Version 1: Library name fix + Icon extraction
     for (int i = 0; i < _songs.length; i++) {
       try {
         final song = _songs[i];
         bool needsUpdate = false;
         String? newLibrary;
+        String? newIcon;
 
         if (song.library == AppConfig.appName || song.library == 'Built In') {
           newLibrary = builtinLibraryName;
           needsUpdate = true;
         }
 
-        if (needsUpdate) {
-          _songs[i] = song.copyWith(library: newLibrary ?? song.library);
-          await _storage.updateMetadata(_songs[i].id, library: newLibrary);
+        // If icon is missing, try to extract it from the stored XML
+        if (song.icon.isEmpty) {
+          final xml = await _storage.getXmlContent(song.id);
+          if (xml != null && xml.isNotEmpty) {
+            newIcon = MusicXmlParser.parseMetadata(xml, id: song.id).icon;
+            if (newIcon.isNotEmpty) {
+              needsUpdate = true;
+            }
+          }
         }
+
+        if (needsUpdate) {
+          _songs[i] = song.copyWith(
+            library: newLibrary ?? song.library,
+            icon: newIcon ?? song.icon,
+          );
+          await _storage.updateMetadata(
+            _songs[i].id,
+            library: newLibrary,
+            icon: newIcon,
+          );
+        }
+        
+        // Yield every few migrations
+        if (i % 10 == 0) await Future.delayed(Duration.zero);
       } catch (e) {
         debugPrint('Migration error for song: $e');
       }
@@ -142,39 +167,65 @@ class SongProvider extends ChangeNotifier {
   }
 
   Future<void> _initializeAssets({bool onlyDefaults = false}) async {
-    // Load bundled song metadata for the "Add Song" screen
-    await _loadBundledMetadata();
-    // Load remote samples if in testing mode
+    // 1. Get the list of assets first (very fast)
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final songAssets = manifest.listAssets().where((p) => p.endsWith('.xml') && (p.contains('assets/music/') || p.contains('music/'))).toList();
+    
+    _prefs ??= await SharedPreferences.getInstance();
+    final currentManifestHash = songAssets.join(',');
+    final savedHash = _prefs!.getString(_assetManifestHashKey);
+
+    // If manifest hasn't changed and we have songs, skip parsing entirely.
+    // This unblocks the UI immediately.
+    if (savedHash == currentManifestHash && _songs.isNotEmpty) {
+      debugPrint('Assets unchanged, skipping background sync.');
+      return;
+    }
+
+    // 2. Load bundled song metadata for the "Add Song" screen (now batched and backgrounded)
+    await _loadBundledMetadata(songAssets);
+    
+    // 3. Load remote samples if in testing mode
     await _loadRemoteTestingMetadata();
-    // Ensure all default bundled songs are present in the library
+    
+    // 4. Ensure all default bundled songs are present in the library
     await _loadSampleSongs(onlyDefaults: onlyDefaults);
+    
+    // 5. Save the hash so we skip next time
+    await _prefs!.setString(_assetManifestHashKey, currentManifestHash);
   }
 
   /// Loads metadata for all bundled songs from assets.
-  Future<void> _loadBundledMetadata() async {
+  Future<void> _loadBundledMetadata(List<String> songAssets) async {
     try {
-      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-      final songAssets = manifest.listAssets().where((p) => p.endsWith('.xml') && (p.contains('assets/music/') || p.contains('music/'))).toList();
-
       final uri = Uri.base;
       final isTestingEnabled = kDebugMode || (kIsWeb && (uri.host == 'localhost' || uri.queryParameters.containsKey('testing')));
 
       // Load all XML contents in parallel
-      final List<({String path, String content})> loadedAssets = await Future.wait(
-        songAssets.map((path) async {
-          try {
-            final content = await rootBundle.loadString(path);
-            return (path: path, content: content);
-          } catch (e) {
-            debugPrint('Error loading asset $path: $e');
-            return (path: path, content: '');
-          }
-        }),
-      );
+      // We process in smaller batches to avoid saturating the platform channel
+      final List<({String path, String content})> loadedAssets = [];
+      const batchSize = 10; // Smaller batch size
+      for (int i = 0; i < songAssets.length; i += batchSize) {
+        final batch = songAssets.sublist(i, math.min(i + batchSize, songAssets.length));
+        final results = await Future.wait(
+          batch.map((path) async {
+            try {
+              final content = await rootBundle.loadString(path);
+              return (path: path, content: content);
+            } catch (e) {
+              debugPrint('Error loading asset $path: $e');
+              return (path: path, content: '');
+            }
+          }),
+        );
+        loadedAssets.addAll(results);
+        // Yield to UI thread between batches with a real delay to ensure frame rendering
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
 
       final Map<String, List<Song>> results = {};
       
-      // Perform metadata parsing in parallel using isolates to keep the UI thread free
+      // Perform metadata parsing in parallel using isolates
       final List<Song> parsedMetadatas = await compute(_parseMultipleMetadatas, loadedAssets);
 
       for (final metadata in parsedMetadatas) {
@@ -189,8 +240,7 @@ class SongProvider extends ChangeNotifier {
       
       notifyListeners();
     } catch (e) {
-      debugPrint('Error loading asset manifest: $e');
-      showToast('Error discovering bundled music: $e', isError: true);
+      debugPrint('Error loading bundled metadata: $e');
     }
   }
 
@@ -277,7 +327,25 @@ class SongProvider extends ChangeNotifier {
           // Double check by title to avoid duplicates
           if (_songs.any((s) => s.title == metadata.title && s.library == libraryName)) {
             final existing = _songs.firstWhere((s) => s.title == metadata.title && s.library == libraryName);
-            await _storage.updateMetadata(existing.id, localPath: assetPath);
+            // If the icon is missing in the DB version, update it from the asset metadata
+            final needsIcon = existing.icon.isEmpty && metadata.icon.isNotEmpty;
+            if (existing.localPath != assetPath || needsIcon) {
+              await _storage.updateMetadata(
+                existing.id,
+                localPath: assetPath,
+                icon: needsIcon ? metadata.icon : null,
+              );
+              // Update in-memory state so UI updates
+              final idx = _songs.indexWhere((s) => s.id == existing.id);
+              if (idx >= 0) {
+                _songs[idx] = _songs[idx].copyWith(
+                  localPath: assetPath,
+                  icon: needsIcon ? metadata.icon : null,
+                );
+                _invalidateCache();
+                notifyListeners();
+              }
+            }
             newSeenAssets.add(assetPath);
             continue;
           }
