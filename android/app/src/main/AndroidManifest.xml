@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.fun_sheet_music">
     <!-- Internet access for downloading from Google Cloud Storage -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Microphone access for sheet music mode -->
