@@ -4,13 +4,13 @@
     <work-title>Humpty Dumpty</work-title>
   </work>
   <identification>
-    <encoding>
-      <software>Fun Sheet Music Editor</software>
-      <encoding-date>2026-04-30</encoding-date>
-    </encoding>
     <miscellaneous>
       <miscellaneous-field name="icon">🥚</miscellaneous-field>
     </miscellaneous>
+    <encoding>
+      <software>Fun Sheet Music Editor</software>
+      <encoding-date>2026-05-05</encoding-date>
+    </encoding>
   </identification>
   <part-list>
     <score-part id="P1">
@@ -40,6 +40,9 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1">
+          <text>Hump-</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -48,6 +51,9 @@
         </pitch>
         <duration>2</duration>
         <type>eighth</type>
+        <lyric number="1">
+          <text>ty</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -56,6 +62,9 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1">
+          <text>Dump-</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -64,6 +73,9 @@
         </pitch>
         <duration>2</duration>
         <type>eighth</type>
+        <lyric number="1">
+          <text>ty</text>
+        </lyric>
       </note>
     </measure>
     <measure number="2">
@@ -75,6 +87,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>sat</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -84,6 +99,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>on</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -93,6 +111,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">end</beam>
+        <lyric number="1">
+          <text>a</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -101,6 +122,9 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1">
+          <text>wall.</text>
+        </lyric>
       </note>
       <note>
         <rest/>
@@ -116,6 +140,9 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1">
+          <text>Hump-</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -124,6 +151,9 @@
         </pitch>
         <duration>2</duration>
         <type>eighth</type>
+        <lyric number="1">
+          <text>ty</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -132,6 +162,9 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1">
+          <text>Dump-</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -140,6 +173,9 @@
         </pitch>
         <duration>2</duration>
         <type>eighth</type>
+        <lyric number="1">
+          <text>ty</text>
+        </lyric>
       </note>
     </measure>
     <measure number="4">
@@ -151,6 +187,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>had</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -160,6 +199,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>a</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -169,6 +211,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">end</beam>
+        <lyric number="1">
+          <text>great</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -177,6 +222,9 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1">
+          <text>fall.</text>
+        </lyric>
       </note>
       <note>
         <rest/>
@@ -193,6 +241,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>All</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -202,6 +253,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>the</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -211,6 +265,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">end</beam>
+        <lyric number="1">
+          <text>king&apos;s</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -220,6 +277,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>hor-</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -229,6 +289,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>ses</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -238,6 +301,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">end</beam>
+        <lyric number="1">
+          <text>and</text>
+        </lyric>
       </note>
     </measure>
     <measure number="6">
@@ -249,6 +315,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>all</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -258,6 +327,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>the</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -267,6 +339,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">end</beam>
+        <lyric number="1">
+          <text>king&apos;s</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -275,6 +350,9 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1">
+          <text>men,</text>
+        </lyric>
       </note>
       <note>
         <rest/>
@@ -291,6 +369,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>could-</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -300,6 +381,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>n&apos;t</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -309,6 +393,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">end</beam>
+        <lyric number="1">
+          <text>put</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -318,6 +405,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>Hump-</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -327,6 +417,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>ty</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -336,6 +429,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">end</beam>
+        <lyric number="1">
+          <text>To-</text>
+        </lyric>
       </note>
     </measure>
     <measure number="8">
@@ -347,6 +443,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>ge-</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -356,6 +455,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>ther</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -365,6 +467,9 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">end</beam>
+        <lyric number="1">
+          <text>a-</text>
+        </lyric>
       </note>
       <note>
         <pitch>
@@ -374,6 +479,9 @@
         <duration>6</duration>
         <type>quarter</type>
         <dot/>
+        <lyric number="1">
+          <text>gain.</text>
+        </lyric>
       </note>
     </measure>
   </part>
