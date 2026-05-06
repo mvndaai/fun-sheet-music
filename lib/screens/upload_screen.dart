@@ -29,6 +29,11 @@ class _UploadScreenState extends State<UploadScreen>
   void initState() {
     super.initState();
     _tab = TabController(length: 3, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<SongProvider>().loadBundledMetadataIfNeeded();
+      }
+    });
   }
 
   @override
@@ -104,9 +109,11 @@ class _UploadScreenState extends State<UploadScreen>
     }
   }
 
-  void _showSuccess(String title) {
+  void _showSuccess(String title, {bool shouldPop = true}) {
     showToast('✅ "$title" added to library');
-    Navigator.pop(context);
+    if (shouldPop) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -130,7 +137,7 @@ class _UploadScreenState extends State<UploadScreen>
               children: [
                 _LibraryTab(
                   scrollController: _libraryScrollController,
-                  onSongAdded: (title) => _showSuccess(title),
+                  onSongAdded: (title) => _showSuccess(title, shouldPop: false),
                 ),
                 const _CreateTab(),
                 _ImportTab(
@@ -335,6 +342,16 @@ class _LibraryTabState extends State<_LibraryTab>
 
   @override
   bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<SongProvider>().loadBundledMetadataIfNeeded();
+      }
+    });
+  }
 
   @override
   void dispose() {

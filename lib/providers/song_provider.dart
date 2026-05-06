@@ -207,6 +207,18 @@ class SongProvider extends ChangeNotifier {
     await _prefs!.setString(_assetManifestHashKey, currentManifestHash);
   }
 
+  /// Loads metadata for all bundled songs from assets if not already loaded.
+  Future<void> loadBundledMetadataIfNeeded() async {
+    if (_bundledSongsMetadata.isNotEmpty) return;
+
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    final songAssets = manifest.listAssets()
+        .where((p) => p.endsWith('.xml') && (p.contains('assets/music/') || p.contains('music/')))
+        .toList();
+
+    await _loadBundledMetadata(songAssets);
+  }
+
   /// Loads metadata for all bundled songs from assets.
   Future<void> _loadBundledMetadata(List<String> songAssets) async {
     try {
