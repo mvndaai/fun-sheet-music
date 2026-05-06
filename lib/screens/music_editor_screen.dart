@@ -58,6 +58,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   bool _includePickupInFirstRow = true;
   bool _isLyricsMode = false;
   int _currentVerse = 1;
+  bool _focusLastInNextMeasure = false;
   final TextEditingController _lyricController = TextEditingController();
 
   final List<Song> _history = [];
@@ -583,14 +584,16 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       measures.removeRange(lastContentIndex + 1, measures.length);
     }
 
-    // Always add exactly one placeholder measure at the end
-    measures.add(Measure(
-      number: measures.isEmpty ? 1 : measures.last.number + 1,
-      notes: [],
-      beats: measures.isEmpty ? 4 : (measures.last.beats),
-      beatType: measures.isEmpty ? 4 : (measures.last.beatType),
-      isPlaceholder: true,
-    ));
+    // Always add exactly one placeholder measure at the end, except in lyrics mode
+    if (!_isLyricsMode) {
+      measures.add(Measure(
+        number: measures.isEmpty ? 1 : measures.last.number + 1,
+        notes: [],
+        beats: measures.isEmpty ? 4 : (measures.last.beats),
+        beatType: measures.isEmpty ? 4 : (measures.last.beatType),
+        isPlaceholder: true,
+      ));
+    }
     
     return _fillRests(measures);
   }
@@ -728,8 +731,8 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                   measuresPerRow: 2,
                   includePickupInFirstRow: _includePickupInFirstRow,
                   activeNoteIndex: _getGlobalActiveIndex(),
-                  ghostNoteIndex: _isPlaying ? null : _getGhostNoteGlobalIndex(),
-                  ghostNote: _isPlaying ? null : MusicNote(
+                  ghostNoteIndex: (_isPlaying || _isLyricsMode) ? null : _getGhostNoteGlobalIndex(),
+                  ghostNote: (_isPlaying || _isLyricsMode) ? null : MusicNote(
                     step: _nextStep,
                     octave: _nextOctave,
                     alter: _nextAlter,
@@ -818,54 +821,75 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                       child: Text('No notes in this measure to add lyrics to.'),
                     )
                   else
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 12,
-                      children: currentMeasure.notes.asMap().entries.map((entry) {
-                        final idx = entry.key;
-                        final note = entry.value;
-                        if (note.isChordContinuation) return const SizedBox.shrink();
+                    FocusTraversalGroup(
+                      policy: ReadingOrderTraversalPolicy(),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 12,
+                        children: currentMeasure.notes.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final note = entry.value;
+                          if (note.isChordContinuation) return const SizedBox.shrink();
 
-                        final playableNotes = currentMeasure.notes.where((n) => !n.isChordContinuation).toList();
-                        final isFirstNote = note == playableNotes.first;
-                        final isLastNote = note == playableNotes.last;
-                        
-                        return SizedBox(
-                          width: 100,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(note.letterName, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 4),
-                              _LyricField(
-                                note: note,
-                                verse: _currentVerse,
-                                isFirstNote: isFirstNote,
-                                isLastNote: isLastNote,
-                                onTabNext: () => setState(() => _selectedMeasureIndex++),
-                                onTabPrev: () => setState(() => _selectedMeasureIndex--),
-                                onChanged: (val) {
-                                  final newLyrics = Map<int, String>.from(note.lyrics);
-                                  if (val.isEmpty) {
-                                    newLyrics.remove(_currentVerse);
-                                  } else {
-                                    newLyrics[_currentVerse] = val;
-                                  }
-                                  final newNote = note.copyWith(lyrics: newLyrics);
-                                  final newNotes = List<MusicNote>.from(currentMeasure.notes);
-                                  newNotes[idx] = newNote;
-                                  final newMeasures = List<Measure>.from(_song.measures);
-                                  newMeasures[_selectedMeasureIndex] = currentMeasure.copyWith(notes: newNotes);
-                                  setState(() {
-                                    _song = _song.copyWith(measures: newMeasures);
-                                  });
-                                },
-                                onEditingComplete: _saveToHistory,
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                          final playableNotes = currentMeasure.notes.where((n) => !n.isChordContinuation).toList();
+                          final isFirstNote = note == playableNotes.first;
+                          final isLastNote = note == playableNotes.last;
+                          
+                          return SizedBox(
+                            width: 100,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(note.letterName, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                _LyricField(
+                                  key: ValueKey('${_selectedMeasureIndex}_${idx}_${_currentVerse}'),
+                                  note: note,
+                                  verse: _currentVerse,
+                                  isFirstNote: isFirstNote,
+                                  isLastNote: isLastNote,
+                                  focusThisOne: (isFirstNote && !_focusLastInNextMeasure) || (isLastNote && _focusLastInNextMeasure),
+                                  onTabNextMeasure: () {
+                                    if (_selectedMeasureIndex < totalMeasures - 1) {
+                                      setState(() {
+                                        _selectedMeasureIndex++;
+                                        _focusLastInNextMeasure = false;
+                                      });
+                                    } else {
+                                      _promptAddVerseOrMeasure();
+                                    }
+                                  },
+                                  onTabPrevMeasure: () {
+                                    if (_selectedMeasureIndex > 0) {
+                                      setState(() {
+                                        _selectedMeasureIndex--;
+                                        _focusLastInNextMeasure = true;
+                                      });
+                                    }
+                                  },
+                                  onChanged: (val) {
+                                    final newLyrics = Map<int, String>.from(note.lyrics);
+                                    if (val.isEmpty) {
+                                      newLyrics.remove(_currentVerse);
+                                    } else {
+                                      newLyrics[_currentVerse] = val;
+                                    }
+                                    final newNote = note.copyWith(lyrics: newLyrics);
+                                    final newNotes = List<MusicNote>.from(currentMeasure.notes);
+                                    newNotes[idx] = newNote;
+                                    final newMeasures = List<Measure>.from(_song.measures);
+                                    newMeasures[_selectedMeasureIndex] = currentMeasure.copyWith(notes: newNotes);
+                                    setState(() {
+                                      _song = _song.copyWith(measures: newMeasures);
+                                    });
+                                  },
+                                  onEditingComplete: _saveToHistory,
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                 ],
               ),
@@ -887,6 +911,39 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             _saveToHistory();
           });
         },
+      ),
+    );
+  }
+
+  void _promptAddVerseOrMeasure() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('End of Song'),
+        content: const Text('Would you like to add a new verse or a new measure?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _currentVerse++;
+                _selectedMeasureIndex = 0;
+              });
+            },
+            child: const Text('Add Verse'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _addMeasure();
+            },
+            child: const Text('Add Measure'),
+          ),
+        ],
       ),
     );
   }
@@ -1921,18 +1978,21 @@ class _LyricField extends StatefulWidget {
   final VoidCallback onEditingComplete;
   final bool isFirstNote;
   final bool isLastNote;
-  final VoidCallback onTabNext;
-  final VoidCallback onTabPrev;
+  final bool focusThisOne;
+  final VoidCallback onTabNextMeasure;
+  final VoidCallback onTabPrevMeasure;
 
   const _LyricField({
+    super.key,
     required this.note,
     required this.verse,
     required this.onChanged,
     required this.onEditingComplete,
     required this.isFirstNote,
     required this.isLastNote,
-    required this.onTabNext,
-    required this.onTabPrev,
+    this.focusThisOne = false,
+    required this.onTabNextMeasure,
+    required this.onTabPrevMeasure,
   });
 
   @override
@@ -1941,12 +2001,37 @@ class _LyricField extends StatefulWidget {
 
 class _LyricFieldState extends State<_LyricField> {
   late final TextEditingController _controller;
+  late final FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
     final lyric = widget.note.lyrics[widget.verse] ?? '';
     _controller = TextEditingController(text: lyric);
+    _focusNode = FocusNode(
+      debugLabel: 'LyricField_${widget.note.letterName}',
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+        if (event.logicalKey == LogicalKeyboardKey.tab) {
+          if (HardwareKeyboard.instance.isShiftPressed) {
+            if (widget.isFirstNote) {
+              widget.onTabPrevMeasure();
+              return KeyEventResult.handled;
+            }
+          } else {
+            if (widget.isLastNote) {
+              widget.onTabNextMeasure();
+              return KeyEventResult.handled;
+            }
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+    );
+    if (widget.focusThisOne) {
+      _focusNode.requestFocus();
+    }
   }
 
   @override
@@ -1958,47 +2043,31 @@ class _LyricFieldState extends State<_LyricField> {
         _controller.text = lyric;
       }
     }
+    if (widget.focusThisOne && !oldWidget.focusThisOne) {
+      _focusNode.requestFocus();
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      onKeyEvent: (node, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-        if (event.logicalKey == LogicalKeyboardKey.tab) {
-          if (HardwareKeyboard.instance.isShiftPressed) {
-            if (widget.isFirstNote) {
-              widget.onTabPrev();
-              return KeyEventResult.handled;
-            }
-          } else {
-            if (widget.isLastNote) {
-              widget.onTabNext();
-              return KeyEventResult.handled;
-            }
-          }
-        }
-        return KeyEventResult.ignored;
-      },
-      child: TextField(
-        controller: _controller,
-        autofocus: widget.isFirstNote,
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: widget.note.isRest ? '(rest)' : 'lyric...',
-          border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        ),
-        onChanged: widget.onChanged,
-        onEditingComplete: widget.onEditingComplete,
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      decoration: InputDecoration(
+        isDense: true,
+        hintText: widget.note.isRest ? '(rest)' : 'lyric...',
+        border: const OutlineInputBorder(),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       ),
+      onChanged: widget.onChanged,
+      onEditingComplete: widget.onEditingComplete,
     );
   }
 }
