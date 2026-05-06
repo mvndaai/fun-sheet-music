@@ -21,11 +21,14 @@ const double kTopMargin = kLS * 3.2;
 /// Height of the staff proper (4 × line-spacing).
 const double kStaffH = kLS * 4;
 
-/// Pixels below the bottom staff line (room for low notes + note labels + lyrics).
-const double kBotMargin = kLS * 5.5;
+/// Default pixels below the bottom staff line (room for low notes + note labels).
+const double kBotMarginBase = kLS * 3.5;
+
+/// Pixels below the bottom staff line with lyrics.
+const double kBotMarginWithLyrics = kLS * 5.5;
 
 /// Total pixel height of one staff row.
-const double kRowH = kTopMargin + kStaffH + kBotMargin;
+double getRowH({bool hasLyrics = false}) => kTopMargin + kStaffH + (hasLyrics ? kBotMarginWithLyrics : kBotMarginBase);
 
 // ── Treble-clef pitch → staff-position mapping ───────────────────────────────
 

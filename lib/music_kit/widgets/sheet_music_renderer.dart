@@ -291,11 +291,15 @@ class _StaffRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Check if this row actually HAS any lyrics to display
+    final bool rowHasLyrics = row.measures.any((m) => m.notes.any((n) => n.getResolvedLyric(currentVerse, row.lyricsVariables, variableSets: row.lyricsVariableSets).isNotEmpty));
+    final bool effectiveShowLyrics = showLyrics && rowHasLyrics;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: LayoutBuilder(
         builder: (context, constraints) => SizedBox(
-          height: kRowH,
+          height: getRowH(hasLyrics: effectiveShowLyrics),
           width: constraints.maxWidth,
           child: CustomPaint(
             painter: StaffPainter(
@@ -312,7 +316,7 @@ class _StaffRow extends StatelessWidget {
               context: context,
               labelRotation: labelRotation,
               currentVerse: currentVerse,
-              showLyrics: showLyrics,
+              showLyrics: effectiveShowLyrics,
               extendLines: extendLines,
             ),
           ),

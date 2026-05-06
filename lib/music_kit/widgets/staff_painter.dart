@@ -674,17 +674,6 @@ class StaffPainter extends CustomPainter {
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final textColor = clefColor.withValues(alpha: alpha);
 
-    if (isActive) {
-      // Draw a solid highlight behind active lyric
-      final p = Paint()
-        ..color = (isDarkTheme ? Colors.white24 : Colors.grey.shade200).withValues(alpha: 0.3)
-        ..style = PaintingStyle.fill;
-      canvas.drawRRect(
-        RRect.fromLTRBR(x - 22, lyricY - 10, x + 22, lyricY + 4, const Radius.circular(6)),
-        p,
-      );
-    }
-
     _drawTextCentered(
       canvas,
       text,
