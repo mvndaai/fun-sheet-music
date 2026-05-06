@@ -295,6 +295,8 @@ class StaffPainter extends CustomPainter {
     final displayNotes = m.notes.where((n) => !n.isChordContinuation).toList();
     final List<({MusicNote note, double x, double y, int pos, Color color, double alpha, double? stemTipY})> labelsToDraw = [];
     
+    final List<({MusicNote note, double x, bool isActive, double alpha})> lyricsToDraw = [];
+    
     double cumulativeDuration = 0.0;
     for (int ni = 0; ni < displayNotes.length; ni++) {
       final note = displayNotes[ni];
@@ -312,6 +314,11 @@ class StaffPainter extends CustomPainter {
         displayNotes: displayNotes,
       );
 
+      final alpha = isPast ? 0.30 : 1.0;
+      if (showLyrics) {
+        lyricsToDraw.add((note: note, x: noteX, isActive: isActive, alpha: alpha));
+      }
+
       if (note.isRest) {
         if (!note.isPlaceholder) {
           _drawRest(canvas, noteX, note.type, clefColor, isActive: isActive, isPast: isPast, note: note);
@@ -325,7 +332,7 @@ class StaffPainter extends CustomPainter {
           octave: note.octave,
           context: context,
         );
-        final alpha = isPast ? 0.30 : 1.0;
+        // ...
 
         bool isBeamed = false;
         if (note.beam != null) {
@@ -658,13 +665,11 @@ class StaffPainter extends CustomPainter {
 
     for (int li = 0; li < labelsToDraw.length; li++) {
       final l = labelsToDraw[li];
-      final globalIdx = noteOffset + li;
-      final isActive = globalIdx == activeNoteIndex;
-      
       _drawNoteLabel(canvas, l.note, l.x, l.y, l.pos, l.color, l.alpha, clefColor, stemTipY: l.stemTipY);
-      if (showLyrics) {
-        _drawLyrics(canvas, l.note, l.x, l.y, l.pos, l.color, l.alpha, clefColor, isActive: isActive);
-      }
+    }
+
+    for (final l in lyricsToDraw) {
+      _drawLyrics(canvas, l.note, l.x, 0, 0, Colors.transparent, l.alpha, clefColor, isActive: l.isActive);
     }
   }
 
