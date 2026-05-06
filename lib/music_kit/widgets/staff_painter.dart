@@ -656,10 +656,14 @@ class StaffPainter extends CustomPainter {
       cumulativeDuration += note.duration;
     }
 
-    for (final l in labelsToDraw) {
+    for (int li = 0; li < labelsToDraw.length; li++) {
+      final l = labelsToDraw[li];
+      final globalIdx = noteOffset + li;
+      final isActive = globalIdx == activeNoteIndex;
+      
       _drawNoteLabel(canvas, l.note, l.x, l.y, l.pos, l.color, l.alpha, clefColor, stemTipY: l.stemTipY);
       if (showLyrics) {
-        _drawLyrics(canvas, l.note, l.x, l.y, l.pos, l.color, l.alpha, clefColor, isActive: l.note == displayNotes.firstWhere((n) => !n.isChordContinuation && (noteOffset + displayNotes.indexOf(n)) == activeNoteIndex, orElse: () => l.note));
+        _drawLyrics(canvas, l.note, l.x, l.y, l.pos, l.color, l.alpha, clefColor, isActive: isActive);
       }
     }
   }

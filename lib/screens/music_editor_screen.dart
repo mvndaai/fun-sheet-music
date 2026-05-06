@@ -59,6 +59,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   bool _isLyricsMode = false;
   int _currentVerse = 1;
   bool _focusLastInNextMeasure = false;
+  int _focusedLyricNoteIndex = -1;
   final TextEditingController _lyricController = TextEditingController();
 
   final List<Song> _history = [];
@@ -570,6 +571,11 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   List<Measure> _getDisplayMeasures() {
     final List<Measure> measures = [..._song.measures];
     
+    if (_isLyricsMode) {
+      // In lyrics mode, just return the actual song measures filled with rests
+      return _fillRests(measures);
+    }
+
     // Find where the real content ends
     int lastContentIndex = -1;
     for (int i = measures.length - 1; i >= 0; i--) {
@@ -584,16 +590,14 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       measures.removeRange(lastContentIndex + 1, measures.length);
     }
 
-    // Always add exactly one placeholder measure at the end, except in lyrics mode
-    if (!_isLyricsMode) {
-      measures.add(Measure(
-        number: measures.isEmpty ? 1 : measures.last.number + 1,
-        notes: [],
-        beats: measures.isEmpty ? 4 : (measures.last.beats),
-        beatType: measures.isEmpty ? 4 : (measures.last.beatType),
-        isPlaceholder: true,
-      ));
-    }
+    // Always add exactly one placeholder measure at the end
+    measures.add(Measure(
+      number: measures.isEmpty ? 1 : measures.last.number + 1,
+      notes: [],
+      beats: measures.isEmpty ? 4 : (measures.last.beats),
+      beatType: measures.isEmpty ? 4 : (measures.last.beatType),
+      isPlaceholder: true,
+    ));
     
     return _fillRests(measures);
   }
@@ -705,7 +709,15 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
               IconButton(icon: const Icon(Icons.code), onPressed: _showXmlEditor),
               IconButton(
                 icon: Icon(_isLyricsMode ? Icons.text_fields : Icons.music_note),
-                onPressed: () => setState(() => _isLyricsMode = !_isLyricsMode),
+                onPressed: () => setState(() {
+                  _isLyricsMode = !_isLyricsMode;
+                  if (!_isLyricsMode) {
+                    _focusedLyricNoteIndex = -1;
+                  } else {
+                    // Clamp measure index when entering lyrics mode
+                    _selectedMeasureIndex = _selectedMeasureIndex.clamp(0, _song.measures.length - 1);
+                  }
+                }),
                 tooltip: 'Toggle Lyrics Mode',
               ),
               IconButton(icon: const Icon(Icons.save), onPressed: _save),
@@ -755,146 +767,170 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
   Widget _buildLyricsEditor() {
     final colorScheme = Theme.of(context).colorScheme;
+    final displayMeasures = _getDisplayMeasures();
     final measures = _song.measures;
     final currentMeasure = measures[_selectedMeasureIndex];
     final totalVerses = _song.totalVerses;
     final totalMeasures = measures.length;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5))),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Simplified Navigation Row for Lyrics Mode
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed: _selectedMeasureIndex > 0
-                        ? () => setState(() => _selectedMeasureIndex--)
-                        : null,
-                    tooltip: 'Previous Measure',
-                  ),
-                  Text(
-                    'Measure ${_selectedMeasureIndex + 1} / $totalMeasures',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: _selectedMeasureIndex < totalMeasures - 1
-                        ? () => setState(() => _selectedMeasureIndex++)
-                        : null,
-                    tooltip: 'Next Measure',
-                  ),
-                  const Spacer(),
-                  VerseSelector(
-                    currentVerse: _currentVerse,
-                    totalVerses: totalVerses,
-                    onChanged: (v) => setState(() => _currentVerse = v),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: _showVariablesEditor,
-                    icon: const Icon(Icons.settings_ethernet, size: 18),
-                    label: const Text('Vars'),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  const Text('Type lyrics for each note in this measure:', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(height: 8),
-                  if (currentMeasure.notes.where((n) => !n.isChordContinuation).isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: Text('No notes in this measure to add lyrics to.'),
-                    )
-                  else
-                    FocusTraversalGroup(
-                      policy: ReadingOrderTraversalPolicy(),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 12,
-                        children: currentMeasure.notes.asMap().entries.map((entry) {
-                          final idx = entry.key;
-                          final note = entry.value;
-                          if (note.isChordContinuation) return const SizedBox.shrink();
+    // Calculate the global index of the first note in the current measure (considering only display notes, not chord parts)
+    int measureBaseIndex = 0;
+    for (int i = 0; i < _selectedMeasureIndex; i++) {
+      measureBaseIndex += displayMeasures[i].notes.where((n) => !n.isChordContinuation).length;
+    }
 
-                          final playableNotes = currentMeasure.notes.where((n) => !n.isChordContinuation).toList();
-                          final isFirstNote = note == playableNotes.first;
-                          final isLastNote = note == playableNotes.last;
-                          
-                          return SizedBox(
-                            width: 100,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(note.letterName, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                _LyricField(
-                                  key: ValueKey('${_selectedMeasureIndex}_${idx}_${_currentVerse}'),
-                                  note: note,
-                                  verse: _currentVerse,
-                                  isFirstNote: isFirstNote,
-                                  isLastNote: isLastNote,
-                                  focusThisOne: (isFirstNote && !_focusLastInNextMeasure) || (isLastNote && _focusLastInNextMeasure),
-                                  onTabNextMeasure: () {
-                                    if (_selectedMeasureIndex < totalMeasures - 1) {
-                                      setState(() {
-                                        _selectedMeasureIndex++;
-                                        _focusLastInNextMeasure = false;
-                                      });
-                                    } else {
-                                      _promptAddVerseOrMeasure();
-                                    }
-                                  },
-                                  onTabPrevMeasure: () {
-                                    if (_selectedMeasureIndex > 0) {
-                                      setState(() {
-                                        _selectedMeasureIndex--;
-                                        _focusLastInNextMeasure = true;
-                                      });
-                                    }
-                                  },
-                                  onChanged: (val) {
-                                    final newLyrics = Map<int, String>.from(note.lyrics);
-                                    if (val.isEmpty) {
-                                      newLyrics.remove(_currentVerse);
-                                    } else {
-                                      newLyrics[_currentVerse] = val;
-                                    }
-                                    final newNote = note.copyWith(lyrics: newLyrics);
-                                    final newNotes = List<MusicNote>.from(currentMeasure.notes);
-                                    newNotes[idx] = newNote;
-                                    final newMeasures = List<Measure>.from(_song.measures);
-                                    newMeasures[_selectedMeasureIndex] = currentMeasure.copyWith(notes: newNotes);
-                                    setState(() {
-                                      _song = _song.copyWith(measures: newMeasures);
-                                    });
-                                  },
-                                  onEditingComplete: _saveToHistory,
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
+    return SelectionContainer.disabled(
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          border: Border(top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5))),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Simplified Navigation Row for Lyrics Mode
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left),
+                      onPressed: _selectedMeasureIndex > 0
+                          ? () => setState(() => _selectedMeasureIndex--)
+                          : null,
+                      tooltip: 'Previous Measure',
                     ),
-                ],
+                    Text(
+                      'Measure ${_selectedMeasureIndex + 1} / $totalMeasures',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right),
+                      onPressed: _selectedMeasureIndex < totalMeasures - 1
+                          ? () => setState(() => _selectedMeasureIndex++)
+                          : null,
+                      tooltip: 'Next Measure',
+                    ),
+                    const Spacer(),
+                    VerseSelector(
+                      currentVerse: _currentVerse,
+                      totalVerses: totalVerses,
+                      onChanged: (v) => setState(() => _currentVerse = v),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: _showVariablesEditor,
+                      icon: const Icon(Icons.settings_ethernet, size: 18),
+                      label: const Text('Vars'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    const Text('Type lyrics for each note in this measure:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    if (currentMeasure.notes.where((n) => !n.isChordContinuation).isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(20.0),
+                        child: Text('No notes in this measure to add lyrics to.'),
+                      )
+                    else
+                      FocusTraversalGroup(
+                        policy: ReadingOrderTraversalPolicy(),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 12,
+                          children: () {
+                            final playableNotesIndices = currentMeasure.notes.asMap().entries
+                                .where((e) => !e.value.isChordContinuation)
+                                .map((e) => e.key)
+                                .toList();
+                            
+                            return currentMeasure.notes.asMap().entries.map((entry) {
+                              final idxInFullList = entry.key;
+                              final note = entry.value;
+                              if (note.isChordContinuation) return const SizedBox.shrink();
+
+                              final isFirstNote = idxInFullList == playableNotesIndices.first;
+                              final isLastNote = idxInFullList == playableNotesIndices.last;
+                              
+                              // Find index in playable notes list to get the visual global index
+                              final idxInPlayable = playableNotesIndices.indexOf(idxInFullList);
+                              final globalNoteIndex = measureBaseIndex + idxInPlayable;
+                              
+                              return SizedBox(
+                                width: 100,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(note.letterName, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    _LyricField(
+                                      key: ValueKey('${_selectedMeasureIndex}_${idxInFullList}_${_currentVerse}'),
+                                      note: note,
+                                      verse: _currentVerse,
+                                      isFirstNote: isFirstNote,
+                                      isLastNote: isLastNote,
+                                      focusThisOne: (isFirstNote && !_focusLastInNextMeasure) || (isLastNote && _focusLastInNextMeasure),
+                                      onFocus: () {
+                                        if (_focusedLyricNoteIndex != globalNoteIndex) {
+                                          setState(() => _focusedLyricNoteIndex = globalNoteIndex);
+                                        }
+                                      },
+                                      onTabNextMeasure: () {
+                                        if (_selectedMeasureIndex < totalMeasures - 1) {
+                                          setState(() {
+                                            _selectedMeasureIndex++;
+                                            _focusLastInNextMeasure = false;
+                                          });
+                                        } else {
+                                          _promptAddVerseOrMeasure();
+                                        }
+                                      },
+                                      onTabPrevMeasure: () {
+                                        if (_selectedMeasureIndex > 0) {
+                                          setState(() {
+                                            _selectedMeasureIndex--;
+                                            _focusLastInNextMeasure = true;
+                                          });
+                                        }
+                                      },
+                                      onChanged: (val) {
+                                        final newLyrics = Map<int, String>.from(note.lyrics);
+                                        if (val.isEmpty) {
+                                          newLyrics.remove(_currentVerse);
+                                        } else {
+                                          newLyrics[_currentVerse] = val;
+                                        }
+                                        final newNote = note.copyWith(lyrics: newLyrics);
+                                        final newNotes = List<MusicNote>.from(currentMeasure.notes);
+                                        newNotes[idxInFullList] = newNote;
+                                        final newMeasures = List<Measure>.from(_song.measures);
+                                        newMeasures[_selectedMeasureIndex] = currentMeasure.copyWith(notes: newNotes);
+                                        setState(() {
+                                          _song = _song.copyWith(measures: newMeasures);
+                                        });
+                                      },
+                                      onEditingComplete: _saveToHistory,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList();
+                          }(),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1069,9 +1105,12 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       final playbackSong = _song.copyWith(measures: _fillRests(_song.measures));
       int idx = 0;
       for (int i = 0; i < _playbackMeasureIndex; i++) {
-        idx += playbackSong.measures[i].notes.length;
+        idx += playbackSong.measures[i].notes.where((n) => !n.isChordContinuation).length;
       }
       return idx + _playbackNoteIndex;
+    }
+    if (_isLyricsMode) {
+      return _focusedLyricNoteIndex;
     }
     return -1;
   }
@@ -1099,12 +1138,12 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
     int idx = 0;
     for (int i = 0; i < targetMeasureIndex; i++) {
-      idx += displaySong.measures[i].notes.length;
+      idx += displaySong.measures[i].notes.where((n) => !n.isChordContinuation).length;
     }
 
     if (targetMeasureIndex == _selectedMeasureIndex && targetMeasureIndex < _song.measures.length) {
       // Position at the end of REAL notes in the current measure
-      return idx + _song.measures[targetMeasureIndex].notes.length;
+      return idx + _song.measures[targetMeasureIndex].notes.where((n) => !n.isChordContinuation).length;
     } else {
       // Position at the start of the next measure (which might be the placeholder)
       return idx;
@@ -1972,6 +2011,7 @@ class _LyricField extends StatefulWidget {
   final bool isFirstNote;
   final bool isLastNote;
   final bool focusThisOne;
+  final VoidCallback onFocus;
   final VoidCallback onTabNextMeasure;
   final VoidCallback onTabPrevMeasure;
 
@@ -1984,6 +2024,7 @@ class _LyricField extends StatefulWidget {
     required this.isFirstNote,
     required this.isLastNote,
     this.focusThisOne = false,
+    required this.onFocus,
     required this.onTabNextMeasure,
     required this.onTabPrevMeasure,
   });
@@ -2018,12 +2059,25 @@ class _LyricFieldState extends State<_LyricField> {
               return KeyEventResult.handled;
             }
           }
+          // For non-boundary notes, let the focus system handle it, 
+          // but return HANDLED to prevent the TextField from doing its own Tab thing 
+          // if it's interfering. Actually, TextField doesn't usually do much with Tab.
+          // The "2-tab" issue is likely because of ReadingOrderTraversalPolicy needing a nudge.
         }
         return KeyEventResult.ignored;
       },
     );
+    _focusNode.addListener(_handleFocusChange);
     if (widget.focusThisOne) {
-      _focusNode.requestFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
+  }
+
+  void _handleFocusChange() {
+    if (_focusNode.hasFocus) {
+      widget.onFocus();
     }
   }
 
@@ -2037,7 +2091,9 @@ class _LyricFieldState extends State<_LyricField> {
       }
     }
     if (widget.focusThisOne && !oldWidget.focusThisOne) {
-      _focusNode.requestFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
     }
   }
 

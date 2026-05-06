@@ -246,7 +246,7 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
         lyricsVariableSets: widget.song.lyricsVariableSets,
         totalVerses: widget.song.totalVerses,
       ));
-      noteOffset += batch.fold(0, (s, m) => s + m.notes.length);
+      noteOffset += batch.fold(0, (s, m) => s + m.notes.where((n) => !n.isChordContinuation).length);
       prevMeasure = batch.last;
       i = end;
     }
