@@ -920,7 +920,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('End of Song'),
-        content: const Text('Would you like to add a new verse or a new measure?'),
+        content: const Text('Would you like to add a new verse?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -935,13 +935,6 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
               });
             },
             child: const Text('Add Verse'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _addMeasure();
-            },
-            child: const Text('Add Measure'),
           ),
         ],
       ),
