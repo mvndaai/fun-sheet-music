@@ -24,6 +24,8 @@ class SheetMusicRenderer extends StatefulWidget {
   final bool scrollable;
   final double labelRotation;
   final ScrollController? scrollController;
+  final int currentVerse;
+  final bool showLyrics;
 
   final bool extendLines;
 
@@ -45,6 +47,8 @@ class SheetMusicRenderer extends StatefulWidget {
     this.scrollable = true,
     this.labelRotation = 0,
     this.scrollController,
+    this.currentVerse = 1,
+    this.showLyrics = true,
     this.extendLines = false,
   });
 
@@ -171,6 +175,8 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
                 instrument: widget.instrument,
                 showNoteLabels: widget.showNoteLabels,
                 labelRotation: widget.labelRotation,
+                currentVerse: widget.currentVerse,
+                showLyrics: widget.showLyrics,
                 extendLines: widget.extendLines,
               );
             }),
@@ -202,6 +208,8 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
                 coloredLabels: widget.coloredLabels,
                 instrument: widget.instrument,
                 showNoteLabels: widget.showNoteLabels,
+                currentVerse: widget.currentVerse,
+                showLyrics: widget.showLyrics,
                 extendLines: widget.extendLines,
               );
             }),
@@ -234,6 +242,9 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
         isLastRow: end == widget.song.measures.length,
         measuresPerRow: count, // use the actual count for this row
         previousMeasure: prevMeasure,
+        lyricsVariables: widget.song.lyricsVariables,
+        lyricsVariableSets: widget.song.lyricsVariableSets,
+        totalVerses: widget.song.totalVerses,
       ));
       noteOffset += batch.fold(0, (s, m) => s + m.notes.length);
       prevMeasure = batch.last;
@@ -255,6 +266,8 @@ class _StaffRow extends StatelessWidget {
   final InstrumentProfile instrument;
   final bool showNoteLabels;
   final double labelRotation;
+  final int currentVerse;
+  final bool showLyrics;
 
   final bool extendLines;
 
@@ -271,6 +284,8 @@ class _StaffRow extends StatelessWidget {
     required this.instrument,
     required this.showNoteLabels,
     this.labelRotation = 0,
+    this.currentVerse = 1,
+    this.showLyrics = true,
     this.extendLines = false,
   });
 
@@ -296,6 +311,8 @@ class _StaffRow extends StatelessWidget {
               showNoteLabels: showNoteLabels,
               context: context,
               labelRotation: labelRotation,
+              currentVerse: currentVerse,
+              showLyrics: showLyrics,
               extendLines: extendLines,
             ),
           ),

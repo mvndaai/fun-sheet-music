@@ -23,9 +23,31 @@ class MusicXmlGenerator {
     if (song.arranger.isNotEmpty) {
       buffer.writeln('    <creator type="arranger">${_escape(song.arranger)}</creator>');
     }
-    if (song.icon.isNotEmpty) {
+    if (song.icon.isNotEmpty || song.lyricsVariables.isNotEmpty) {
       buffer.writeln('    <miscellaneous>');
-      buffer.writeln('      <miscellaneous-field name="icon">${_escape(song.icon)}</miscellaneous-field>');
+      if (song.icon.isNotEmpty) {
+        buffer.writeln('      <miscellaneous-field name="icon">${_escape(song.icon)}</miscellaneous-field>');
+      }
+      
+      // Legacy variables
+      song.lyricsVariables.forEach((key, values) {
+        buffer.writeln('      <miscellaneous-field name="vars-$key">${_escape(values.join(', '))}</miscellaneous-field>');
+      });
+
+      // Structured variables in a single "variables" field
+      if (song.lyricsVariableSets.isNotEmpty) {
+        buffer.writeln('      <miscellaneous-field name="variables">');
+        for (int i = 0; i < song.lyricsVariableSets.length; i++) {
+          final set = song.lyricsVariableSets[i];
+          buffer.writeln('        <verse>');
+          set.forEach((key, value) {
+            buffer.writeln('          <$key>${_escape(value)}</$key>');
+          });
+          buffer.writeln('        </verse>');
+        }
+        buffer.writeln('      </miscellaneous-field>');
+      }
+
       buffer.writeln('    </miscellaneous>');
     }
     buffer.writeln('    <encoding>');
@@ -105,6 +127,14 @@ class MusicXmlGenerator {
         if (note.beam != null) {
           buffer.writeln('        <beam number="1">${note.beam}</beam>');
         }
+        
+        // Lyrics
+        note.lyrics.forEach((number, text) {
+          buffer.writeln('        <lyric number="$number">');
+          buffer.writeln('          <text>${_escape(text)}</text>');
+          buffer.writeln('        </lyric>');
+        });
+
         buffer.writeln('      </note>');
       }
       buffer.writeln('    </measure>');

@@ -16,6 +16,7 @@ import '../music_kit/utils/keyboard_utils.dart';
 import '../main.dart' show showToast;
 import '../widgets/music_settings_sheet.dart';
 import '../widgets/sheet_music_widget.dart';
+import '../widgets/verse_selector.dart';
 import '../music_kit/utils/music_pdf_service.dart';
 import '../services/pitch_detection_service.dart';
 import '../services/tone_player.dart';
@@ -55,6 +56,9 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
   int _playbackMeasureIndex = -1;
   int _playbackNoteIndex = -1;
   bool _includePickupInFirstRow = true;
+  bool _isLyricsMode = false;
+  int _currentVerse = 1;
+  final TextEditingController _lyricController = TextEditingController();
 
   final List<Song> _history = [];
   int _historyIndex = -1;
@@ -128,6 +132,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
     _audio.stopListening();
     _playbackTimer?.cancel();
     _tonePlayer.dispose();
+    _lyricController.dispose();
     super.dispose();
   }
 
@@ -606,6 +611,17 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         focusNode: _focusNode,
         autofocus: true,
         onKeyEvent: (node, event) {
+          // STRICT BLOCK: If we are in lyrics mode, block ALL note-entry and note-modifying shortcuts.
+          // This is the safest way to ensure typing letters like 'L' or 'B' doesn't add notes.
+          if (_isLyricsMode) {
+            // However, we still want to allow some "global" controls like Undo/Redo or Save
+            // if they are triggered with Control/Meta modifiers.
+            final isModified = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+            if (!isModified) {
+              return KeyEventResult.ignored;
+            }
+          }
+
           if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
           final keyboard = context.read<KeyboardProvider>().activeProfile;
@@ -684,6 +700,11 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                 tooltip: _isPlaying ? 'Stop' : 'Play',
               ),
               IconButton(icon: const Icon(Icons.code), onPressed: _showXmlEditor),
+              IconButton(
+                icon: Icon(_isLyricsMode ? Icons.text_fields : Icons.music_note),
+                onPressed: () => setState(() => _isLyricsMode = !_isLyricsMode),
+                tooltip: 'Toggle Lyrics Mode',
+              ),
               IconButton(icon: const Icon(Icons.save), onPressed: _save),
               IconButton(
                 icon: const Icon(Icons.settings),
@@ -718,12 +739,179 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                     isRest: _nextIsRest,
                     beam: (!_nextIsRest && (_nextType == 'eighth' || _nextType == '16th')) ? _nextBeam : null,
                   ),
+                  currentVerse: _currentVerse,
                 ),
               ),
-              _buildEditorControls(),
+              _isLyricsMode ? _buildLyricsEditor() : _buildEditorControls(),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLyricsEditor() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final measures = _song.measures;
+    final currentMeasure = measures[_selectedMeasureIndex];
+    final totalVerses = _song.totalVerses;
+    final totalMeasures = measures.length;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Simplified Navigation Row for Lyrics Mode
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: _selectedMeasureIndex > 0
+                        ? () => setState(() => _selectedMeasureIndex--)
+                        : null,
+                    tooltip: 'Previous Measure',
+                  ),
+                  Text(
+                    'Measure ${_selectedMeasureIndex + 1} / $totalMeasures',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: _selectedMeasureIndex < totalMeasures - 1
+                        ? () => setState(() => _selectedMeasureIndex++)
+                        : null,
+                    tooltip: 'Next Measure',
+                  ),
+                  const Spacer(),
+                  VerseSelector(
+                    currentVerse: _currentVerse,
+                    totalVerses: totalVerses,
+                    onChanged: (v) => setState(() => _currentVerse = v),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: _showVariablesEditor,
+                    icon: const Icon(Icons.settings_ethernet, size: 18),
+                    label: const Text('Vars'),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  const Text('Type lyrics for each note in this measure:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  if (currentMeasure.notes.where((n) => !n.isChordContinuation).isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Text('No notes in this measure to add lyrics to.'),
+                    )
+                  else
+                    FocusTraversalGroup(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 12,
+                        children: currentMeasure.notes.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final note = entry.value;
+                          if (note.isChordContinuation) return const SizedBox.shrink();
+
+                          final lyric = note.lyrics[_currentVerse] ?? '';
+                          final playableNotes = currentMeasure.notes.where((n) => !n.isChordContinuation).toList();
+                          final isFirstNote = note == playableNotes.first;
+                          final isLastNote = note == playableNotes.last;
+                          
+                          return SizedBox(
+                            width: 100,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(note.letterName, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                Focus(
+                                  onKeyEvent: (node, event) {
+                                    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                                    
+                                    if (event.logicalKey == LogicalKeyboardKey.tab) {
+                                      if (HardwareKeyboard.instance.isShiftPressed) {
+                                        if (isFirstNote && _selectedMeasureIndex > 0) {
+                                          setState(() => _selectedMeasureIndex--);
+                                          return KeyEventResult.handled;
+                                        }
+                                      } else {
+                                        if (isLastNote && _selectedMeasureIndex < totalMeasures - 1) {
+                                          setState(() => _selectedMeasureIndex++);
+                                          return KeyEventResult.handled;
+                                        }
+                                      }
+                                    }
+                                    return KeyEventResult.ignored;
+                                  },
+                                  child: TextField(
+                                    autofocus: true,
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      hintText: note.isRest ? '(rest)' : 'lyric...',
+                                      border: const OutlineInputBorder(),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    ),
+                                    controller: TextEditingController(text: lyric)..selection = TextSelection.collapsed(offset: lyric.length),
+                                    onChanged: (val) {
+                                      final newLyrics = Map<int, String>.from(note.lyrics);
+                                      if (val.isEmpty) {
+                                        newLyrics.remove(_currentVerse);
+                                      } else {
+                                        newLyrics[_currentVerse] = val;
+                                      }
+                                      final newNote = note.copyWith(lyrics: newLyrics);
+                                      final newNotes = List<MusicNote>.from(currentMeasure.notes);
+                                      newNotes[idx] = newNote;
+                                      final newMeasures = List<Measure>.from(_song.measures);
+                                      newMeasures[_selectedMeasureIndex] = currentMeasure.copyWith(notes: newNotes);
+                                      setState(() {
+                                        _song = _song.copyWith(measures: newMeasures);
+                                      });
+                                    },
+                                    onEditingComplete: _saveToHistory,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showVariablesEditor() {
+    showDialog(
+      context: context,
+      builder: (context) => _VariablesEditorDialog(
+        initialVariableSets: _song.lyricsVariableSets,
+        onUpdate: (updatedSets) {
+          setState(() {
+            _song = _song.copyWith(lyricsVariableSets: updatedSets);
+            _saveToHistory();
+          });
+        },
       ),
     );
   }
@@ -1747,6 +1935,158 @@ class _SongMetadataDialogState extends State<_SongMetadataDialog> {
           child: const Text('Update'),
         ),
       ],
+    );
+  }
+}
+
+class _VariablesEditorDialog extends StatefulWidget {
+  final List<Map<String, String>> initialVariableSets;
+  final ValueChanged<List<Map<String, String>>> onUpdate;
+
+  const _VariablesEditorDialog({required this.initialVariableSets, required this.onUpdate});
+
+  @override
+  State<_VariablesEditorDialog> createState() => _VariablesEditorDialogState();
+}
+
+class _VariablesEditorDialogState extends State<_VariablesEditorDialog> {
+  late List<Map<String, String>> _sets;
+
+  @override
+  void initState() {
+    super.initState();
+    _sets = widget.initialVariableSets.map((s) => Map<String, String>.from(s)).toList();
+    if (_sets.isEmpty) {
+      _sets.add({}); // At least one verse set
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Get all keys across all sets
+    final allKeys = <String>{};
+    for (var set in _sets) {
+      allKeys.addAll(set.keys);
+    }
+    final sortedKeys = allKeys.toList()..sort();
+
+    return AlertDialog(
+      title: const Text('Lyrics Variables'),
+      content: SizedBox(
+        width: 600,
+        height: 400,
+        child: Column(
+          children: [
+            const Text(
+              'Each column is a verse. Use {{name}} in lyrics.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SingleChildScrollView(
+                  child: DataTable(
+                    columns: [
+                      const DataColumn(label: Text('Variable')),
+                      ...List.generate(_sets.length, (i) => DataColumn(
+                        label: Row(
+                          children: [
+                            Text('Verse ${i + 1}'),
+                            IconButton(
+                              icon: const Icon(Icons.delete, size: 14),
+                              onPressed: _sets.length > 1 ? () => setState(() => _sets.removeAt(i)) : null,
+                            ),
+                          ],
+                        ),
+                      )),
+                      DataColumn(label: IconButton(
+                        icon: const Icon(Icons.add_circle),
+                        onPressed: () => setState(() => _sets.add({})),
+                        tooltip: 'Add Verse Column',
+                      )),
+                    ],
+                    rows: [
+                      ...sortedKeys.map((key) => DataRow(
+                        cells: [
+                          DataCell(Row(
+                            children: [
+                              Text(key, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle_outline, size: 14),
+                                onPressed: () => setState(() {
+                                  for (var set in _sets) {
+                                    set.remove(key);
+                                  }
+                                }),
+                              ),
+                            ],
+                          )),
+                          ...List.generate(_sets.length, (i) => DataCell(
+                            TextField(
+                              decoration: const InputDecoration(isDense: true),
+                              controller: TextEditingController(text: _sets[i][key] ?? ''),
+                              onChanged: (val) => _sets[i][key] = val,
+                            ),
+                          )),
+                          const DataCell(SizedBox.shrink()),
+                        ],
+                      )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _addNewVariable,
+              icon: const Icon(Icons.add),
+              label: const Text('Add Variable Row'),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: () {
+            widget.onUpdate(_sets);
+            Navigator.pop(context);
+          },
+          child: const Text('Apply'),
+        ),
+      ],
+    );
+  }
+
+  void _addNewVariable() {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('New Variable Name'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'e.g. animal'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                setState(() {
+                  for (var set in _sets) {
+                    set[controller.text] = '';
+                  }
+                });
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
     );
   }
 }

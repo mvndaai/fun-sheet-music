@@ -7,6 +7,8 @@
 .buildlog/
 .history
 *.DS_Store
+.artifacts/
+.idea/
 
 
 # Flutter repo-specific

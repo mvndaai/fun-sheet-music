@@ -15,6 +15,9 @@ class StaffRowData {
   final bool isLastRow;
   final int measuresPerRow;
   final Measure? previousMeasure;
+  final Map<String, List<String>> lyricsVariables;
+  final List<Map<String, String>> lyricsVariableSets;
+  final int totalVerses;
 
   const StaffRowData({
     required this.measures,
@@ -23,6 +26,9 @@ class StaffRowData {
     required this.isLastRow,
     required this.measuresPerRow,
     this.previousMeasure,
+    this.lyricsVariables = const {},
+    this.lyricsVariableSets = const [],
+    this.totalVerses = 1,
   });
 }
 
@@ -40,6 +46,8 @@ class StaffPainter extends CustomPainter {
   final BuildContext context;
   final double labelRotation;
   final bool showStaffLines;
+  final int currentVerse;
+  final bool showLyrics;
 
   final bool extendLines;
 
@@ -57,6 +65,8 @@ class StaffPainter extends CustomPainter {
     required this.context,
     this.labelRotation = 0,
     this.showStaffLines = true,
+    this.currentVerse = 1,
+    this.showLyrics = true,
     this.extendLines = false,
   });
 
@@ -74,6 +84,8 @@ class StaffPainter extends CustomPainter {
       old.showNoteLabels != showNoteLabels ||
       old.labelRotation != labelRotation ||
       old.showStaffLines != showStaffLines ||
+      old.currentVerse != currentVerse ||
+      old.showLyrics != showLyrics ||
       old.extendLines != extendLines;
 
   @override
@@ -646,7 +658,41 @@ class StaffPainter extends CustomPainter {
 
     for (final l in labelsToDraw) {
       _drawNoteLabel(canvas, l.note, l.x, l.y, l.pos, l.color, l.alpha, clefColor, stemTipY: l.stemTipY);
+      if (showLyrics) {
+        _drawLyrics(canvas, l.note, l.x, l.y, l.pos, l.color, l.alpha, clefColor, isActive: l.note == displayNotes.firstWhere((n) => !n.isChordContinuation && (noteOffset + displayNotes.indexOf(n)) == activeNoteIndex, orElse: () => l.note));
+      }
     }
+  }
+
+  void _drawLyrics(Canvas canvas, MusicNote note, double x, double y, int pos, Color color, double alpha, Color clefColor, {bool isActive = false}) {
+    final text = note.getResolvedLyric(currentVerse, row.lyricsVariables, isLastVerse: currentVerse == row.totalVerses, variableSets: row.lyricsVariableSets);
+    if (text.isEmpty) return;
+
+    final lyricY = kTopMargin + kStaffH + kLS * 4.2;
+    
+    // Highlight the active lyric
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+    final textColor = clefColor.withValues(alpha: alpha);
+
+    if (isActive) {
+      // Draw a solid highlight behind active lyric
+      final p = Paint()
+        ..color = (isDarkTheme ? Colors.white24 : Colors.grey.shade200).withValues(alpha: 0.3)
+        ..style = PaintingStyle.fill;
+      canvas.drawRRect(
+        RRect.fromLTRBR(x - 22, lyricY - 10, x + 22, lyricY + 4, const Radius.circular(6)),
+        p,
+      );
+    }
+
+    _drawTextCentered(
+      canvas,
+      text,
+      Offset(x, lyricY),
+      fontSize: kLS * 1.0,
+      color: textColor,
+      fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+    );
   }
 
   void _drawNote(

@@ -23,6 +23,8 @@ class MusicXmlParser {
     final title = _getTitle(root);
     final icon = _getMiscellaneousField(root, 'icon');
     final xmlTags = _getMiscellaneousFields(root, 'tag');
+    final lyricsVariables = _getLyricsVariables(root);
+    final lyricsVariableSets = _getLyricsVariableSets(root);
     final composer = _getComposer(root);
     final measures = _parseMeasures(root);
 
@@ -37,6 +39,8 @@ class MusicXmlParser {
       localPath: localPath,
       sourceUrl: sourceUrl,
       createdAt: createdAt ?? DateTime.now(),
+      lyricsVariables: lyricsVariables,
+      lyricsVariableSets: lyricsVariableSets,
     );
   }
 
@@ -101,6 +105,94 @@ class MusicXmlParser {
       }
     }
     return results;
+  }
+
+  static Map<String, List<String>> _getLyricsVariables(XmlElement root) {
+    final results = <String, List<String>>{};
+    for (final field in root.findAllElements('miscellaneous-field')) {
+      final name = field.getAttribute('name') ?? '';
+      if (name.startsWith('vars-')) {
+        final key = name.substring(5);
+        final values = field.innerText.split(',').map((e) => e.trim()).toList();
+        results[key] = values;
+      }
+    }
+    return results;
+  }
+
+  static List<Map<String, String>> _getLyricsVariableSets(XmlElement root) {
+    final sets = <Map<String, String>>[];
+    
+    // 1. Check for structured "variables" field (New XML-like format)
+    for (final field in root.findAllElements('miscellaneous-field')) {
+      if (field.getAttribute('name') == 'variables') {
+        // Look for nested <verse> elements
+        final verseEls = field.findElements('verse');
+        if (verseEls.isNotEmpty) {
+          for (final verseEl in verseEls) {
+            final Map<String, String> set = {};
+            for (final node in verseEl.children) {
+              if (node is XmlElement) {
+                set[node.name.local] = node.innerText.trim();
+              }
+            }
+            sets.add(set);
+          }
+          continue;
+        }
+
+        // Fallback: Semi-colon format
+        final content = field.innerText.trim();
+        if (content.isEmpty) continue;
+        
+        try {
+          final parts = content.split(';');
+          for (final part in parts) {
+            final eqIdx = part.indexOf('=');
+            if (eqIdx == -1) continue;
+            
+            final fullKey = part.substring(0, eqIdx).trim();
+            final value = part.substring(eqIdx + 1).trim();
+            
+            final match = RegExp(r'vars\[(\d+)\]\.(.+)').firstMatch(fullKey);
+            if (match != null) {
+              final index = int.parse(match.group(1)!);
+              final key = match.group(2)!;
+              
+              while (sets.length <= index) {
+                sets.add({});
+              }
+              sets[index][key] = value;
+            }
+          }
+        } catch (e) {
+          // ignore malformed content
+        }
+      }
+    }
+
+    // 2. Check for individual fields (Transition format)
+    for (final field in root.findAllElements('miscellaneous-field')) {
+      final name = field.getAttribute('name') ?? '';
+      if (name.startsWith('vars[')) {
+        // format: vars[0].animal = cow
+        final match = RegExp(r'vars\[(\d+)\]\.(.+)').firstMatch(name);
+        if (match != null) {
+          final index = int.parse(match.group(1)!);
+          final key = match.group(2)!;
+          final value = field.innerText.trim();
+          
+          while (sets.length <= index) {
+            sets.add({});
+          }
+          // Only add if not already set by the new format
+          if (!sets[index].containsKey(key)) {
+            sets[index][key] = value;
+          }
+        }
+      }
+    }
+    return sets;
   }
 
   static String _getTitle(XmlElement root) {
@@ -217,6 +309,16 @@ class MusicXmlParser {
     final beamEl = noteEl.findElements('beam').firstOrNull;
     final beam = beamEl?.innerText.trim();
 
+    final lyrics = <int, String>{};
+    for (final lyricEl in noteEl.findElements('lyric')) {
+      final numberStr = lyricEl.getAttribute('number') ?? '1';
+      final number = int.tryParse(numberStr) ?? 1;
+      final text = lyricEl.findElements('text').firstOrNull?.innerText.trim() ?? '';
+      if (text.isNotEmpty) {
+        lyrics[number] = text;
+      }
+    }
+
     return MusicNote(
       step: step,
       octave: octave,
@@ -229,6 +331,7 @@ class MusicXmlParser {
       beam: beam,
       isTied: isTied,
       isTiedToPrevious: isTiedToPrevious,
+      lyrics: lyrics,
     );
   }
 }

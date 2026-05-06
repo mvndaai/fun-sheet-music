@@ -14,6 +14,8 @@ class Song {
   final String? localPath; // path to local MusicXML file
   final String? sourceUrl; // original URL if downloaded from cloud
   final DateTime createdAt;
+  final Map<String, List<String>> lyricsVariables; // Deprecated: use lyricsVariableSets
+  final List<Map<String, String>> lyricsVariableSets;
 
   const Song({
     required this.id,
@@ -27,6 +29,8 @@ class Song {
     this.localPath,
     this.sourceUrl,
     required this.createdAt,
+    this.lyricsVariables = const {},
+    this.lyricsVariableSets = const [],
   });
 
   bool get isAutoAdd => localPath?.contains('/auto-add/') ?? false;
@@ -46,6 +50,8 @@ class Song {
     String? localPath,
     String? sourceUrl,
     DateTime? createdAt,
+    Map<String, List<String>>? lyricsVariables,
+    List<Map<String, String>>? lyricsVariableSets,
   }) {
     return Song(
       id: id ?? this.id,
@@ -59,7 +65,33 @@ class Song {
       localPath: localPath ?? this.localPath,
       sourceUrl: sourceUrl ?? this.sourceUrl,
       createdAt: createdAt ?? this.createdAt,
+      lyricsVariables: lyricsVariables ?? this.lyricsVariables,
+      lyricsVariableSets: lyricsVariableSets ?? this.lyricsVariableSets,
     );
+  }
+
+  /// Returns the total number of verses based on the notes and variable sets.
+  int get totalVerses {
+    int maxVerse = 1;
+    for (final m in measures) {
+      for (final n in m.notes) {
+        for (final v in n.lyrics.keys) {
+          if (v < 99 && v > maxVerse) maxVerse = v;
+        }
+      }
+    }
+    
+    // Check variable sets
+    if (lyricsVariableSets.length > maxVerse) {
+      maxVerse = lyricsVariableSets.length;
+    }
+    
+    // Legacy check
+    for (final values in lyricsVariables.values) {
+      if (values.length > maxVerse) maxVerse = values.length;
+    }
+    
+    return maxVerse;
   }
 
   /// Returns all playable notes (non-rest, non-chord-continuation) in order.
@@ -83,6 +115,8 @@ class Song {
         'localPath': localPath,
         'sourceUrl': sourceUrl,
         'createdAt': createdAt.toIso8601String(),
+        'lyricsVariables': lyricsVariables,
+        'lyricsVariableSets': lyricsVariableSets,
       };
 
   factory Song.fromJson(Map<String, dynamic> json) => Song(
@@ -100,5 +134,13 @@ class Song {
         localPath: json['localPath'] as String?,
         sourceUrl: json['sourceUrl'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
+        lyricsVariables: (json['lyricsVariables'] as Map<String, dynamic>?)?.map(
+              (k, v) => MapEntry(k, (v as List).map((e) => e.toString()).toList()),
+            ) ??
+            const {},
+        lyricsVariableSets: (json['lyricsVariableSets'] as List<dynamic>?)?.map(
+              (e) => (e as Map<String, dynamic>).map((k, v) => MapEntry(k, v.toString())),
+            ).toList() ??
+            const [],
       );
 }

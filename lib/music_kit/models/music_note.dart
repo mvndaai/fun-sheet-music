@@ -21,6 +21,7 @@ class MusicNote {
   final bool isTied; // whether this note is tied to the next
   final bool isTiedToPrevious; // whether this note is tied from the previous
   final bool isPlaceholder; // whether this note was auto-generated to fill a measure
+  final Map<int, String> lyrics; // verse number -> lyric text
 
   const MusicNote({
     required this.step,
@@ -36,6 +37,7 @@ class MusicNote {
     this.isTied = false,
     this.isTiedToPrevious = false,
     this.isPlaceholder = false,
+    this.lyrics = const {},
   });
 
   bool get isDotted => dot > 0;
@@ -102,7 +104,48 @@ class MusicNote {
   }
 
   @override
-  String toString() => 'MusicNote($letterName, $type)';
+  String toString() => 'MusicNote($letterName, $type, lyrics: $lyrics)';
+
+  /// Returns the resolved lyric for a given verse, handling variables and last-verse logic.
+  String getResolvedLyric(int verse, Map<String, List<String>> variables, {bool isLastVerse = false, List<Map<String, String>>? variableSets}) {
+    String? lyric = lyrics[verse];
+    
+    // Last verse override (convention: use high verse number like 99 for "last")
+    if (isLastVerse && lyrics.containsKey(99)) {
+      lyric = lyrics[99];
+    }
+
+    // Fallback to verse 1 if current verse is missing and verse 1 exists
+    // (Common for variable-based lyrics where only verse 1 is defined as a template)
+    if ((lyric == null || lyric.isEmpty) && verse > 1 && lyrics.containsKey(1)) {
+      lyric = lyrics[1];
+    }
+
+    if (lyric == null || lyric.isEmpty) return '';
+
+    // Resolve variables: {{varName}}
+    String resolved = lyric;
+
+    // 1. Check new structure (Variable Sets)
+    if (variableSets != null && variableSets.isNotEmpty) {
+      final setIndex = verse - 1;
+      final set = setIndex < variableSets.length ? variableSets[setIndex] : variableSets.last;
+      set.forEach((name, value) {
+        resolved = resolved.replaceAll('{{$name}}', value);
+      });
+    }
+
+    // 2. Check legacy structure (Map of Lists)
+    variables.forEach((name, values) {
+      final placeholder = '{{$name}}';
+      if (resolved.contains(placeholder)) {
+        final val = (verse - 1) < values.length ? values[verse - 1] : (values.isNotEmpty ? values.last : '');
+        resolved = resolved.replaceAll(placeholder, val);
+      }
+    });
+
+    return resolved;
+  }
 
   MusicNote copyWith({
     String? step,
@@ -118,6 +161,7 @@ class MusicNote {
     bool? isTied,
     bool? isTiedToPrevious,
     bool? isPlaceholder,
+    Map<int, String>? lyrics,
   }) {
     return MusicNote(
       step: step ?? this.step,
@@ -133,6 +177,7 @@ class MusicNote {
       isTied: isTied ?? this.isTied,
       isTiedToPrevious: isTiedToPrevious ?? this.isTiedToPrevious,
       isPlaceholder: isPlaceholder ?? this.isPlaceholder,
+      lyrics: lyrics ?? this.lyrics,
     );
   }
 }

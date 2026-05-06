@@ -24,6 +24,8 @@ class SheetMusicWidget extends StatelessWidget {
   final bool scrollable;
   final double labelRotation;
   final ScrollController? scrollController;
+  final int currentVerse;
+  final bool? showLyrics;
 
   final bool extendLines;
 
@@ -43,6 +45,8 @@ class SheetMusicWidget extends StatelessWidget {
     this.scrollable = true,
     this.labelRotation = 0,
     this.scrollController,
+    this.currentVerse = 1,
+    this.showLyrics,
     this.extendLines = false,
   });
 
@@ -68,6 +72,8 @@ class SheetMusicWidget extends StatelessWidget {
       scrollable: scrollable,
       labelRotation: labelRotation,
       scrollController: scrollController,
+      currentVerse: currentVerse,
+      showLyrics: showLyrics ?? ip.showLyrics,
       extendLines: extendLines,
     );
   }

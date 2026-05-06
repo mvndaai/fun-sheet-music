@@ -213,6 +213,17 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                 const Divider(height: 24),
                 const _SectionHeader(title: 'Display'),
 
+                // Lyrics Toggle
+                _SegmentedSetting<bool>(
+                  title: 'Lyrics',
+                  value: provider.showLyrics,
+                  options: const [
+                    (value: true, label: 'Show', icon: Icons.text_fields),
+                    (value: false, label: 'Hide', icon: Icons.visibility_off),
+                  ],
+                  onChanged: (v) => provider.setShowLyrics(v),
+                ),
+
                 // 4. Measures per row
                 _SegmentedSetting<int>(
                   title: 'Measures per row',

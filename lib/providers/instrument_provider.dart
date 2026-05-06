@@ -23,6 +23,7 @@ class InstrumentProvider extends ChangeNotifier {
   static const String _pdfLandscapeKey = 'settings_pdf_landscape';
   static const String _isAdFreeKey = 'settings_is_ad_free';
   static const String _tempoKey = 'settings_tempo';
+  static const String _showLyricsKey = 'settings_show_lyrics';
   static const String _builtInTuningOverridesKey = 'color_scheme_builtin_tuning';
 
   final Uuid _uuid = const Uuid();
@@ -48,6 +49,7 @@ class InstrumentProvider extends ChangeNotifier {
   bool _pdfLandscape = false;
   bool _isAdFree = false;
   double _tempo = 120.0;
+  bool _showLyrics = true;
 
   bool get showNoteLabels => _noteLabelMode != NoteLabelMode.none;
   bool get showLetter => _noteLabelMode == NoteLabelMode.letters;
@@ -65,6 +67,7 @@ class InstrumentProvider extends ChangeNotifier {
   bool get pdfLandscape => _pdfLandscape;
   bool get isAdFree => _isAdFree;
   double get tempo => _tempo;
+  bool get showLyrics => _showLyrics;
 
   List<InstrumentProfile> get allSchemes => [
         ..._builtInSchemes,
@@ -117,6 +120,7 @@ class InstrumentProvider extends ChangeNotifier {
     _pdfLandscape = prefs.getBool(_pdfLandscapeKey) ?? false;
     _isAdFree = prefs.getBool(_isAdFreeKey) ?? false;
     _tempo = prefs.getDouble(_tempoKey) ?? 120.0;
+    _showLyrics = prefs.getBool(_showLyricsKey) ?? true;
 
     final modeIndex = prefs.getInt(_displayModeKey) ?? 0;
     _displayMode = MusicDisplayMode.values[modeIndex.clamp(0, MusicDisplayMode.values.length - 1)];
@@ -248,6 +252,14 @@ class InstrumentProvider extends ChangeNotifier {
   Future<void> persistTempo() async {
     final prefs = await _preferences; await prefs.setDouble(_tempoKey, _tempo);
   }
+
+  Future<void> setShowLyrics(bool value) async {
+    _showLyrics = value;
+    notifyListeners();
+    final prefs = await _preferences;
+    await prefs.setBool(_showLyricsKey, value);
+  }
+
   Future<InstrumentProfile> createCustom({String? name, String? icon, String? emoji}) async {
     final scheme = InstrumentProfile(
       id: _uuid.v7(),

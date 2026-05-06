@@ -22,6 +22,7 @@ import '../main.dart' show showToast;
 import '../music_kit/widgets/staff_painter.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../widgets/music_settings_sheet.dart';
+import '../widgets/verse_selector.dart';
 
 class SheetMusicScreen extends StatefulWidget {
   final Song song;
@@ -37,6 +38,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
   final TonePlayer _tonePlayer = TonePlayer();
   int _activeNoteIndex = 0;
   double _tempo = 140.0;
+  int _currentVerse = 1;
 
   // Sheet Music Mode State
   bool _isPlaying = false;
@@ -152,7 +154,17 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           _scrollToCurrentNoteSmooth();
           _scheduleNextNote();
         } else {
-          _onSongComplete();
+          // Check if there's another verse
+          if (_currentVerse < widget.song.totalVerses) {
+            setState(() {
+              _currentVerse++;
+              _activeNoteIndex = 0;
+            });
+            _scrollToCurrentNoteSmooth();
+            _scheduleNextNote();
+          } else {
+            _onSongComplete();
+          }
         }
       }
     });
@@ -247,7 +259,17 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
       });
       _scrollToCurrentNoteSmooth();
     } else {
-      _onSongComplete();
+      // Check if there's another verse
+      if (_currentVerse < widget.song.totalVerses) {
+        setState(() {
+          _currentVerse++;
+          _activeNoteIndex = 0;
+          _jumpPastRests();
+        });
+        _scrollToCurrentNoteSmooth();
+      } else {
+        _onSongComplete();
+      }
     }
   }
 
@@ -515,6 +537,9 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
                 lastPhysicalKey: _lastPhysicalKey,
                 targetNoteName: NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme),
                 keyboardOverrides: keyboardProvider.activeProfile.getAllKeyMappings(),
+                currentVerse: _currentVerse,
+                totalVerses: widget.song.totalVerses,
+                onVerseChanged: (v) => setState(() => _currentVerse = v),
               ),
             Expanded(
               child: mode == MusicDisplayMode.game
@@ -523,6 +548,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
                       activeNoteIndex: _activeNoteIndex,
                       detectedNote: _detectedNote,
                       scrollController: _gameScrollController,
+                      currentVerse: _currentVerse,
                     )
                   : SheetMusicWidget(
                       key: ValueKey(mode),
@@ -533,6 +559,7 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
                       labelsBelow: provider.labelsBelow,
                       coloredLabels: provider.coloredLabels,
                       measuresPerRow: provider.measuresPerRow,
+                      currentVerse: _currentVerse,
                     ),
             ),
           ],
@@ -548,8 +575,9 @@ class _GameView extends StatelessWidget {
   final int activeNoteIndex;
   final String detectedNote;
   final ScrollController scrollController;
+  final int currentVerse;
 
-  const _GameView({required this.song, required this.activeNoteIndex, required this.detectedNote, required this.scrollController});
+  const _GameView({required this.song, required this.activeNoteIndex, required this.detectedNote, required this.scrollController, required this.currentVerse});
 
   @override
   Widget build(BuildContext context) {
@@ -606,6 +634,7 @@ class _GameView extends StatelessWidget {
                                 showHeader: false,
                                 scrollable: false,
                                 labelRotation: math.pi / 2,
+                                showLyrics: false,
                                 extendLines: true,
                               ),
                             ),
@@ -650,9 +679,86 @@ class _GameView extends StatelessWidget {
             bottom: viewportHeight * 0.25, left: 0, right: 0,
             child: IgnorePointer(child: Container(height: 2, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5))),
           ),
+          Positioned(
+            bottom: 40, left: 0, right: 0,
+            child: provider.showLyrics ? _ScrollingLyrics(
+              song: song,
+              activeNoteIndex: activeNoteIndex,
+              currentVerse: currentVerse,
+            ) : const SizedBox.shrink(),
+          ),
         ],
       );
     });
+  }
+}
+
+class _ScrollingLyrics extends StatelessWidget {
+  final Song song;
+  final int activeNoteIndex;
+  final int currentVerse;
+
+  const _ScrollingLyrics({required this.song, required this.activeNoteIndex, required this.currentVerse});
+
+  @override
+  Widget build(BuildContext context) {
+    final allPlaybackNotes = song.playbackNotes;
+    final totalVerses = song.totalVerses;
+
+    return SizedBox(
+      height: 60,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final centerX = constraints.maxWidth / 2;
+          const double noteWidth = 120.0;
+          
+          return TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOutCubic,
+            tween: Tween<double>(begin: 0, end: activeNoteIndex.toDouble()),
+            builder: (context, animatedIndex, child) {
+              final double activeX = animatedIndex * noteWidth;
+              final List<Widget> children = [];
+
+              for (int i = 0; i < allPlaybackNotes.length; i++) {
+                final note = allPlaybackNotes[i];
+                final text = note.getResolvedLyric(currentVerse, song.lyricsVariables, isLastVerse: currentVerse == totalVerses, variableSets: song.lyricsVariableSets);
+                if (text.isEmpty) continue;
+
+                final double x = (i * noteWidth) - activeX + centerX;
+                
+                // Only render if visible
+                if (x < -150 || x > constraints.maxWidth + 150) continue;
+
+                final isActive = i == activeNoteIndex;
+                
+                children.add(
+                  Positioned(
+                    left: x - 60,
+                    width: 120,
+                    top: isActive ? 0 : 10,
+                    child: Center(
+                      child: Text(
+                        text,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: isActive ? 24 : 18,
+                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                          color: isActive 
+                            ? Theme.of(context).colorScheme.primary 
+                            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return Stack(children: children);
+            },
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -664,8 +770,22 @@ class _CurrentNoteCard extends StatelessWidget {
   final String lastPhysicalKey;
   final String targetNoteName;
   final Map<String, String> keyboardOverrides;
+  final int currentVerse;
+  final int totalVerses;
+  final ValueChanged<int> onVerseChanged;
 
-  const _CurrentNoteCard({required this.note, required this.showSolfege, required this.detectedNote, required this.isKeyboardInput, required this.lastPhysicalKey, required this.targetNoteName, required this.keyboardOverrides});
+  const _CurrentNoteCard({
+    required this.note,
+    required this.showSolfege,
+    required this.detectedNote,
+    required this.isKeyboardInput,
+    required this.lastPhysicalKey,
+    required this.targetNoteName,
+    required this.keyboardOverrides,
+    required this.currentVerse,
+    required this.totalVerses,
+    required this.onVerseChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -683,7 +803,19 @@ class _CurrentNoteCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Play now:', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Row(
+                  children: [
+                    Text('Play now:', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    if (totalVerses > 1) ...[
+                      const SizedBox(width: 12),
+                      VerseSelector(
+                        currentVerse: currentVerse,
+                        totalVerses: totalVerses,
+                        onChanged: onVerseChanged,
+                      ),
+                    ],
+                  ],
+                ),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic,
                   children: [
@@ -705,6 +837,43 @@ class _CurrentNoteCard extends StatelessWidget {
                 Text(detectedNote, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isCorrect ? Colors.green : Colors.orange)),
               ]),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VerseSelector extends StatelessWidget {
+  final int currentVerse;
+  final int totalVerses;
+  final ValueChanged<int> onChanged;
+
+  const _VerseSelector({required this.currentVerse, required this.totalVerses, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 24,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            padding: EdgeInsets.zero,
+            iconSize: 16,
+            icon: const Icon(Icons.remove),
+            onPressed: currentVerse > 1 ? () => onChanged(currentVerse - 1) : null,
+          ),
+          Text('Verse $currentVerse / $totalVerses', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+          IconButton(
+            padding: EdgeInsets.zero,
+            iconSize: 16,
+            icon: const Icon(Icons.add),
+            onPressed: currentVerse < totalVerses ? () => onChanged(currentVerse + 1) : null,
+          ),
         ],
       ),
     );
