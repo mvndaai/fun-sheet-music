@@ -6,10 +6,85 @@
   <identification>
     <encoding>
       <software>Fun Sheet Music Editor</software>
-      <encoding-date>2026-04-30</encoding-date>
+      <encoding-date>2026-05-06</encoding-date>
     </encoding>
     <miscellaneous>
       <miscellaneous-field name="icon">🚌</miscellaneous-field>
+      <miscellaneous-field name="variables">
+        <default>
+          <end1>all</end1>
+          <end2>through</end2>
+          <end3>the</end3>
+          <end4>town.</end4>
+        </default>
+        <verse>
+          <subject>wheels</subject>
+          <verb>go</verb>
+          <predicate1>round</predicate1>
+          <predicate2>and</predicate2>
+          <predicate3>round,</predicate3>
+        </verse>
+        <verse>
+          <subject>horn</subject>
+          <verb>goes</verb>
+          <predicate1>beep,</predicate1>
+          <predicate2>beep,</predicate2>
+          <predicate3>beep,</predicate3>
+        </verse>
+        <verse>
+          <subject>wipers</subject>
+          <verb>go</verb>
+          <predicate1>swish,</predicate1>
+          <predicate2>swish,</predicate2>
+          <predicate3>swish,</predicate3>
+        </verse>
+        <verse>
+          <subject>doors</subject>
+          <verb>go</verb>
+          <predicate1>o-pen</predicate1>
+          <predicate2>and</predicate2>
+          <predicate3>shut,</predicate3>
+        </verse>
+        <verse>
+          <subject>driver</subject>
+          <verb>says</verb>
+          <predicate1>"Move</predicate1>
+          <predicate2>on</predicate2>
+          <predicate3>back,"</predicate3>
+        </verse>
+        <verse>
+          <subject>people</subject>
+          <verb>go</verb>
+          <predicate1>up</predicate1>
+          <predicate2>and</predicate2>
+          <predicate3>down,</predicate3>
+        </verse>
+        <verse>
+          <subject>ba-by</subject>
+          <verb>goes</verb>
+          <predicate1>wah,</predicate1>
+          <predicate2>wah,</predicate2>
+          <predicate3>wah,</predicate3>
+        </verse>
+        <verse>
+          <subject>daddy</subject>
+          <verb>goes</verb>
+          <predicate1>shh,</predicate1>
+          <predicate2>shh,</predicate2>
+          <predicate3>shh,</predicate3>
+        </verse>
+        <verse>
+          <subject>mommy</subject>
+          <verb>goes</verb>
+          <predicate1>"I</predicate1>
+          <predicate2>love</predicate2>
+          <predicate3>you,"</predicate3>
+          <end1>and your</end1>
+          <end2>daddy</end2>
+          <end3>loves</end3>
+          <end4> you too.</end4>
+        </verse>
+      </miscellaneous-field>
     </miscellaneous>
   </identification>
   <part-list>
@@ -40,6 +115,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>The</text></lyric>
       </note>
     </measure>
     <measure number="2">
@@ -50,6 +126,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{subject}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -59,6 +136,7 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">begin</beam>
+        <lyric number="1"><text>on</text></lyric>
       </note>
       <note>
         <pitch>
@@ -68,6 +146,7 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">end</beam>
+        <lyric number="1"><text>the</text></lyric>
       </note>
       <note>
         <pitch>
@@ -76,6 +155,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>bus</text></lyric>
       </note>
       <note>
         <pitch>
@@ -84,6 +164,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{verb}}</text></lyric>
       </note>
     </measure>
     <measure number="3">
@@ -94,6 +175,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{predicate1}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -102,6 +184,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{predicate2}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -110,6 +193,7 @@
         </pitch>
         <duration>8</duration>
         <type>half</type>
+        <lyric number="1"><text>{{predicate3}}</text></lyric>
       </note>
     </measure>
     <measure number="4">
@@ -120,6 +204,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{predicate1}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -128,6 +213,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{predicate2}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -136,6 +222,7 @@
         </pitch>
         <duration>8</duration>
         <type>half</type>
+        <lyric number="1"><text>{{predicate3}}</text></lyric>
       </note>
     </measure>
     <measure number="5">
@@ -146,6 +233,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{predicate1}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -154,6 +242,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{predicate2}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -162,6 +251,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{predicate3}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -170,6 +260,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>The</text></lyric>
       </note>
     </measure>
     <measure number="6">
@@ -180,6 +271,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{subject}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -189,6 +281,7 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">begin</beam>
+        <lyric number="1"><text>on</text></lyric>
       </note>
       <note>
         <pitch>
@@ -198,6 +291,7 @@
         <duration>2</duration>
         <type>eighth</type>
         <beam number="1">end</beam>
+        <lyric number="1"><text>the</text></lyric>
       </note>
       <note>
         <pitch>
@@ -206,6 +300,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>bus</text></lyric>
       </note>
       <note>
         <pitch>
@@ -214,6 +309,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{verb}}</text></lyric>
       </note>
     </measure>
     <measure number="7">
@@ -224,6 +320,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{predicate1}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -232,6 +329,7 @@
         </pitch>
         <duration>4</duration>
         <type>quarter</type>
+        <lyric number="1"><text>{{predicate2}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -240,6 +338,7 @@
         </pitch>
         <duration>8</duration>
         <type>half</type>
+        <lyric number="1"><text>{{predicate3}}</text></lyric>
       </note>
     </measure>
     <measure number="8">
@@ -250,6 +349,7 @@
         </pitch>
         <duration>8</duration>
         <type>half</type>
+        <lyric number="1"><text>{{end1}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -259,6 +359,7 @@
         <duration>6</duration>
         <type>quarter</type>
         <dot/>
+        <lyric number="1"><text>{{end2}}</text></lyric>
       </note>
       <note>
         <pitch>
@@ -267,6 +368,7 @@
         </pitch>
         <duration>2</duration>
         <type>eighth</type>
+        <lyric number="1"><text>{{end3}}</text></lyric>
       </note>
     </measure>
     <measure number="9">
@@ -277,6 +379,7 @@
         </pitch>
         <duration>16</duration>
         <type>whole</type>
+        <lyric number="1"><text>{{end4}}</text></lyric>
       </note>
     </measure>
   </part>

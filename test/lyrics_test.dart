@@ -73,5 +73,50 @@ void main() {
       );
       expect(note.getResolvedLyric(1, {}), equals('hello {{name}}'));
     });
+
+    test('should support default variables', () {
+      const xmlWithDefault = '''<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <identification>
+    <miscellaneous>
+      <miscellaneous-field name="variables">
+        <default>
+          <ending>town</ending>
+        </default>
+        <verse>
+          <subject>wheels</subject>
+        </verse>
+        <verse>
+          <subject>horn</subject>
+          <ending>farm</ending>
+        </verse>
+      </miscellaneous-field>
+    </miscellaneous>
+  </identification>
+  <part-list>
+    <score-part id="P1"><part-name>Test</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+      </attributes>
+      <note>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <lyric number="1"><text>{{subject}} in {{ending}}</text></lyric>
+      </note>
+    </measure>
+  </part>
+</score-partwise>''';
+
+      final song = MusicXmlParser.parse(xmlWithDefault, id: 'test');
+      expect(song.defaultLyricsVariables['ending'], equals('town'));
+      
+      final note = song.measures.first.notes.first;
+
+      expect(note.getResolvedLyric(1, {}, variableSets: song.lyricsVariableSets, defaultVariableSet: song.defaultLyricsVariables), equals('wheels in town'));
+      expect(note.getResolvedLyric(2, {}, variableSets: song.lyricsVariableSets, defaultVariableSet: song.defaultLyricsVariables), equals('horn in farm'));
+    });
   });
 }

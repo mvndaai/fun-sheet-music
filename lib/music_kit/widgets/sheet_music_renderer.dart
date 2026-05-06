@@ -244,6 +244,7 @@ class _SheetMusicRendererState extends State<SheetMusicRenderer> {
         previousMeasure: prevMeasure,
         lyricsVariables: widget.song.lyricsVariables,
         lyricsVariableSets: widget.song.lyricsVariableSets,
+        defaultLyricsVariables: widget.song.defaultLyricsVariables,
         totalVerses: widget.song.totalVerses,
       ));
       noteOffset += batch.fold(0, (s, m) => s + m.notes.where((n) => !n.isChordContinuation).length);
@@ -292,7 +293,12 @@ class _StaffRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Check if this row actually HAS any lyrics to display
-    final bool rowHasLyrics = row.measures.any((m) => m.notes.any((n) => n.getResolvedLyric(currentVerse, row.lyricsVariables, variableSets: row.lyricsVariableSets).isNotEmpty));
+    final bool rowHasLyrics = row.measures.any((m) => m.notes.any((n) => n.getResolvedLyric(
+          currentVerse,
+          row.lyricsVariables,
+          variableSets: row.lyricsVariableSets,
+          defaultVariableSet: row.defaultLyricsVariables,
+        ).isNotEmpty));
     final bool effectiveShowLyrics = showLyrics && rowHasLyrics;
 
     return Padding(

@@ -107,7 +107,13 @@ class MusicNote {
   String toString() => 'MusicNote($letterName, $type, lyrics: $lyrics)';
 
   /// Returns the resolved lyric for a given verse, handling variables and last-verse logic.
-  String getResolvedLyric(int verse, Map<String, List<String>> variables, {bool isLastVerse = false, List<Map<String, String>>? variableSets}) {
+  String getResolvedLyric(
+    int verse,
+    Map<String, List<String>> variables, {
+    bool isLastVerse = false,
+    List<Map<String, String>>? variableSets,
+    Map<String, String>? defaultVariableSet,
+  }) {
     String? lyric = lyrics[verse];
     
     // Last verse override (convention: use high verse number like 99 for "last")
@@ -126,11 +132,15 @@ class MusicNote {
     // Resolve variables: {{varName}}
     String resolved = lyric;
 
-    // 1. Check new structure (Variable Sets)
-    if (variableSets != null && variableSets.isNotEmpty) {
+    // 1. Check new structure (Variable Sets + Defaults)
+    if ((variableSets != null && variableSets.isNotEmpty) || (defaultVariableSet != null && defaultVariableSet.isNotEmpty)) {
       final setIndex = verse - 1;
-      final set = setIndex < variableSets.length ? variableSets[setIndex] : variableSets.last;
-      set.forEach((name, value) {
+      final set = variableSets != null && setIndex < variableSets.length ? variableSets[setIndex] : (variableSets != null && variableSets.isNotEmpty ? variableSets.last : <String, String>{});
+      
+      // Combine default and specific variables (specific overrides default)
+      final combinedSet = <String, String>{...?defaultVariableSet, ...set};
+      
+      combinedSet.forEach((name, value) {
         resolved = resolved.replaceAll('{{$name}}', value);
       });
     }

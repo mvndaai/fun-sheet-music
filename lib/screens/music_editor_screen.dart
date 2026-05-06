@@ -941,9 +941,13 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
       context: context,
       builder: (context) => _VariablesEditorDialog(
         initialVariableSets: _song.lyricsVariableSets,
-        onUpdate: (updatedSets) {
+        initialDefaultVariables: _song.defaultLyricsVariables,
+        onUpdate: (updatedSets, updatedDefaults) {
           setState(() {
-            _song = _song.copyWith(lyricsVariableSets: updatedSets);
+            _song = _song.copyWith(
+              lyricsVariableSets: updatedSets,
+              defaultLyricsVariables: updatedDefaults,
+            );
             _saveToHistory();
           });
         },
@@ -2123,9 +2127,14 @@ class _LyricFieldState extends State<_LyricField> {
 
 class _VariablesEditorDialog extends StatefulWidget {
   final List<Map<String, String>> initialVariableSets;
-  final ValueChanged<List<Map<String, String>>> onUpdate;
+  final Map<String, String> initialDefaultVariables;
+  final void Function(List<Map<String, String>>, Map<String, String>) onUpdate;
 
-  const _VariablesEditorDialog({required this.initialVariableSets, required this.onUpdate});
+  const _VariablesEditorDialog({
+    required this.initialVariableSets,
+    required this.initialDefaultVariables,
+    required this.onUpdate,
+  });
 
   @override
   State<_VariablesEditorDialog> createState() => _VariablesEditorDialogState();
@@ -2133,11 +2142,13 @@ class _VariablesEditorDialog extends StatefulWidget {
 
 class _VariablesEditorDialogState extends State<_VariablesEditorDialog> {
   late List<Map<String, String>> _sets;
+  late Map<String, String> _defaults;
 
   @override
   void initState() {
     super.initState();
     _sets = widget.initialVariableSets.map((s) => Map<String, String>.from(s)).toList();
+    _defaults = Map<String, String>.from(widget.initialDefaultVariables);
     if (_sets.isEmpty) {
       _sets.add({}); // At least one verse set
     }
@@ -2145,22 +2156,23 @@ class _VariablesEditorDialogState extends State<_VariablesEditorDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // Get all keys across all sets
+    // Get all keys across all sets and defaults
     final allKeys = <String>{};
     for (var set in _sets) {
       allKeys.addAll(set.keys);
     }
+    allKeys.addAll(_defaults.keys);
     final sortedKeys = allKeys.toList()..sort();
 
     return AlertDialog(
       title: const Text('Lyrics Variables'),
       content: SizedBox(
-        width: 600,
-        height: 400,
+        width: 700,
+        height: 500,
         child: Column(
           children: [
             const Text(
-              'Each column is a verse. Use {{name}} in lyrics.',
+              'Defaults apply to all verses unless overridden in a specific verse column.',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 16),
@@ -2171,6 +2183,7 @@ class _VariablesEditorDialogState extends State<_VariablesEditorDialog> {
                   child: DataTable(
                     columns: [
                       const DataColumn(label: Text('Variable')),
+                      const DataColumn(label: Text('Defaults', style: TextStyle(color: Colors.blue))),
                       ...List.generate(_sets.length, (i) => DataColumn(
                         label: Row(
                           children: [
@@ -2197,6 +2210,7 @@ class _VariablesEditorDialogState extends State<_VariablesEditorDialog> {
                               IconButton(
                                 icon: const Icon(Icons.remove_circle_outline, size: 14),
                                 onPressed: () => setState(() {
+                                  _defaults.remove(key);
                                   for (var set in _sets) {
                                     set.remove(key);
                                   }
@@ -2204,9 +2218,20 @@ class _VariablesEditorDialogState extends State<_VariablesEditorDialog> {
                               ),
                             ],
                           )),
-                          ...List.generate(_sets.length, (i) => DataCell(
+                          DataCell(
                             TextField(
                               decoration: const InputDecoration(isDense: true),
+                              controller: TextEditingController(text: _defaults[key] ?? ''),
+                              onChanged: (val) => _defaults[key] = val,
+                            ),
+                          ),
+                          ...List.generate(_sets.length, (i) => DataCell(
+                            TextField(
+                              decoration: InputDecoration(
+                                isDense: true,
+                                hintText: _defaults[key],
+                                hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+                              ),
                               controller: TextEditingController(text: _sets[i][key] ?? ''),
                               onChanged: (val) => _sets[i][key] = val,
                             ),
@@ -2232,7 +2257,7 @@ class _VariablesEditorDialogState extends State<_VariablesEditorDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         ElevatedButton(
           onPressed: () {
-            widget.onUpdate(_sets);
+            widget.onUpdate(_sets, _defaults);
             Navigator.pop(context);
           },
           child: const Text('Apply'),
@@ -2258,6 +2283,7 @@ class _VariablesEditorDialogState extends State<_VariablesEditorDialog> {
             onPressed: () {
               if (controller.text.isNotEmpty) {
                 setState(() {
+                  _defaults[controller.text] = '';
                   for (var set in _sets) {
                     set[controller.text] = '';
                   }

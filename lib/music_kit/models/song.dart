@@ -16,6 +16,7 @@ class Song {
   final DateTime createdAt;
   final Map<String, List<String>> lyricsVariables; // Deprecated: use lyricsVariableSets
   final List<Map<String, String>> lyricsVariableSets;
+  final Map<String, String> defaultLyricsVariables;
 
   const Song({
     required this.id,
@@ -31,6 +32,7 @@ class Song {
     required this.createdAt,
     this.lyricsVariables = const {},
     this.lyricsVariableSets = const [],
+    this.defaultLyricsVariables = const {},
   });
 
   bool get isAutoAdd => localPath?.contains('/auto-add/') ?? false;
@@ -52,6 +54,7 @@ class Song {
     DateTime? createdAt,
     Map<String, List<String>>? lyricsVariables,
     List<Map<String, String>>? lyricsVariableSets,
+    Map<String, String>? defaultLyricsVariables,
   }) {
     return Song(
       id: id ?? this.id,
@@ -67,6 +70,7 @@ class Song {
       createdAt: createdAt ?? this.createdAt,
       lyricsVariables: lyricsVariables ?? this.lyricsVariables,
       lyricsVariableSets: lyricsVariableSets ?? this.lyricsVariableSets,
+      defaultLyricsVariables: defaultLyricsVariables ?? this.defaultLyricsVariables,
     );
   }
 
@@ -117,6 +121,7 @@ class Song {
         'createdAt': createdAt.toIso8601String(),
         'lyricsVariables': lyricsVariables,
         'lyricsVariableSets': lyricsVariableSets,
+        'defaultLyricsVariables': defaultLyricsVariables,
       };
 
   factory Song.fromJson(Map<String, dynamic> json) => Song(
@@ -142,5 +147,9 @@ class Song {
               (e) => (e as Map<String, dynamic>).map((k, v) => MapEntry(k, v.toString())),
             ).toList() ??
             const [],
+        defaultLyricsVariables: (json['defaultLyricsVariables'] as Map<String, dynamic>?)?.map(
+              (k, v) => MapEntry(k, v.toString()),
+            ) ??
+            const {},
       );
 }

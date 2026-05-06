@@ -17,6 +17,7 @@ class StaffRowData {
   final Measure? previousMeasure;
   final Map<String, List<String>> lyricsVariables;
   final List<Map<String, String>> lyricsVariableSets;
+  final Map<String, String> defaultLyricsVariables;
   final int totalVerses;
 
   const StaffRowData({
@@ -28,6 +29,7 @@ class StaffRowData {
     this.previousMeasure,
     this.lyricsVariables = const {},
     this.lyricsVariableSets = const [],
+    this.defaultLyricsVariables = const {},
     this.totalVerses = 1,
   });
 }
@@ -674,7 +676,13 @@ class StaffPainter extends CustomPainter {
   }
 
   void _drawLyrics(Canvas canvas, MusicNote note, double x, double y, int pos, Color color, double alpha, Color clefColor, {bool isActive = false}) {
-    final text = note.getResolvedLyric(currentVerse, row.lyricsVariables, isLastVerse: currentVerse == row.totalVerses, variableSets: row.lyricsVariableSets);
+    final text = note.getResolvedLyric(
+      currentVerse,
+      row.lyricsVariables,
+      isLastVerse: currentVerse == row.totalVerses,
+      variableSets: row.lyricsVariableSets,
+      defaultVariableSet: row.defaultLyricsVariables,
+    );
     if (text.isEmpty) return;
 
     final lyricY = kTopMargin + kStaffH + kLS * 4.2;

@@ -24,7 +24,7 @@ class MusicXmlParser {
     final icon = _getMiscellaneousField(root, 'icon');
     final xmlTags = _getMiscellaneousFields(root, 'tag');
     final lyricsVariables = _getLyricsVariables(root);
-    final lyricsVariableSets = _getLyricsVariableSets(root);
+    final (lyricsVariableSets, defaultLyricsVariables) = _getLyricsVariableSets(root);
     final composer = _getComposer(root);
     final measures = _parseMeasures(root);
 
@@ -41,6 +41,7 @@ class MusicXmlParser {
       createdAt: createdAt ?? DateTime.now(),
       lyricsVariables: lyricsVariables,
       lyricsVariableSets: lyricsVariableSets,
+      defaultLyricsVariables: defaultLyricsVariables,
     );
   }
 
@@ -120,12 +121,23 @@ class MusicXmlParser {
     return results;
   }
 
-  static List<Map<String, String>> _getLyricsVariableSets(XmlElement root) {
+  static (List<Map<String, String>>, Map<String, String>) _getLyricsVariableSets(XmlElement root) {
     final sets = <Map<String, String>>[];
+    Map<String, String> defaultSet = {};
     
     // 1. Check for structured "variables" field (New XML-like format)
     for (final field in root.findAllElements('miscellaneous-field')) {
       if (field.getAttribute('name') == 'variables') {
+        // Look for default variables
+        final defaultEl = field.findElements('default').firstOrNull;
+        if (defaultEl != null) {
+          for (final node in defaultEl.children) {
+            if (node is XmlElement) {
+              defaultSet[node.name.local] = node.innerText.trim();
+            }
+          }
+        }
+
         // Look for nested <verse> elements
         final verseEls = field.findElements('verse');
         if (verseEls.isNotEmpty) {
@@ -192,7 +204,7 @@ class MusicXmlParser {
         }
       }
     }
-    return sets;
+    return (sets, defaultSet);
   }
 
   static String _getTitle(XmlElement root) {

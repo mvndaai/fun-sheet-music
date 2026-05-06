@@ -35,8 +35,19 @@ class MusicXmlGenerator {
       });
 
       // Structured variables in a single "variables" field
-      if (song.lyricsVariableSets.isNotEmpty) {
+      if (song.lyricsVariableSets.isNotEmpty || song.defaultLyricsVariables.isNotEmpty) {
         buffer.writeln('      <miscellaneous-field name="variables">');
+        
+        // Write defaults
+        if (song.defaultLyricsVariables.isNotEmpty) {
+          buffer.writeln('        <default>');
+          song.defaultLyricsVariables.forEach((key, value) {
+            buffer.writeln('          <$key>$value</$key>');
+          });
+          buffer.writeln('        </default>');
+        }
+
+        // Write verses
         for (int i = 0; i < song.lyricsVariableSets.length; i++) {
           final set = song.lyricsVariableSets[i];
           buffer.writeln('        <verse>');

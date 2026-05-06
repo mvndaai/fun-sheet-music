@@ -722,7 +722,13 @@ class _ScrollingLyrics extends StatelessWidget {
 
               for (int i = 0; i < allPlaybackNotes.length; i++) {
                 final note = allPlaybackNotes[i];
-                final text = note.getResolvedLyric(currentVerse, song.lyricsVariables, isLastVerse: currentVerse == totalVerses, variableSets: song.lyricsVariableSets);
+                final text = note.getResolvedLyric(
+                  currentVerse,
+                  song.lyricsVariables,
+                  isLastVerse: currentVerse == totalVerses,
+                  variableSets: song.lyricsVariableSets,
+                  defaultVariableSet: song.defaultLyricsVariables,
+                );
                 if (text.isEmpty) continue;
 
                 final double x = (i * noteWidth) - activeX + centerX;
