@@ -504,27 +504,27 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
             ),
           ],
         ),
-        body: mode == MusicDisplayMode.game
-            ? _GameView(
-                song: widget.song,
-                activeNoteIndex: _activeNoteIndex,
+        body: Column(
+          children: [
+            if (current != null)
+              _CurrentNoteCard(
+                note: current,
+                showSolfege: provider.showSolfege,
                 detectedNote: _detectedNote,
-                scrollController: _gameScrollController,
-              )
-            : Column(
-                children: [
-                  if (current != null)
-                    _CurrentNoteCard(
-                      note: current,
-                      showSolfege: provider.showSolfege,
+                isKeyboardInput: _isKeyboardInput,
+                lastPhysicalKey: _lastPhysicalKey,
+                targetNoteName: NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme),
+                keyboardOverrides: keyboardProvider.activeProfile.getAllKeyMappings(),
+              ),
+            Expanded(
+              child: mode == MusicDisplayMode.game
+                  ? _GameView(
+                      song: widget.song,
+                      activeNoteIndex: _activeNoteIndex,
                       detectedNote: _detectedNote,
-                      isKeyboardInput: _isKeyboardInput,
-                      lastPhysicalKey: _lastPhysicalKey,
-                      targetNoteName: NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme),
-                      keyboardOverrides: keyboardProvider.activeProfile.getAllKeyMappings(),
-                    ),
-                  Expanded(
-                    child: SheetMusicWidget(
+                      scrollController: _gameScrollController,
+                    )
+                  : SheetMusicWidget(
                       key: ValueKey(mode),
                       song: widget.song,
                       activeNoteIndex: _activeNoteIndex,
@@ -534,9 +534,9 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
                       coloredLabels: provider.coloredLabels,
                       measuresPerRow: provider.measuresPerRow,
                     ),
-                  ),
-                ],
-              ),
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -646,17 +646,6 @@ class _GameView extends StatelessWidget {
               ),
             ),
           ),
-          if (detectedNote.isNotEmpty)
-            Positioned(
-              bottom: 120, left: 0, right: 0,
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(30)),
-                  child: Text(detectedNote, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ),
           Positioned(
             bottom: viewportHeight * 0.25, left: 0, right: 0,
             child: IgnorePointer(child: Container(height: 2, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5))),
