@@ -172,7 +172,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release --base-href="/"
+        run: flutter build web --release --base-href="/" --web-renderer canvaskit
 
       - name: Ensure CNAME in build output
         run: cp web/CNAME build/web/CNAME || true
