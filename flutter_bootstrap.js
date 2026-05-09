@@ -38,7 +38,7 @@ _flutter.buildConfig = {"engineRevision":"42d3d75a56efe1a2e9902f52dc8006099c45d9
 
 _flutter.loader.load({
   serviceWorkerSettings: {
-    serviceWorkerVersion: "3013339035" /* Flutter's service worker is deprecated and will be removed in a future Flutter release. */,
+    serviceWorkerVersion: "2065189230" /* Flutter's service worker is deprecated and will be removed in a future Flutter release. */,
   },
   onEntrypointLoaded: async function(engineInitializer) {
     const engine = await engineInitializer.initializeEngine();
@@ -57,14 +57,6 @@ _flutter.loader.load({
     }
 
     await engine.runApp();
-    
-    // Ensure the Flutter app receives focus after initialization to fix keyboard input
-    setTimeout(() => {
-      const glassPane = document.querySelector('flt-glass-pane');
-      if (glassPane) {
-        glassPane.focus();
-      }
-    }, 100);
   }
 });
 
