@@ -19,7 +19,6 @@ import '../music_kit/utils/note_resolver.dart';
 import '../music_kit/utils/note_map_lookup.dart';
 import '../music_kit/sheet_music_constants.dart';
 import '../main.dart' show showToast;
-import '../music_kit/widgets/staff_painter.dart';
 import '../widgets/sheet_music_widget.dart';
 import '../widgets/music_settings_sheet.dart';
 import '../widgets/verse_selector.dart';
