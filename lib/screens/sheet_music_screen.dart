@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -525,31 +526,52 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
             ),
           ],
         ),
-        body: Column(
-          children: [
-            if (current != null)
-              _CurrentNoteCard(
-                note: current,
-                showSolfege: provider.showSolfege,
-                detectedNote: _detectedNote,
-                isKeyboardInput: _isKeyboardInput,
-                lastPhysicalKey: _lastPhysicalKey,
-                targetNoteName: NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme),
-                keyboardOverrides: keyboardProvider.activeProfile.getAllKeyMappings(),
-                currentVerse: _currentVerse,
-                totalVerses: widget.song.totalVerses,
-                onVerseChanged: (v) => setState(() => _currentVerse = v),
-              ),
-            Expanded(
-              child: mode == MusicDisplayMode.game
-                  ? _GameView(
-                      song: widget.song,
-                      activeNoteIndex: _activeNoteIndex,
+        body: mode == MusicDisplayMode.game && current != null
+            ? Stack(
+                children: [
+                  _GameView(
+                    song: widget.song,
+                    activeNoteIndex: _activeNoteIndex,
+                    detectedNote: _detectedNote,
+                    scrollController: _gameScrollController,
+                    currentVerse: _currentVerse,
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _CurrentNoteCard(
+                      note: current,
+                      showSolfege: provider.showSolfege,
                       detectedNote: _detectedNote,
-                      scrollController: _gameScrollController,
+                      isKeyboardInput: _isKeyboardInput,
+                      lastPhysicalKey: _lastPhysicalKey,
+                      targetNoteName: NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme),
+                      keyboardOverrides: keyboardProvider.activeProfile.getAllKeyMappings(),
                       currentVerse: _currentVerse,
-                    )
-                  : SheetMusicWidget(
+                      totalVerses: widget.song.totalVerses,
+                      onVerseChanged: (v) => setState(() => _currentVerse = v),
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                children: [
+                  if (current != null)
+                    _CurrentNoteCard(
+                      note: current,
+                      showSolfege: provider.showSolfege,
+                      detectedNote: _detectedNote,
+                      isKeyboardInput: _isKeyboardInput,
+                      lastPhysicalKey: _lastPhysicalKey,
+                      targetNoteName: NoteResolver.resolveTargetNote(note: current, activeScheme: provider.activeScheme),
+                      keyboardOverrides: keyboardProvider.activeProfile.getAllKeyMappings(),
+                      currentVerse: _currentVerse,
+                      totalVerses: widget.song.totalVerses,
+                      onVerseChanged: (v) => setState(() => _currentVerse = v),
+                    ),
+                  Expanded(
+                    child: SheetMusicWidget(
                       key: ValueKey(mode),
                       song: widget.song,
                       activeNoteIndex: _activeNoteIndex,
@@ -560,9 +582,9 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
                       measuresPerRow: provider.measuresPerRow,
                       currentVerse: _currentVerse,
                     ),
-            ),
-          ],
-        ),
+                  ),
+                ],
+              ),
       ),
     ),
   );
@@ -599,11 +621,20 @@ class _GameView extends StatelessWidget {
             child: Container(
               color: surfaceColor,
               child: ShaderMask(
-                shaderCallback: (Rect bounds) => const LinearGradient(
+                shaderCallback: (Rect bounds) => LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
-                  stops: [0.0, 0.05, 0.95, 1.0],
+                  colors: [
+                    Colors.transparent,
+                    Colors.white.withValues(alpha: 0.2),
+                    Colors.white.withValues(alpha: 0.5),
+                    Colors.white,
+                    Colors.white,
+                    Colors.white.withValues(alpha: 0.5),
+                    Colors.white.withValues(alpha: 0.2),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.10, 0.20, 0.30, 0.70, 0.80, 0.90, 1.0],
                 ).createShader(bounds),
                 blendMode: BlendMode.dstIn,
                 child: ClipRect(
@@ -798,10 +829,15 @@ class _CurrentNoteCard extends StatelessWidget {
     final keyboardHint = keyboardOverrides[targetNoteName];
     final cleanHint = KeyboardUtils.formatForDisplay(keyboardHint);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-      color: Theme.of(context).colorScheme.surface,
-      child: Row(
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.3),
+          ),
+          child: Row(
         children: [
           Expanded(
             child: Column(
@@ -843,6 +879,8 @@ class _CurrentNoteCard extends StatelessWidget {
               ]),
             ),
         ],
+      ),
+        ),
       ),
     );
   }
