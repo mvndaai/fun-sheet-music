@@ -22,6 +22,14 @@ _flutter.loader.load({
     }
 
     await engine.runApp();
+    
+    // Ensure the Flutter app receives focus after initialization to fix keyboard input
+    setTimeout(() => {
+      const glassPane = document.querySelector('flt-glass-pane');
+      if (glassPane) {
+        glassPane.focus();
+      }
+    }, 100);
   }
 });
 

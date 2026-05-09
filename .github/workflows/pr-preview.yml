@@ -46,7 +46,6 @@ jobs:
         run: >
           flutter build web --release
           --base-href /${{ env.PR_PATH }}/
-          --web-renderer canvaskit
 
       - name: Deploy PR preview to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
