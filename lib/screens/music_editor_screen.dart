@@ -872,7 +872,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                                     Text(note.letterName, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 4),
                                     _LyricField(
-                                      key: ValueKey('${_selectedMeasureIndex}_${idxInFullList}_${_currentVerse}'),
+                                      key: ValueKey('${_selectedMeasureIndex}_${idxInFullList}_$_currentVerse'),
                                       note: note,
                                       verse: _currentVerse,
                                       isFirstNote: isFirstNote,

@@ -685,10 +685,10 @@ class StaffPainter extends CustomPainter {
     );
     if (text.isEmpty) return;
 
-    final lyricY = kTopMargin + kStaffH + kLS * 4.2;
+    const lyricY = kTopMargin + kStaffH + kLS * 4.2;
     
     // Highlight the active lyric
-    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+    //final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final textColor = clefColor.withValues(alpha: alpha);
 
     _drawTextCentered(

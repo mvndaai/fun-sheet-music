@@ -585,9 +585,9 @@ class _GameView extends StatelessWidget {
 
     const int bufferMeasures = 3;
     final displayMeasures = [
-      ...List.generate(bufferMeasures, (_) => Measure(number: 0, notes: [], beats: 4, beatType: 4, isPlaceholder: true)),
+      ...List.generate(bufferMeasures, (_) => const Measure(number: 0, notes: [], beats: 4, beatType: 4, isPlaceholder: true)),
       ...song.measures,
-      ...List.generate(bufferMeasures, (_) => Measure(number: 0, notes: [], beats: 4, beatType: 4, isPlaceholder: true)),
+      ...List.generate(bufferMeasures, (_) => const Measure(number: 0, notes: [], beats: 4, beatType: 4, isPlaceholder: true)),
     ];
     final displaySong = song.copyWith(measures: displayMeasures);
 
@@ -848,39 +848,39 @@ class _CurrentNoteCard extends StatelessWidget {
   }
 }
 
-class _VerseSelector extends StatelessWidget {
-  final int currentVerse;
-  final int totalVerses;
-  final ValueChanged<int> onChanged;
+//class _VerseSelector extends StatelessWidget {
+//  final int currentVerse;
+//  final int totalVerses;
+//  final ValueChanged<int> onChanged;
 
-  const _VerseSelector({required this.currentVerse, required this.totalVerses, required this.onChanged});
+//  const _VerseSelector({required this.currentVerse, required this.totalVerses, required this.onChanged});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 24,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            padding: EdgeInsets.zero,
-            iconSize: 16,
-            icon: const Icon(Icons.remove),
-            onPressed: currentVerse > 1 ? () => onChanged(currentVerse - 1) : null,
-          ),
-          Text('Verse $currentVerse / $totalVerses', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-          IconButton(
-            padding: EdgeInsets.zero,
-            iconSize: 16,
-            icon: const Icon(Icons.add),
-            onPressed: currentVerse < totalVerses ? () => onChanged(currentVerse + 1) : null,
-          ),
-        ],
-      ),
-    );
-  }
-}
+//  @override
+//  Widget build(BuildContext context) {
+//    return Container(
+//      height: 24,
+//      decoration: BoxDecoration(
+//        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+//        borderRadius: BorderRadius.circular(12),
+//      ),
+//      child: Row(
+//        mainAxisSize: MainAxisSize.min,
+//        children: [
+//          IconButton(
+//            padding: EdgeInsets.zero,
+//            iconSize: 16,
+//            icon: const Icon(Icons.remove),
+//            onPressed: currentVerse > 1 ? () => onChanged(currentVerse - 1) : null,
+//          ),
+//          Text('Verse $currentVerse / $totalVerses', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+//          IconButton(
+//            padding: EdgeInsets.zero,
+//            iconSize: 16,
+//            icon: const Icon(Icons.add),
+//            onPressed: currentVerse < totalVerses ? () => onChanged(currentVerse + 1) : null,
+//          ),
+//        ],
+//      ),
+//    );
+//  }
+//}

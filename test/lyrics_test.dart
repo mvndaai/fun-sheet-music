@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fun_sheet_music/services/musicxml_parser.dart';
-import 'package:fun_sheet_music/music_kit/models/song.dart';
 import 'package:fun_sheet_music/music_kit/models/music_note.dart';
 
 void main() {
@@ -67,7 +66,7 @@ void main() {
     });
 
     test('should handle missing variables gracefully', () {
-      final note = const MusicNote(
+      const note = MusicNote(
         step: 'C', octave: 4, duration: 1, type: 'quarter',
         lyrics: {1: 'hello {{name}}'}
       );

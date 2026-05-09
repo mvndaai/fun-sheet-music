@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../music_kit/utils/music_constants.dart';
-import '../music_kit/models/music_note.dart';
 
 class LegendCircle extends StatelessWidget {
   final String label;
