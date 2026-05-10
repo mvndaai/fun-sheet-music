@@ -10,11 +10,13 @@ class KeyboardUtils {
     // Returns lowercase: "a", "1", "shift", etc.
     final label = event.logicalKey.keyLabel;
     if (label.isNotEmpty) {
+      if (label == ' ') return 'Space';
       // Normalize to uppercase for letter keys
       if (RegExp(r'^[a-z]$').hasMatch(label)) {
         return label.toUpperCase();
       }
-      return label;
+      // Normalize common names by removing spaces (e.g. "Arrow Up" -> "ArrowUp")
+      return label.replaceAll(' ', '');
     }
     
     // Fallback to debugName if keyLabel is empty (rare)
@@ -41,5 +43,16 @@ class KeyboardUtils {
         .replaceAll('Control+', '⌃')
         .replaceAll('Shift+', '⇧')
         .replaceAll('Alt+', '⌥');
+  }
+
+  /// Normalizes a shortcut string for comparison (e.g., "KeyA" -> "A", "BracketLeft" -> "[")
+  static String? normalizeShortcut(String? mapping) {
+    if (mapping == null) return null;
+    return mapping
+        .replaceAll('Key', '')
+        .replaceAll('Digit', '')
+        .replaceAll('BracketLeft', '[')
+        .replaceAll('BracketRight', ']')
+        .replaceAll(' ', '');
   }
 }

@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 import '../utils/note_map_lookup.dart';
+import '../utils/keyboard_utils.dart';
 
 class KeyboardProfile {
   final String id;
@@ -53,7 +54,7 @@ class KeyboardProfile {
   /// Gets a keyboard mapping for a note.
   /// Looks for exact octave match first, then step-only "default", then standard profile.
   String? getKeyMapping(String noteName) {
-    return NoteMapLookup.lookup<String>(
+    final raw = NoteMapLookup.lookup<String>(
       noteName: noteName,
       primaryMap: keyboardOverrides,
       fallbackMap: id != KeyboardProfile.standard.id 
@@ -61,22 +62,23 @@ class KeyboardProfile {
           : null,
       isEmpty: (value) => value.isEmpty,
     );
+    return KeyboardUtils.normalizeShortcut(raw);
   }
 
   /// Gets an editor shortcut for an action.
   String? getEditorShortcut(String action) {
-    return editorShortcuts[action] ?? KeyboardProfile.standard.editorShortcuts[action];
+    final raw = editorShortcuts[action] ?? KeyboardProfile.standard.editorShortcuts[action];
+    return KeyboardUtils.normalizeShortcut(raw);
   }
 
   /// Gets all keyboard mappings with standard profile fallbacks merged in.
   Map<String, String> getAllKeyMappings() {
-    if (id == KeyboardProfile.standard.id) {
-      return Map.from(keyboardOverrides);
-    }
-    // Start with standard mappings, then override with custom ones
-    final merged = Map<String, String>.from(KeyboardProfile.standard.keyboardOverrides);
-    merged.addAll(keyboardOverrides);
-    return merged;
+    final Map<String, String> merged = id == KeyboardProfile.standard.id
+        ? Map.from(keyboardOverrides)
+        : (Map.from(KeyboardProfile.standard.keyboardOverrides)..addAll(keyboardOverrides));
+
+    // Normalize all mappings so "KeyA" becomes "A", etc., to match current KeyboardUtils.getMappingName
+    return merged.map((key, value) => MapEntry(key, KeyboardUtils.normalizeShortcut(value) ?? value));
   }
 
   Map<String, dynamic> toJson() => {
@@ -126,8 +128,8 @@ class KeyboardProfile {
       'print': 'Control+P',
       'save': 'Control+S',
       'toggleListening': 'L',
-      'prevMeasure': 'BracketLeft',
-      'nextMeasure': 'BracketRight',
+      'prevMeasure': '[',
+      'nextMeasure': ']',
       'togglePlayback': 'Control+Space',
     },
   );
@@ -159,8 +161,8 @@ class KeyboardProfile {
       'print': 'Control+P',
       'save': 'Control+S',
       'toggleListening': 'L',
-      'prevMeasure': 'BracketLeft',
-      'nextMeasure': 'BracketRight',
+      'prevMeasure': '[',
+      'nextMeasure': ']',
       'togglePlayback': 'Control+Space',
     },
   );
