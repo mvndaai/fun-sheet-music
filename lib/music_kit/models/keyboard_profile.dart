@@ -71,6 +71,22 @@ class KeyboardProfile {
     return KeyboardUtils.normalizeShortcut(raw);
   }
 
+  /// Finds the action name for a given key mapping.
+  String? getEditorAction(String mapping) {
+    // Check custom overrides first
+    for (final entry in editorShortcuts.entries) {
+      if (KeyboardUtils.normalizeShortcut(entry.value) == mapping) return entry.key;
+    }
+    // Then check standard fallbacks
+    for (final entry in KeyboardProfile.standard.editorShortcuts.entries) {
+      if (KeyboardUtils.normalizeShortcut(entry.value) == mapping) {
+        // Only return if not overridden by an empty string or different key
+        if (!editorShortcuts.containsKey(entry.key)) return entry.key;
+      }
+    }
+    return null;
+  }
+
   /// Gets all keyboard mappings with standard profile fallbacks merged in.
   Map<String, String> getAllKeyMappings() {
     final Map<String, String> merged = id == KeyboardProfile.standard.id
@@ -131,6 +147,12 @@ class KeyboardProfile {
       'prevMeasure': '[',
       'nextMeasure': ']',
       'togglePlayback': 'Control+Space',
+      'toggleRest': 'R',
+      'toggleDot': '.',
+      'toggleTie': 'V',
+      'cycleAccidental': 'N',
+      'toggleLyrics': 'K',
+      'addMeasure': 'M',
     },
   );
 
@@ -164,6 +186,12 @@ class KeyboardProfile {
       'prevMeasure': '[',
       'nextMeasure': ']',
       'togglePlayback': 'Control+Space',
+      'toggleRest': 'R',
+      'toggleDot': '.',
+      'toggleTie': 'V',
+      'cycleAccidental': 'N',
+      'toggleLyrics': 'K',
+      'addMeasure': 'M',
     },
   );
 }

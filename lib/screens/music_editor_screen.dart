@@ -633,50 +633,45 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
 
           final keyboard = context.read<KeyboardProvider>().activeProfile;
           final mapping = KeyboardUtils.getMappingName(event);
+          final action = keyboard.getEditorAction(mapping);
 
-          if (mapping == keyboard.getEditorShortcut('pitchUp')) {
-            _changePitch(1);
-          } else if (mapping == keyboard.getEditorShortcut('pitchDown')) {
-            _changePitch(-1);
-          } else if (mapping == keyboard.getEditorShortcut('durationUp')) {
-            _changeDuration(1);
-          } else if (mapping == keyboard.getEditorShortcut('durationDown')) {
-            _changeDuration(-1);
-          } else if (mapping == keyboard.getEditorShortcut('toggleBeam')) {
-            _toggleBeam();
-          } else if (mapping == keyboard.getEditorShortcut('addNote')) {
-            _addCurrentNote();
-          } else if (mapping == keyboard.getEditorShortcut('deleteNote')) {
-            _deleteLastNote();
-          } else if (mapping == keyboard.getEditorShortcut('undo')) {
-            _undo();
-          } else if (mapping == keyboard.getEditorShortcut('redo')) {
-            _redo();
-          } else if (mapping == keyboard.getEditorShortcut('print')) {
-            _printSong();
-          } else if (mapping == keyboard.getEditorShortcut('save')) {
-            _save();
-          } else if (mapping == keyboard.getEditorShortcut('toggleListening')) {
-            _toggleListening();
-          } else if (mapping == keyboard.getEditorShortcut('prevMeasure')) {
-            if (_selectedMeasureIndex > 0) {
-              setState(() {
-                _selectedMeasureIndex--;
-                _validateNextNoteDuration();
-              });
-            }
-          } else if (mapping == keyboard.getEditorShortcut('nextMeasure')) {
-            if (_selectedMeasureIndex < _song.measures.length - 1) {
-              setState(() {
-                _selectedMeasureIndex++;
-                _validateNextNoteDuration();
-              });
-            }
-          } else if (mapping == keyboard.getEditorShortcut('togglePlayback')) {
-            _togglePlayback();
-          } else {
-            return KeyEventResult.ignored;
+          switch (action) {
+            case 'pitchUp': _changePitch(1);
+            case 'pitchDown': _changePitch(-1);
+            case 'durationUp': _changeDuration(1);
+            case 'durationDown': _changeDuration(-1);
+            case 'toggleBeam': _toggleBeam();
+            case 'addNote': _addCurrentNote();
+            case 'deleteNote': _deleteLastNote();
+            case 'undo': _undo();
+            case 'redo': _redo();
+            case 'print': _printSong();
+            case 'save': _save();
+            case 'toggleListening': _toggleListening();
+            case 'toggleRest': _toggleRest();
+            case 'toggleDot': _toggleDot();
+            case 'toggleTie': _toggleTie();
+            case 'cycleAccidental': _cycleAccidental();
+            case 'toggleLyrics': _toggleLyricsMode();
+            case 'addMeasure': _addMeasure();
+            case 'prevMeasure':
+              if (_selectedMeasureIndex > 0) {
+                setState(() {
+                  _selectedMeasureIndex--;
+                  _validateNextNoteDuration();
+                });
+              }
+            case 'nextMeasure':
+              if (_selectedMeasureIndex < _song.measures.length - 1) {
+                setState(() {
+                  _selectedMeasureIndex++;
+                  _validateNextNoteDuration();
+                });
+              }
+            case 'togglePlayback': _togglePlayback();
+            default: return KeyEventResult.ignored;
           }
+          return KeyEventResult.handled;
           return KeyEventResult.handled;
         },
         child: Scaffold(
@@ -709,15 +704,7 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
               IconButton(icon: const Icon(Icons.code), onPressed: _showXmlEditor),
               IconButton(
                 icon: Icon(_isLyricsMode ? Icons.text_fields : Icons.music_note),
-                onPressed: () => setState(() {
-                  _isLyricsMode = !_isLyricsMode;
-                  if (!_isLyricsMode) {
-                    _focusedLyricNoteIndex = -1;
-                  } else {
-                    // Clamp measure index when entering lyrics mode
-                    _selectedMeasureIndex = _selectedMeasureIndex.clamp(0, _song.measures.length - 1);
-                  }
-                }),
+                onPressed: _toggleLyricsMode,
                 tooltip: 'Toggle Lyrics Mode',
               ),
               IconButton(icon: const Icon(Icons.save), onPressed: _save),
@@ -1064,6 +1051,48 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
         _nextBeam = 'end';
       } else {
         _nextBeam = null;
+      }
+    });
+  }
+
+  void _toggleRest() {
+    setState(() => _nextIsRest = !_nextIsRest);
+  }
+
+  void _toggleDot() {
+    final m = _song.measures[_selectedMeasureIndex];
+    final double maxCapacity = m.beats * (4.0 / m.beatType);
+    final double currentDuration = MusicConstants.typeToDuration[_nextType]!;
+    if (!_nextIsDotted && currentDuration * 1.5 > maxCapacity + 0.001) {
+      return;
+    }
+    setState(() => _nextIsDotted = !_nextIsDotted);
+  }
+
+  void _toggleTie() {
+    if (_nextIsRest) return;
+    setState(() => _nextIsTied = !_nextIsTied);
+  }
+
+  void _cycleAccidental() {
+    setState(() {
+      if (_nextAlter == 0) {
+        _nextAlter = 1; // Natural -> Sharp
+      } else if (_nextAlter == 1) {
+        _nextAlter = -1; // Sharp -> Flat
+      } else {
+        _nextAlter = 0; // Flat -> Natural
+      }
+    });
+  }
+
+  void _toggleLyricsMode() {
+    setState(() {
+      _isLyricsMode = !_isLyricsMode;
+      if (!_isLyricsMode) {
+        _focusedLyricNoteIndex = -1;
+      } else {
+        _selectedMeasureIndex = _selectedMeasureIndex.clamp(0, _song.measures.length - 1);
       }
     });
   }
@@ -1425,28 +1454,20 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             const SizedBox(width: 8),
             _buildModifierButton(
               isSelected: _nextIsDotted,
-              onPressed: () {
-                final m = _song.measures[_selectedMeasureIndex];
-                final double maxCapacity = m.beats * (4.0 / m.beatType);
-                final double currentDuration = MusicConstants.typeToDuration[_nextType]!;
-                if (!_nextIsDotted && currentDuration * 1.5 > maxCapacity + 0.001) {
-                  return;
-                }
-                setState(() => _nextIsDotted = !_nextIsDotted);
-              },
+              onPressed: _toggleDot,
               label: '.',
             ),
             const SizedBox(width: 8),
             _buildModifierButton(
               isSelected: _nextIsRest,
-              onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
+              onPressed: _toggleRest,
               icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
             ),
             if (!_nextIsRest) ...[
               const SizedBox(width: 8),
               _buildModifierButton(
                 isSelected: _nextIsTied,
-                onPressed: () => setState(() => _nextIsTied = !_nextIsTied),
+                onPressed: _toggleTie,
                 icon: '⁀',
               ),
             ],
@@ -1629,28 +1650,20 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             const SizedBox(width: 8),
             _buildModifierButton(
               isSelected: _nextIsDotted,
-              onPressed: () {
-                final m = _song.measures[_selectedMeasureIndex];
-                final double maxCapacity = m.beats * (4.0 / m.beatType);
-                final double currentDuration = MusicConstants.typeToDuration[_nextType]!;
-                if (!_nextIsDotted && currentDuration * 1.5 > maxCapacity + 0.001) {
-                  return;
-                }
-                setState(() => _nextIsDotted = !_nextIsDotted);
-              },
+              onPressed: _toggleDot,
               label: '.',
             ),
             const SizedBox(width: 8),
             _buildModifierButton(
               isSelected: _nextIsRest,
-              onPressed: () => setState(() => _nextIsRest = !_nextIsRest),
+              onPressed: _toggleRest,
               icon: _nextIsRest ? _getRestLabel(_nextType) : '𝄽',
             ),
             if (!_nextIsRest) ...[
               const SizedBox(width: 8),
               _buildModifierButton(
                 isSelected: _nextIsTied,
-                onPressed: () => setState(() => _nextIsTied = !_nextIsTied),
+                onPressed: _toggleTie,
                 icon: '⁀',
               ),
             ],
