@@ -9,6 +9,8 @@ import 'package:record/record.dart';
 import '../platform_stub.dart';
 import 'audio_storage.dart';
 
+import '../../music_kit/models/sound_profile.dart' show WaveformType;
+
 export '../platform_stub.dart';
 
 /// Web implementation using Web Audio API and package:web.
@@ -24,39 +26,73 @@ class WebTonePlayer implements PlatformTonePlayer {
   }
 
   @override
-  Future<void> playTone(double frequency, int durationMs) async {
+  Future<void> playTone(double frequency, int durationMs, {WaveformType waveform = WaveformType.triangle}) async {
     try {
       final context = _context;
-      final oscillator = context.createOscillator();
-      final gainNode = context.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-
-      oscillator.frequency.value = frequency;
-      oscillator.type = 'triangle';
-
-      // Set volume with envelope to avoid clicks
       final now = context.currentTime;
       final duration = durationMs / 1000.0;
-      const fadeTime = 0.01; // 10ms fade
 
-      final gain = gainNode.gain;
-      gain.setValueAtTime(0, now);
-      gain.linearRampToValueAtTime(0.5, now + fadeTime);
-      gain.setValueAtTime(0.5, now + duration - fadeTime);
-      gain.linearRampToValueAtTime(0, now + duration);
+      if (waveform == WaveformType.sine) {
+        // Piano-like: Fundamental + harmonics + decay
+        final osc1 = context.createOscillator()..frequency.value = frequency;
+        final osc2 = context.createOscillator()..frequency.value = frequency * 2;
+        final osc3 = context.createOscillator()..frequency.value = frequency * 3;
+        final gainNode = context.createGain();
 
-      oscillator.start(now);
-      oscillator.stop(now + duration);
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        osc3.connect(gainNode);
+        gainNode.connect(context.destination);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.4, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+        osc1.start(now); osc2.start(now); osc3.start(now);
+        osc1.stop(now + duration); osc2.stop(now + duration); osc3.stop(now + duration);
+      } else if (waveform == WaveformType.square) {
+        // Xylophone-like: sharp attack, fast decay
+        final osc = context.createOscillator()..type = 'square'..frequency.value = frequency;
+        final gainNode = context.createGain();
+        osc.connect(gainNode); gainNode.connect(context.destination);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.5, now + 0.002);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2); // Very fast decay
+
+        osc.start(now); osc.stop(now + duration);
+      } else if (waveform == WaveformType.sawtooth) {
+        // Flute-like: slow attack, sustain
+        final osc = context.createOscillator()..type = 'triangle'..frequency.value = frequency;
+        final gainNode = context.createGain();
+        osc.connect(gainNode); gainNode.connect(context.destination);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.5, now + 0.1); // Slow attack
+        gainNode.gain.setValueAtTime(0.5, now + duration - 0.05);
+        gainNode.gain.linearRampToValueAtTime(0, now + duration);
+
+        osc.start(now); osc.stop(now + duration);
+      } else {
+        final oscillator = context.createOscillator();
+        final gainNode = context.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'triangle';
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.5, now + 0.01);
+        gainNode.gain.setValueAtTime(0.5, now + duration - 0.01);
+        gainNode.gain.linearRampToValueAtTime(0, now + duration);
+        oscillator.start(now); oscillator.stop(now + duration);
+      }
     } catch (e) {
-      // Ignore errors - audio is best-effort
       developer.log('Web audio error', error: e, name: 'WebTonePlayer');
     }
   }
 
   @override
-  void startTone(double frequency) {
+  void startTone(double frequency, {WaveformType waveform = WaveformType.triangle}) {
     try {
       final context = _context;
       final oscillator = context.createOscillator();
@@ -66,7 +102,7 @@ class WebTonePlayer implements PlatformTonePlayer {
       gainNode.connect(context.destination);
 
       oscillator.frequency.value = frequency;
-      oscillator.type = 'triangle';
+      oscillator.type = waveform.name;
 
       final now = context.currentTime;
       const fadeTime = 0.01;

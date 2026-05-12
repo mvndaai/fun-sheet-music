@@ -32,7 +32,12 @@ class SoundProvider extends ChangeNotifier {
   Future<void> load() async {
     final prefs = await _preferences;
     
-    _builtInProfiles = [SoundProfile.standard];
+    _builtInProfiles = [
+      SoundProfile.standard,
+      SoundProfile.piano,
+      SoundProfile.xylophone,
+      SoundProfile.flute,
+    ];
     
     _activeId = prefs.getString(_activeIdKey) ?? SoundProfile.standard.id;
 

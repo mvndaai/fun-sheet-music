@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../platform/platform.dart' as platform;
+import '../music_kit/models/sound_profile.dart' show WaveformType;
 
 /// Service for playing musical tones and metronome clicks.
 class TonePlayer {
@@ -14,7 +15,7 @@ class TonePlayer {
   bool get isMetronomeRunning => _isMetronomeRunning;
 
   /// Plays a musical note at the given frequency or a recorded sample.
-  Future<void> playNote(double frequency, {String? samplePath}) async {
+  Future<void> playNote(double frequency, {String? samplePath, WaveformType waveform = WaveformType.triangle, int durationMs = 300}) async {
     if (samplePath != null) {
       await _platformPlayer.playSample(samplePath);
       return;
@@ -24,17 +25,17 @@ class TonePlayer {
       _platformPlayer.stopAllTones();
       return;
     }
-    await _platformPlayer.playTone(frequency, 300);
+    await _platformPlayer.playTone(frequency, durationMs, waveform: waveform);
   }
 
   /// Starts playing a continuous note or recorded sample.
-  void startNote(double frequency, {String? samplePath}) {
+  void startNote(double frequency, {String? samplePath, WaveformType waveform = WaveformType.triangle}) {
     if (samplePath != null) {
       _platformPlayer.startSample(samplePath);
       return;
     }
     if (frequency <= 0) return;
-    _platformPlayer.startTone(frequency);
+    _platformPlayer.startTone(frequency, waveform: waveform);
   }
 
   /// Stops a continuous note or recorded sample.

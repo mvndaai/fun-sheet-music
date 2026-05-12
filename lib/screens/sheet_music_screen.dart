@@ -141,11 +141,12 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     }
 
     final note = _notes[_activeNoteIndex];
-    final samplePath = context.read<SoundProvider>().activeProfile.getSamplePath(note.letterName);
-    _tonePlayer.playNote(note.frequency, samplePath: samplePath);
-
     final quarterNoteDuration = 60000.0 / _tempo;
     final noteDurationMs = (note.duration * quarterNoteDuration).toInt();
+
+    final profile = context.read<SoundProvider>().activeProfile;
+    final samplePath = profile.getSamplePath(note.letterName);
+    _tonePlayer.playNote(note.frequency, samplePath: samplePath, waveform: profile.waveform, durationMs: noteDurationMs);
 
     _playbackTimer = Timer(Duration(milliseconds: noteDurationMs), () {
       if (_isPlaying && mounted) {
@@ -449,7 +450,8 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           if (noteName != null) {
             final midi = MusicConstants.noteNameToMidi(noteName);
             if (midi >= 0) {
-              final samplePath = soundProvider.activeProfile.getSamplePath(noteName);
+              final profile = soundProvider.activeProfile;
+              final samplePath = profile.getSamplePath(noteName);
               _tonePlayer.stopNote(MusicConstants.midiToFrequency(midi), samplePath: samplePath);
             }
           }
@@ -468,8 +470,9 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
           _keyToNote[event.logicalKey] = noteName;
           final midi = MusicConstants.noteNameToMidi(noteName);
           if (midi >= 0) {
-            final samplePath = soundProvider.activeProfile.getSamplePath(noteName);
-            _tonePlayer.startNote(MusicConstants.midiToFrequency(midi), samplePath: samplePath);
+            final profile = soundProvider.activeProfile;
+            final samplePath = profile.getSamplePath(noteName);
+            _tonePlayer.startNote(MusicConstants.midiToFrequency(midi), samplePath: samplePath, waveform: profile.waveform);
           }
           setState(() => _lastPhysicalKey = KeyboardUtils.formatForDisplay(mapping));
           _onNoteDetected(noteName, fromKeyboard: true);

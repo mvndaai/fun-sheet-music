@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
@@ -10,6 +11,8 @@ import 'package:path/path.dart' as p;
 import 'package:record/record.dart';
 import '../platform_stub.dart';
 
+import '../../music_kit/models/sound_profile.dart' show WaveformType;
+
 export '../platform_stub.dart';
 
 /// Mobile implementation (Android, iOS) using audioplayers and file_picker.
@@ -17,18 +20,18 @@ class MobileTonePlayer implements PlatformTonePlayer {
   final AudioPlayer _player = AudioPlayer();
 
   @override
-  Future<void> playTone(double frequency, int durationMs) async {
+  Future<void> playTone(double frequency, int durationMs, {WaveformType waveform = WaveformType.triangle}) async {
     if (frequency <= 0) return;
     
     try {
-      final wavData = _generateWav(frequency, durationMs);
+      final wavData = _generateWav(frequency, durationMs, waveform);
       await _player.play(BytesSource(wavData));
     } catch (e) {
       // Audio is best-effort
     }
   }
 
-  Uint8List _generateWav(double frequency, int durationMs) {
+  Uint8List _generateWav(double frequency, int durationMs, WaveformType waveform) {
     const sampleRate = 22050;
     final numSamples = (sampleRate * durationMs / 1000).toInt();
     final dataSize = numSamples * 2;
@@ -54,31 +57,62 @@ class MobileTonePlayer implements PlatformTonePlayer {
     bytes.setUint8(36, 0x64); bytes.setUint8(37, 0x61); bytes.setUint8(38, 0x74); bytes.setUint8(39, 0x61);
     bytes.setUint32(40, dataSize, Endian.little);
 
-    const fadeSamples = 441;
     for (int i = 0; i < numSamples; i++) {
       final t = i / sampleRate;
-      // Triangle wave is louder than sine wave for the same peak amplitude.
-      double tNorm = (t * frequency) % 1.0;
-      double amplitude = (tNorm < 0.25)
-          ? 4 * tNorm
-          : (tNorm < 0.75)
-              ? 2 - 4 * tNorm
-              : 4 * tNorm - 4;
+      double amplitude = 0;
 
-      if (i < fadeSamples) {
-        amplitude *= i / fadeSamples;
-      } else if (i > numSamples - fadeSamples) {
-        amplitude *= (numSamples - i) / fadeSamples;
+      switch (waveform) {
+        case WaveformType.sine:
+          // Piano-like: Fundamental + 2nd harmonic + exponential decay
+          final envelope = math.exp(-3.0 * t); // Decays over time
+          amplitude = (math.sin(2 * math.pi * t * frequency) +
+                       0.5 * math.sin(2 * math.pi * t * frequency * 2) +
+                       0.2 * math.sin(2 * math.pi * t * frequency * 3)) * envelope;
+          amplitude *= 0.6; // Scale down for multi-oscillator
+          break;
+        case WaveformType.square:
+          // Xylophone-like: Fast decay, high non-harmonic transient
+          final envelope = math.exp(-15.0 * t); 
+          double tNorm = (t * frequency) % 1.0;
+          amplitude = (tNorm < 0.5 ? 1.0 : -1.0) * envelope;
+          // Add a high-pitch "clack" at the very beginning
+          if (t < 0.02) {
+             amplitude += 0.3 * math.sin(2 * math.pi * t * 3000) * (1 - t/0.02);
+          }
+          break;
+        case WaveformType.sawtooth:
+          // Flute-like: Smooth attack, bit of noise, slight vibrato
+          final attack = (t < 0.05) ? (t / 0.05) : 1.0;
+          final release = (t > (durationMs/1000.0) - 0.05) ? ((durationMs/1000.0 - t) / 0.05) : 1.0;
+          final vibrato = 1.0 + 0.005 * math.sin(2 * math.pi * t * 5); // 5Hz vibrato
+          amplitude = math.sin(2 * math.pi * t * frequency * vibrato) * attack * release;
+          // Add subtle breath noise
+          amplitude += 0.05 * (math.Random().nextDouble() * 2 - 1) * attack;
+          break;
+        case WaveformType.triangle:
+          // Classic synth
+          double tNorm = (t * frequency) % 1.0;
+          amplitude = (tNorm < 0.25)
+              ? 4 * tNorm
+              : (tNorm < 0.75)
+                  ? 2 - 4 * tNorm
+                  : 4 * tNorm - 4;
+          // Simple fade
+          const fadeTime = 0.02;
+          if (t < fadeTime) amplitude *= t / fadeTime;
+          if (t > (durationMs/1000.0) - fadeTime) amplitude *= ((durationMs/1000.0) - t) / fadeTime;
+          break;
       }
-      bytes.setInt16(44 + i * 2, (amplitude * 32767).toInt(), Endian.little);
+
+      bytes.setInt16(44 + i * 2, (amplitude.clamp(-1.0, 1.0) * 32767).toInt(), Endian.little);
     }
     return bytes.buffer.asUint8List();
   }
 
   @override
-  void startTone(double frequency) {
+  void startTone(double frequency, {WaveformType waveform = WaveformType.triangle}) {
     // For now, play a reasonably long tone on mobile
-    playTone(frequency, 1000);
+    playTone(frequency, 1000, waveform: waveform);
   }
 
   @override

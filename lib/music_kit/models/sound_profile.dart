@@ -1,6 +1,8 @@
 import 'package:uuid/uuid.dart';
 import '../utils/note_map_lookup.dart';
 
+enum WaveformType { sine, square, sawtooth, triangle }
+
 class SoundProfile {
   final String id;
   final String name;
@@ -8,6 +10,7 @@ class SoundProfile {
   final String? emoji;
   final bool isBuiltIn;
   final bool isImported;
+  final WaveformType waveform;
 
   /// Optional mapping from note names to recorded sound file paths.
   /// E.g. `{'C4': 'path/to/c4.wav'}`.
@@ -20,6 +23,7 @@ class SoundProfile {
     this.emoji,
     this.isBuiltIn = false,
     this.isImported = false,
+    this.waveform = WaveformType.triangle,
     this.noteSounds = const {},
   });
 
@@ -31,6 +35,7 @@ class SoundProfile {
     Map<String, String>? noteSounds,
     bool? isBuiltIn,
     bool? isImported,
+    WaveformType? waveform,
   }) {
     return SoundProfile(
       id: id ?? this.id,
@@ -39,6 +44,7 @@ class SoundProfile {
       emoji: emoji ?? this.emoji,
       isBuiltIn: isBuiltIn ?? this.isBuiltIn,
       isImported: isImported ?? this.isImported,
+      waveform: waveform ?? this.waveform,
       noteSounds: noteSounds ?? Map.from(this.noteSounds),
     );
   }
@@ -58,6 +64,7 @@ class SoundProfile {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
+        'waveform': waveform.index,
         if (icon != null) 'icon': icon,
         if (emoji != null) 'emoji': emoji,
         if (noteSounds.isNotEmpty) 'noteSounds': noteSounds,
@@ -72,6 +79,7 @@ class SoundProfile {
       emoji: json['emoji'] as String?,
       isBuiltIn: json['isBuiltIn'] as bool? ?? false,
       isImported: json['isImported'] as bool? ?? false,
+      waveform: WaveformType.values[(json['waveform'] as int? ?? WaveformType.triangle.index).clamp(0, WaveformType.values.length - 1)],
       noteSounds: rawSounds.cast<String, String>(),
     );
   }
@@ -79,8 +87,36 @@ class SoundProfile {
   static const SoundProfile standard = SoundProfile(
     id: 'builtin_sound_standard',
     name: 'Default Synth',
+    emoji: '🔊',
+    isBuiltIn: true,
+    waveform: WaveformType.triangle,
+    noteSounds: {},
+  );
+
+  static const SoundProfile piano = SoundProfile(
+    id: 'builtin_sound_piano',
+    name: 'Piano',
     emoji: '🎹',
     isBuiltIn: true,
+    waveform: WaveformType.sine,
+    noteSounds: {},
+  );
+
+  static const SoundProfile xylophone = SoundProfile(
+    id: 'builtin_sound_xylophone',
+    name: 'Xylophone',
+    emoji: '🪵',
+    isBuiltIn: true,
+    waveform: WaveformType.square,
+    noteSounds: {},
+  );
+
+  static const SoundProfile flute = SoundProfile(
+    id: 'builtin_sound_flute',
+    name: 'Flute',
+    emoji: '🪈',
+    isBuiltIn: true,
+    waveform: WaveformType.sawtooth,
     noteSounds: {},
   );
 }

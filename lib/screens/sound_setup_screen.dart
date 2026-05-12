@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/instrument_provider.dart';
 import '../music_kit/models/instrument_profile.dart'; // For kNoteKeys
-import '../music_kit/models/sound_profile.dart';
+import '../music_kit/models/sound_profile.dart' show SoundProfile, WaveformType;
 import '../providers/sound_provider.dart';
 import '../services/tone_player.dart';
 import '../platform/platform.dart' as platform;
@@ -29,6 +29,7 @@ class _SoundSetupScreenState extends State<SoundSetupScreen> {
   late String _name;
   late String? _icon;
   late String? _emoji;
+  late WaveformType _waveform;
 
   final platform.PlatformAudioRecorder _audioRecorder = platform.createAudioRecorder();
   final TonePlayer _tonePlayer = TonePlayer();
@@ -43,6 +44,7 @@ class _SoundSetupScreenState extends State<SoundSetupScreen> {
     _name = widget.profile.name;
     _icon = widget.profile.icon;
     _emoji = widget.profile.emoji;
+    _waveform = widget.profile.waveform;
   }
 
   @override
@@ -61,6 +63,7 @@ class _SoundSetupScreenState extends State<SoundSetupScreen> {
       icon: _icon,
       emoji: _emoji,
       noteSounds: _noteSounds,
+      waveform: _waveform,
     );
     provider.updateProfile(updated);
   }
@@ -164,7 +167,34 @@ class _SoundSetupScreenState extends State<SoundSetupScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(widget.profile.isBuiltIn ? 'Viewing preset configuration.' : 'Record custom sounds for ${_selectedOctave != null ? 'Octave $_selectedOctave' : 'Default settings'}.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade700)),
+            child: Column(
+              children: [
+                Text(widget.profile.isBuiltIn ? 'Viewing preset configuration.' : 'Record custom sounds for ${_selectedOctave != null ? 'Octave $_selectedOctave' : 'Default settings'}.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade700)),
+                if (!widget.profile.isBuiltIn) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Synth Type: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 8),
+                      DropdownButton<WaveformType>(
+                        value: _waveform,
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() => _waveform = v);
+                            _save();
+                          }
+                        },
+                        items: WaveformType.values.map((w) => DropdownMenuItem(
+                          value: w,
+                          child: Text(w.name[0].toUpperCase() + w.name.substring(1)),
+                        )).toList(),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
           const Divider(height: 1),
           Expanded(
@@ -230,8 +260,7 @@ class _SoundSetupScreenState extends State<SoundSetupScreen> {
                             icon: const Icon(Icons.play_arrow), 
                             onPressed: () {
                               final samplePath = _noteSounds[noteKey] ?? SoundProfile.standard.noteSounds[noteKey];
-                              // Frequency doesn't strictly matter for sample playback but it's required by the API
-                              _tonePlayer.playNote(440, samplePath: samplePath);
+                              _tonePlayer.playNote(440, samplePath: samplePath, waveform: widget.profile.waveform);
                             },
                           ),
                         IconButton(

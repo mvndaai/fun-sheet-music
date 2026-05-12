@@ -1,12 +1,13 @@
 import 'package:drift/drift.dart';
+import '../music_kit/models/sound_profile.dart' show WaveformType;
 
 /// A stub implementation of platform-specific functions.
 /// This file is used as a fallback and to define the interface.
 
 /// Platform interface for a tone player.
 abstract class PlatformTonePlayer {
-  Future<void> playTone(double frequency, int durationMs);
-  void startTone(double frequency);
+  Future<void> playTone(double frequency, int durationMs, {WaveformType waveform = WaveformType.triangle});
+  void startTone(double frequency, {WaveformType waveform = WaveformType.triangle});
   void stopTone(double frequency);
   Future<void> playSample(String path);
   void startSample(String path);
