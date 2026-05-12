@@ -73,6 +73,36 @@ class WebTonePlayer implements PlatformTonePlayer {
         gainNode.gain.linearRampToValueAtTime(0, now + duration);
 
         osc.start(now); osc.stop(now + duration);
+      } else if (waveform == WaveformType.musicBox) {
+        final osc1 = context.createOscillator()..type = 'sine'..frequency.value = frequency;
+        final osc2 = context.createOscillator()..type = 'sine'..frequency.value = frequency * 4.01;
+        final gainNode = context.createGain();
+        osc1.connect(gainNode); osc2.connect(gainNode); gainNode.connect(context.destination);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.4, now + 0.005);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+        osc1.start(now); osc2.start(now);
+        osc1.stop(now + duration); osc2.stop(now + duration);
+      } else if (waveform == WaveformType.violin) {
+        final osc = context.createOscillator()..type = 'sawtooth'..frequency.value = frequency;
+        final vibrato = context.createOscillator()..frequency.value = 6;
+        final vibratoGain = context.createGain()..gain.value = frequency * 0.01;
+        
+        vibrato.connect(vibratoGain);
+        vibratoGain.connect(osc.frequency);
+        
+        final gainNode = context.createGain();
+        osc.connect(gainNode); gainNode.connect(context.destination);
+
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(0.4, now + 0.15); // Slower attack for strings
+        gainNode.gain.setValueAtTime(0.4, now + duration - 0.1);
+        gainNode.gain.linearRampToValueAtTime(0, now + duration);
+
+        vibrato.start(now); osc.start(now);
+        vibrato.stop(now + duration); osc.stop(now + duration);
       } else {
         final oscillator = context.createOscillator();
         final gainNode = context.createGain();

@@ -1,7 +1,7 @@
 import 'package:uuid/uuid.dart';
 import '../utils/note_map_lookup.dart';
 
-enum WaveformType { sine, square, sawtooth, triangle }
+enum WaveformType { sine, square, sawtooth, triangle, musicBox, violin }
 
 class SoundProfile {
   final String id;
@@ -117,6 +117,24 @@ class SoundProfile {
     emoji: '🪈',
     isBuiltIn: true,
     waveform: WaveformType.sawtooth,
+    noteSounds: {},
+  );
+
+  static const SoundProfile musicBox = SoundProfile(
+    id: 'builtin_sound_music_box',
+    name: 'Music Box',
+    emoji: '🧸',
+    isBuiltIn: true,
+    waveform: WaveformType.musicBox,
+    noteSounds: {},
+  );
+
+  static const SoundProfile violin = SoundProfile(
+    id: 'builtin_sound_violin',
+    name: 'Violin',
+    emoji: '🎻',
+    isBuiltIn: true,
+    waveform: WaveformType.violin,
     noteSounds: {},
   );
 }

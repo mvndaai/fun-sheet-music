@@ -102,6 +102,22 @@ class MobileTonePlayer implements PlatformTonePlayer {
           if (t < fadeTime) amplitude *= t / fadeTime;
           if (t > (durationMs/1000.0) - fadeTime) amplitude *= ((durationMs/1000.0) - t) / fadeTime;
           break;
+        case WaveformType.musicBox:
+          // Pure sine + high tinkly harmonic + long decay
+          final envelope = math.exp(-2.0 * t);
+          amplitude = (math.sin(2 * math.pi * t * frequency) +
+                       0.3 * math.sin(2 * math.pi * t * frequency * 4.01)) * envelope;
+          amplitude *= 0.7;
+          break;
+        case WaveformType.violin:
+          // Sawtooth + Slow-ish attack + rich harmonics + vibrato
+          final attack = (t < 0.1) ? (t / 0.1) : 1.0;
+          final vibrato = 1.0 + 0.008 * math.sin(2 * math.pi * t * 6);
+          double tNorm = (t * frequency * vibrato) % 1.0;
+          amplitude = (2 * tNorm - 1) * attack;
+          // Soften the sawtooth slightly with a low-pass filter-like effect (mix with sine)
+          amplitude = (amplitude + math.sin(2 * math.pi * t * frequency * vibrato)) * 0.5;
+          break;
       }
 
       bytes.setInt16(44 + i * 2, (amplitude.clamp(-1.0, 1.0) * 32767).toInt(), Endian.little);

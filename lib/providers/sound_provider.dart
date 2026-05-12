@@ -37,6 +37,8 @@ class SoundProvider extends ChangeNotifier {
       SoundProfile.piano,
       SoundProfile.xylophone,
       SoundProfile.flute,
+      SoundProfile.musicBox,
+      SoundProfile.violin,
     ];
     
     _activeId = prefs.getString(_activeIdKey) ?? SoundProfile.standard.id;
