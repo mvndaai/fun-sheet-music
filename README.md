@@ -36,6 +36,17 @@ flutter build ios          # iOS
 flutter build web          # Web
 ```
 
+### Assets & Icons
+
+To update the app icons and favicon from a single source image:
+
+1. Save your source image (square preferred) to `assets/images/icon_source.png`.
+2. Run the icon generation script:
+   ```bash
+   dart run tool/generate_icons.dart
+   ```
+   This will automatically crop, resize, and update icons for Android and Web.
+
 ## Architecture
 
 ```
