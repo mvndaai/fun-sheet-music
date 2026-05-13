@@ -412,19 +412,45 @@ class _LibraryTabState extends State<_LibraryTab>
     final bool showLibraryChips = importableLibraries.length > 1;
     final bool showLibraryInList = provider.selectedLibraries.length > 1;
 
-    // Build unified list from all selected libraries
     final List<_LibraryEntry> allAvailable = [];
-    
-    // 1. Add bundled songs if selected
+
+    // 1. Add Community songs if selected
+    if (provider.selectedLibraries.contains('Community')) {
+      final communitySongs = provider.bundledSongsMetadata['Community'] ?? [];
+      for (final song in communitySongs) {
+        allAvailable.add(_LibraryEntry(
+          title: song.title,
+          library: song.library,
+          icon: song.icon,
+          url: song.sourceUrl,
+        ));
+      }
+    }
+
+    // 2. Add Built-in songs if selected
+    if (provider.selectedLibraries.contains(SongProvider.builtinLibraryName)) {
+      final builtinSongs = provider.bundledSongsMetadata[SongProvider.builtinLibraryName] ?? [];
+      for (final song in builtinSongs) {
+        allAvailable.add(_LibraryEntry(
+          title: song.title,
+          library: song.library,
+          icon: song.icon,
+          assetPath: song.localPath,
+        ));
+      }
+    }
+
+    // 3. Add other bundled songs (like Testing) if selected
     for (final libName in provider.selectedLibraries) {
+      if (libName == 'Community' || libName == SongProvider.builtinLibraryName) continue;
       if (provider.bundledSongsMetadata.containsKey(libName)) {
         for (final song in provider.bundledSongsMetadata[libName]!) {
           allAvailable.add(_LibraryEntry(
             title: song.title,
             library: song.library,
             icon: song.icon,
-            assetPath: song.localPath?.startsWith('assets/') == true ? song.localPath : null,
-            url: song.localPath?.startsWith('http') == true ? song.localPath : song.sourceUrl,
+            assetPath: song.localPath,
+            url: song.sourceUrl,
           ));
         }
       }

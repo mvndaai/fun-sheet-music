@@ -34,6 +34,7 @@ void main() async {
   final targets = [
     // Web
     (path: 'web/favicon.png', size: 32),
+    (path: 'web/icons/favicon.png', size: 32), // Secondary location fallback
     (path: 'web/icons/Icon-192.png', size: 192),
     (path: 'web/icons/Icon-512.png', size: 512),
     (path: 'web/icons/Icon-maskable-192.png', size: 192),
