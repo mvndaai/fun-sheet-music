@@ -1,0 +1,590 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work>
+    <work-title>Down By The Bay</work-title>
+  </work>
+  <identification>
+    <miscellaneous>
+      <miscellaneous-field name="icon">🌊</miscellaneous-field>
+    </miscellaneous>
+    <encoding>
+      <software>Fun Sheet Music Editor</software>
+      <encoding-date>2026-05-12</encoding-date>
+    </encoding>
+  </identification>
+  <part-list>
+    <score-part id="P1">
+      <part-name>Down By The Bay</part-name>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1" implicit="yes">
+      <attributes>
+        <divisions>4</divisions>
+        <key>
+          <fifths>0</fifths>
+        </key>
+        <clef>
+          <sign>G</sign>
+          <line>2</line>
+        </clef>
+        <time>
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+        </time>
+      </attributes>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>Down</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>by</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>the</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="2">
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>16</duration>
+        <type>whole</type>
+        <lyric number="1">
+          <text>bay</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="3">
+      <note>
+        <rest/>
+        <duration>4</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>where</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">end</beam>
+        <lyric number="1">
+          <text>the</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>wa-</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>ter</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>mel-</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">end</beam>
+        <lyric number="1">
+          <text>on</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="4">
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>16</duration>
+        <type>whole</type>
+        <lyric number="1">
+          <text>grow</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="5">
+      <note>
+        <rest/>
+        <duration>4</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>back</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>to</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>my</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="6">
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>16</duration>
+        <type>whole</type>
+        <lyric number="1">
+          <text>home</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="7">
+      <note>
+        <rest/>
+        <duration>4</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>I</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>dare</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>not</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="8">
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>16</duration>
+        <type>whole</type>
+        <lyric number="1">
+          <text>go</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="9">
+      <note>
+        <rest/>
+        <duration>4</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>for</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>if</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <alter>-1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>I</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="10">
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>16</duration>
+        <type>whole</type>
+        <lyric number="1">
+          <text>do</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="11">
+      <note>
+        <rest/>
+        <duration>4</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>my</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>mo-</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">end</beam>
+        <lyric number="1">
+          <text>ther</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>A</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>will</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="12">
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>16</duration>
+        <type>whole</type>
+        <lyric number="1">
+          <text>say</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="13">
+      <note>
+        <rest/>
+        <duration>8</duration>
+        <type>half</type>
+      </note>
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>&quot;did</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>you</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="14">
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">begin</beam>
+        <lyric number="1">
+          <text>e-</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <alter>1</alter>
+          <octave>5</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>ver</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">continue</beam>
+        <lyric number="1">
+          <text>see</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <alter>1</alter>
+          <octave>5</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <beam number="1">end</beam>
+        <lyric number="1">
+          <text>a</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>8</duration>
+        <type>half</type>
+        <lyric number="1">
+          <text>goose</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="15">
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <lyric number="1">
+          <text>kiss-</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>ing</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <alter>1</alter>
+          <octave>5</octave>
+        </pitch>
+        <duration>2</duration>
+        <type>eighth</type>
+        <lyric number="1">
+          <text>a</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>8</duration>
+        <type>half</type>
+        <lyric number="1">
+          <text>moose</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="16">
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>down</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>E</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>8</duration>
+        <type>half</type>
+        <lyric number="1">
+          <text>by</text>
+        </lyric>
+      </note>
+      <note>
+        <pitch>
+          <step>D</step>
+          <alter>1</alter>
+          <octave>5</octave>
+        </pitch>
+        <duration>4</duration>
+        <type>quarter</type>
+        <lyric number="1">
+          <text>the</text>
+        </lyric>
+      </note>
+    </measure>
+    <measure number="17">
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>16</duration>
+        <type>whole</type>
+        <lyric number="1">
+          <text>bay?&quot;</text>
+        </lyric>
+      </note>
+    </measure>
+  </part>
+</score-partwise>
