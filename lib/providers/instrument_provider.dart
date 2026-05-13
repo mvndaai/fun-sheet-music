@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -50,6 +51,11 @@ class InstrumentProvider extends ChangeNotifier {
   bool _isAdFree = false;
   double _tempo = 120.0;
   bool _showLyrics = true;
+
+  bool get isTestingEnabled {
+    final uri = Uri.base;
+    return kDebugMode || (kIsWeb && (uri.host == 'localhost' || uri.queryParameters.containsKey('testing')));
+  }
 
   bool get showNoteLabels => _noteLabelMode != NoteLabelMode.none;
   bool get showLetter => _noteLabelMode == NoteLabelMode.letters;
@@ -146,7 +152,10 @@ class InstrumentProvider extends ChangeNotifier {
     try {
       final content = await rootBundle.loadString('assets/instruments/defaults.json');
       final List<dynamic> list = jsonDecode(content);
-      _builtInSchemes = list.map((e) => InstrumentProfile.fromJson(e as Map<String, dynamic>)).toList();
+      _builtInSchemes = list
+          .map((e) => InstrumentProfile.fromJson(e as Map<String, dynamic>))
+          .where((s) => !s.id.contains('icon') || isTestingEnabled)
+          .toList();
       if (!_builtInSchemes.any((s) => s.id == InstrumentProfile.black.id)) {
         _builtInSchemes.insert(0, InstrumentProfile.black);
       }

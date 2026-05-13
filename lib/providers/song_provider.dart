@@ -269,11 +269,14 @@ class SongProvider extends ChangeNotifier {
         results.putIfAbsent(metadata.library, () => []).add(metadata);
       }
       _bundledSongsMetadata = results;
-      
-      // Auto-select discovered libraries if we only had the default one
-      if (_selectedLibraries.length == 1 && _selectedLibraries.contains(builtinLibraryName)) {
-        _selectedLibraries.addAll(_bundledSongsMetadata.keys);
+
+      // Ensure the built-in library is always present in metadata for the UI to show its chip
+      if (!_bundledSongsMetadata.containsKey(builtinLibraryName)) {
+        _bundledSongsMetadata[builtinLibraryName] = [];
       }
+
+      // Auto-select discovered libraries
+      _selectedLibraries.addAll(_bundledSongsMetadata.keys);
       
       notifyListeners();
     } catch (e) {

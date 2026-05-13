@@ -285,15 +285,16 @@ class _MusicSettingsSheetState extends State<MusicSettingsSheet> {
                   ),
 
                   // 9. Label Color
-                  _SegmentedSetting<bool>(
-                    title: 'Label Color',
-                    value: provider.coloredLabels,
-                    options: const [
-                      (value: true, label: 'Match Note', icon: null),
-                      (value: false, label: 'Standard', icon: null),
-                    ],
-                    onChanged: (v) => provider.setColoredLabels(v),
-                  ),
+                  if (provider.labelsBelow)
+                    _SegmentedSetting<bool>(
+                      title: 'Label Color',
+                      value: provider.coloredLabels,
+                      options: const [
+                        (value: true, label: 'Match Note', icon: null),
+                        (value: false, label: 'Standard', icon: null),
+                      ],
+                      onChanged: (v) => provider.setColoredLabels(v),
+                    ),
                 ],
 
                 // 10. Color Legend Style
