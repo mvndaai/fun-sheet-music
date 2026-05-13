@@ -180,8 +180,7 @@ class SongProvider extends ChangeNotifier {
     await _yield();
 
     // 1. Get the list of assets first (very fast)
-    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final songAssets = manifest.listAssets().where((p) => p.endsWith('.xml') && (p.contains('assets/music/') || p.contains('music/'))).toList();
+    final songAssets = await _getFilteredSongAssets();
     
     _prefs ??= await SharedPreferences.getInstance();
     final currentManifestHash = songAssets.join(',');
@@ -211,20 +210,27 @@ class SongProvider extends ChangeNotifier {
   Future<void> loadBundledMetadataIfNeeded() async {
     if (_bundledSongsMetadata.isNotEmpty) return;
 
+    final songAssets = await _getFilteredSongAssets();
+    await _loadBundledMetadata(songAssets);
+  }
+
+  Future<List<String>> _getFilteredSongAssets() async {
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final songAssets = manifest.listAssets()
+    final songAssets = manifest
+        .listAssets()
         .where((p) => p.endsWith('.xml') && (p.contains('assets/music/') || p.contains('music/')))
         .toList();
 
-    await _loadBundledMetadata(songAssets);
+    if (!isTestingEnabled) {
+        return songAssets.where((p) => !p.contains('/testing/')).toList();
+    }
+    return songAssets;
+
   }
 
   /// Loads metadata for all bundled songs from assets.
   Future<void> _loadBundledMetadata(List<String> songAssets) async {
     try {
-      //final uri = Uri.base;
-      //final isTestingEnabled = kDebugMode || (kIsWeb && (uri.host == 'localhost' || uri.queryParameters.containsKey('testing')));
-
       // Load all XML contents in parallel
       // We process in smaller batches to avoid saturating the platform channel
       final List<({String path, String content})> loadedAssets = [];
@@ -270,8 +276,6 @@ class SongProvider extends ChangeNotifier {
 
   /// Loads remote MusicXML samples for testing purposes.
   Future<void> _loadRemoteTestingMetadata() async {
-    final uri = Uri.base;
-    final isTestingEnabled = kDebugMode || (kIsWeb && (uri.host == 'localhost' || uri.queryParameters.containsKey('testing')));
     if (!isTestingEnabled) return;
 
     const libraryName = 'W3C Samples';
