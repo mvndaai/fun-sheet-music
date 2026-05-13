@@ -1,23 +1,19 @@
 [
     {
-        "name": "Xylophone: Little Tikes 1980s",
-        "icon": "https://img.icons8.com/fluency/96/xylophone.png",
+        "name": "Piano: Baby Einstein Cal's First Melodies",
+        "emoji": "🎹",
         "colors": {
-            "C": 4287505578,
-            "D": 4280158437,
-            "E": 4282613831,
-            "F": 4287349578,
-            "G": 4294826037,
-            "A": 4294278144,
-            "B": 4293212469
-        },
-        "octaveOverrides": {
-            "C5": 4294948545
+            "C": 4292149248,
+            "D": 4294929664,
+            "E": 4294826037,
+            "F": 4282622023,
+            "G": 4278234305,
+            "A": 4279592384,
+            "B": 4285143962
         },
         "hiddenKeys": [
             "C#",
             "D#",
-            "F#",
             "G#",
             "A#"
         ]
@@ -46,20 +42,47 @@
         ]
     },
     {
-        "name": "Baby Einstein Cal's First Melodies Piano",
-        "emoji": "🎹",
+        "name": "Xylophone: Hape Wooden",
+        "emoji": "💻",
         "colors": {
             "C": 4292149248,
-            "D": 4294929664,
+            "D": 4294938368,
             "E": 4294826037,
             "F": 4282622023,
-            "G": 4278234305,
-            "A": 4279592384,
-            "B": 4285143962
+            "G": 4279060385,
+            "A": 4278235391,
+            "B": 4287505578
+        },
+        "octaveOverrides": {
+            "C5": 4291728344
         },
         "hiddenKeys": [
             "C#",
             "D#",
+            "F#",
+            "G#",
+            "A#"
+        ]
+    },
+    {
+        "name": "Xylophone: Little Tikes 1980s",
+        "emoji": "🎒",
+        "colors": {
+            "C": 4287505578,
+            "D": 4280158437,
+            "E": 4282613831,
+            "F": 4287349578,
+            "G": 4294826037,
+            "A": 4294278144,
+            "B": 4293212469
+        },
+        "octaveOverrides": {
+            "C5": 4294948545
+        },
+        "hiddenKeys": [
+            "C#",
+            "D#",
+            "F#",
             "G#",
             "A#"
         ]
