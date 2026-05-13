@@ -1,0 +1,36 @@
+name: Update Community Manifest
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'community_library/songs/**'
+      - 'tool/generate_community_manifest.dart'
+
+permissions:
+  contents: write
+
+jobs:
+  update-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate manifest
+        run: dart run tool/generate_community_manifest.dart
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add community_library/songs_manifest.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update community songs manifest" && git push)

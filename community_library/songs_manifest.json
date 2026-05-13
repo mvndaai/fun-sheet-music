@@ -1,0 +1,26 @@
+[
+  {
+    "id": "community_concerning_hobbits",
+    "title": "Concerning Hobbits (LOTR)",
+    "composer": "",
+    "icon": "💍",
+    "tags": [
+      "Movie"
+    ],
+    "library": "Community",
+    "localPath": "https://raw.githubusercontent.com/mvndaai/fun-sheet-music/main/community_library/songs/concerning_hobbits.xml",
+    "createdAt": "2026-05-13T15:19:53.860085"
+  },
+  {
+    "id": "community_silent_night",
+    "title": "Silent Night",
+    "composer": "",
+    "icon": "👼",
+    "tags": [
+      "Religious"
+    ],
+    "library": "Community",
+    "localPath": "https://raw.githubusercontent.com/mvndaai/fun-sheet-music/main/community_library/songs/silent_night.xml",
+    "createdAt": "2026-05-13T15:19:53.868801"
+  }
+]

@@ -16,6 +16,7 @@ on:
       - 'pubspec.lock'
       - 'analysis_options.yaml'
       - '.github/workflows/**'
+      - '!community_library/**'
   pull_request:
     branches:
       - main

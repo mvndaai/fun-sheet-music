@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
@@ -113,6 +114,7 @@ class SongProvider extends ChangeNotifier {
       
       // Load bundled metadata and handle sample songs in the background
       _initializeAssets(onlyDefaults: true);
+      _loadCommunityMetadata();
     } catch (e) {
       _error = e.toString();
       showToast('Error loading library: $e', isError: true);
@@ -196,7 +198,12 @@ class SongProvider extends ChangeNotifier {
     // 2. Load bundled song metadata for the "Add Song" screen (now batched and backgrounded)
     await _loadBundledMetadata(songAssets);
     
-    // 3. Load remote samples if in testing mode
+    // 3. Load community metadata (now handled separately but kept for robustness)
+    if (_bundledSongsMetadata['Community'] == null) {
+      await _loadCommunityMetadata();
+    }
+
+    // 4. Load remote samples if in testing mode
     await _loadRemoteTestingMetadata();
     
     // 4. Ensure all default bundled songs are present in the library
@@ -271,6 +278,42 @@ class SongProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading bundled metadata: $e');
+    }
+  }
+
+  /// Loads metadata for the community library from GitHub.
+  Future<void> _loadCommunityMetadata() async {
+    const libraryName = 'Community';
+    const manifestUrl = 'https://raw.githubusercontent.com/mvndaai/fun-sheet-music/main/community_library/songs_manifest.json';
+
+    try {
+      final response = await _cloud.fetchXml(manifestUrl);
+      final List<dynamic> data = (Uri.parse(manifestUrl).path.endsWith('.json') || response.trim().startsWith('['))
+          ? (await compute((String content) => (Uri.parse(manifestUrl).path.endsWith('.json') || content.trim().startsWith('[')) ? (List<dynamic>.from(jsonDecode(content))) : [], response))
+          : [];
+
+      if (data.isEmpty) return;
+
+      final List<Song> communitySongs = data.map((item) {
+        final Map<String, dynamic> json = Map<String, dynamic>.from(item);
+        return Song(
+          id: json['id'] as String,
+          title: json['title'] as String,
+          composer: (json['composer'] as String?) ?? '',
+          icon: (json['icon'] as String?) ?? '',
+          tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+          library: libraryName,
+          sourceUrl: json['localPath'] as String?, // The manifest stores GitHub raw URL here
+          createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : DateTime.now(),
+          measures: const [],
+        );
+      }).toList();
+
+      _bundledSongsMetadata[libraryName] = communitySongs;
+      _selectedLibraries.add(libraryName);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to load community library: $e');
     }
   }
 
@@ -697,9 +740,7 @@ List<Song> _parseMultipleMetadatas(List<({String path, String content})> assets)
 
       if (musicIndex != -1 && musicIndex + 1 < parts.length) {
         final folderName = parts[musicIndex + 1];
-        if (folderName == 'shared_by_users') {
-          libraryName = 'Shared by Users';
-        } else if (folderName == 'testing') {
+        if (folderName == 'testing') {
           libraryName = 'Testing';
         } else if (folderName == 'defaults') {
           libraryName = SongProvider.builtinLibraryName;

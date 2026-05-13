@@ -5,6 +5,17 @@ on:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'android/**'
+      - 'web/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/**'
+      - '!community_library/**'
 
 permissions:
   contents: write

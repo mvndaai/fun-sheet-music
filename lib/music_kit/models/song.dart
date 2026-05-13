@@ -38,7 +38,7 @@ class Song {
   bool get isAutoAdd => localPath?.contains('/auto-add/') ?? false;
   bool get isDefaultLibrary => localPath?.contains('/defaults/') ?? false;
   bool get isTesting => localPath?.contains('/testing/') ?? false;
-  bool get isShared => localPath?.contains('/shared_by_users/') ?? false;
+  bool get isCommunity => library == 'Community';
 
   Song copyWith({
     String? id,
