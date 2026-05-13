@@ -672,7 +672,6 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
             default: return KeyEventResult.ignored;
           }
           return KeyEventResult.handled;
-          return KeyEventResult.handled;
         },
         child: Scaffold(
           appBar: AppBar(
