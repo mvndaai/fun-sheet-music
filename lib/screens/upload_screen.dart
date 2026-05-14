@@ -405,7 +405,10 @@ class _LibraryTabState extends State<_LibraryTab>
     final provider = context.watch<SongProvider>();
 
     final importableLibraries = provider.bundledSongsMetadata.keys
-        .where((lib) => provider.bundledSongsMetadata[lib]?.isNotEmpty ?? false)
+        .where((lib) =>
+            lib == SongProvider.builtinLibraryName ||
+            lib == 'Community' ||
+            (provider.bundledSongsMetadata[lib]?.isNotEmpty ?? false))
         .toList()
       ..sort();
 

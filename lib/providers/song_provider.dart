@@ -188,10 +188,10 @@ class SongProvider extends ChangeNotifier {
     final currentManifestHash = songAssets.join(',');
     final savedHash = _prefs!.getString(_assetManifestHashKey);
 
-    // If manifest hasn't changed and we have songs, skip parsing entirely.
-    // This unblocks the UI immediately.
-    if (savedHash == currentManifestHash && _songs.isNotEmpty) {
-      debugPrint('Assets unchanged, skipping background sync.');
+    // If manifest hasn't changed and we have songs AND we've already loaded metadata once, skip.
+    // However, bundledSongsMetadata is in-memory only, so we must load it at least once per session.
+    if (savedHash == currentManifestHash && _songs.isNotEmpty && _bundledSongsMetadata.containsKey(builtinLibraryName)) {
+      debugPrint('Assets unchanged and metadata already loaded, skipping background sync.');
       return;
     }
 
@@ -268,7 +268,11 @@ class SongProvider extends ChangeNotifier {
       for (final metadata in parsedMetadatas) {
         results.putIfAbsent(metadata.library, () => []).add(metadata);
       }
-      _bundledSongsMetadata = results;
+
+      // Merge results instead of overwriting to preserve "Community" or other remote libraries
+      results.forEach((key, value) {
+        _bundledSongsMetadata[key] = value;
+      });
 
       // Ensure the built-in library is always present in metadata for the UI to show its chip
       if (!_bundledSongsMetadata.containsKey(builtinLibraryName)) {
