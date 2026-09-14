@@ -356,12 +356,15 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
 
   Future<void> _printSong() async {
     final provider = context.read<InstrumentProvider>();
+    final int solfegeShift = widget.song.solfegeShift ?? provider.solfegeShift;
+    final double solfegeTonicAlter = widget.song.solfegeTonicAlter ?? provider.solfegeTonicAlter;
+
     await MusicPdfService.printSong(
       song: widget.song,
       colorScheme: provider.activeScheme,
       showSolfege: provider.showSolfege,
-      solfegeShift: provider.solfegeShift,
-      solfegeTonicAlter: provider.solfegeTonicAlter,
+      solfegeShift: solfegeShift,
+      solfegeTonicAlter: solfegeTonicAlter,
       showLetter: provider.showLetter,
       labelsBelow: provider.labelsBelow,
       coloredLabels: provider.coloredLabels,
@@ -392,6 +395,9 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
     final keyboardProvider = context.watch<KeyboardProvider>();
     final soundProvider = context.watch<SoundProvider>();
     final mode = provider.displayMode;
+
+    final int solfegeShift = widget.song.solfegeShift ?? provider.solfegeShift;
+    final double solfegeTonicAlter = widget.song.solfegeTonicAlter ?? provider.solfegeTonicAlter;
 
     // Detect mode change to trigger scroll
     if (_lastMode != mode) {
@@ -553,8 +559,8 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
                     child: _CurrentNoteCard(
                       note: current,
                       showSolfege: provider.showSolfege,
-                      solfegeShift: provider.solfegeShift,
-                      solfegeTonicAlter: provider.solfegeTonicAlter,
+                      solfegeShift: solfegeShift,
+                      solfegeTonicAlter: solfegeTonicAlter,
                       detectedNote: _detectedNote,
                       isKeyboardInput: _isKeyboardInput,
                       lastPhysicalKey: _lastPhysicalKey,
@@ -573,8 +579,8 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
                     _CurrentNoteCard(
                       note: current,
                       showSolfege: provider.showSolfege,
-                      solfegeShift: provider.solfegeShift,
-                      solfegeTonicAlter: provider.solfegeTonicAlter,
+                      solfegeShift: solfegeShift,
+                      solfegeTonicAlter: solfegeTonicAlter,
                       detectedNote: _detectedNote,
                       isKeyboardInput: _isKeyboardInput,
                       lastPhysicalKey: _lastPhysicalKey,
@@ -590,7 +596,8 @@ class _SheetMusicScreenState extends State<SheetMusicScreen> with SingleTickerPr
                       song: widget.song,
                       activeNoteIndex: _activeNoteIndex,
                       showSolfege: provider.showSolfege,
-                      solfegeShift: provider.solfegeShift,
+                      solfegeShift: solfegeShift,
+                      solfegeTonicAlter: solfegeTonicAlter,
                       showLetter: provider.showLetter,
                       labelsBelow: provider.labelsBelow,
                       coloredLabels: provider.coloredLabels,

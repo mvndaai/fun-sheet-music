@@ -28,6 +28,12 @@ class MusicXmlGenerator {
       if (song.icon.isNotEmpty) {
         buffer.writeln('      <miscellaneous-field name="icon">${_escape(song.icon)}</miscellaneous-field>');
       }
+      if (song.solfegeShift != null) {
+        buffer.writeln('      <miscellaneous-field name="solfegeShift">${song.solfegeShift}</miscellaneous-field>');
+      }
+      if (song.solfegeTonicAlter != null) {
+        buffer.writeln('      <miscellaneous-field name="solfegeTonicAlter">${song.solfegeTonicAlter}</miscellaneous-field>');
+      }
       
       // Legacy variables
       song.lyricsVariables.forEach((key, values) {
@@ -93,7 +99,7 @@ class MusicXmlGenerator {
         if (i == 0) {
           buffer.writeln('        <divisions>$currentDivisions</divisions>');
           buffer.writeln('        <key>');
-          buffer.writeln('          <fifths>0</fifths>');
+          buffer.writeln('          <fifths>${song.fifths}</fifths>');
           buffer.writeln('        </key>');
           buffer.writeln('        <clef>');
           buffer.writeln('          <sign>G</sign>');

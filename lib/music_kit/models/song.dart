@@ -10,6 +10,9 @@ class Song {
   final String arranger;
   final List<Measure> measures;
   final List<String> tags;
+  final int fifths;
+  final int? solfegeShift;
+  final double? solfegeTonicAlter;
   final String library;
   final String? localPath; // path to local MusicXML file
   final String? sourceUrl; // original URL if downloaded from cloud
@@ -22,6 +25,9 @@ class Song {
     required this.id,
     required this.title,
     required this.measures,
+    this.fifths = 0,
+    this.solfegeShift,
+    this.solfegeTonicAlter,
     this.icon = '',
     this.composer = '',
     this.arranger = '',
@@ -43,6 +49,9 @@ class Song {
   Song copyWith({
     String? id,
     String? title,
+    int? fifths,
+    int? solfegeShift,
+    double? solfegeTonicAlter,
     String? icon,
     String? composer,
     String? arranger,
@@ -59,6 +68,9 @@ class Song {
     return Song(
       id: id ?? this.id,
       title: title ?? this.title,
+      fifths: fifths ?? this.fifths,
+      solfegeShift: solfegeShift ?? this.solfegeShift,
+      solfegeTonicAlter: solfegeTonicAlter ?? this.solfegeTonicAlter,
       icon: icon ?? this.icon,
       composer: composer ?? this.composer,
       arranger: arranger ?? this.arranger,
@@ -111,6 +123,9 @@ class Song {
   Map<String, dynamic> toJson() => {
         'id': id,
         'title': title,
+        'fifths': fifths,
+        'solfegeShift': solfegeShift,
+        'solfegeTonicAlter': solfegeTonicAlter,
         'icon': icon,
         'composer': composer,
         'arranger': arranger,
@@ -127,6 +142,9 @@ class Song {
   factory Song.fromJson(Map<String, dynamic> json) => Song(
         id: json['id'] as String,
         title: json['title'] as String,
+        fifths: (json['fifths'] as int?) ?? 0,
+        solfegeShift: json['solfegeShift'] as int?,
+        solfegeTonicAlter: (json['solfegeTonicAlter'] as num?)?.toDouble(),
         icon: (json['icon'] as String?) ?? '',
         composer: (json['composer'] as String?) ?? '',
         arranger: (json['arranger'] as String?) ?? '',

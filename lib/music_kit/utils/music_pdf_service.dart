@@ -75,6 +75,9 @@ class MusicPdfService {
         for (final song in songs) {
           if (song.measures.isEmpty) continue;
 
+          final int effectiveShift = song.solfegeShift ?? solfegeShift;
+          final double effectiveAlter = song.solfegeTonicAlter ?? solfegeTonicAlter;
+
           hasPages = true;
           // We use the same ratios as kLS but potentially a different base scale for PDF
           const double ls = 10.0; // Standardize PDF line spacing
@@ -166,8 +169,8 @@ class MusicPdfService {
                                   musicFont: musicFont,
                                   previousMeasure: rowIndex > 0 ? rows[rowIndex - 1].last : null,
                                   showSolfege: showSolfege,
-                                  solfegeShift: solfegeShift,
-                                  solfegeTonicAlter: solfegeTonicAlter,
+                                  solfegeShift: effectiveShift,
+                                  solfegeTonicAlter: effectiveAlter,
                                   showLetter: showLetter,
                                   labelsBelow: labelsBelow,
                                   coloredLabels: coloredLabels,

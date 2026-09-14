@@ -746,7 +746,6 @@ class _MusicEditorScreenState extends State<MusicEditorScreen> {
                   ),
                   currentVerse: _currentVerse,
                   showSolfege: provider.showSolfege,
-                  solfegeShift: provider.solfegeShift,
                   showLetter: provider.showLetter,
                   labelsBelow: provider.labelsBelow,
                   coloredLabels: provider.coloredLabels,
@@ -1818,6 +1817,9 @@ class _SongMetadataDialogState extends State<_SongMetadataDialog> {
   late final TextEditingController _emojiSearchController = TextEditingController();
   late final ScrollController _emojiScrollController = ScrollController();
   late String _selectedEmoji;
+  late int _selectedFifths;
+  int? _selectedSolfegeShift;
+  double? _selectedSolfegeTonicAlter;
   String _emojiQuery = '';
 
   @override
@@ -1827,6 +1829,9 @@ class _SongMetadataDialogState extends State<_SongMetadataDialog> {
     _composerController = TextEditingController(text: widget.initialSong.composer);
     _arrangerController = TextEditingController(text: widget.initialSong.arranger);
     _selectedEmoji = widget.initialSong.icon;
+    _selectedFifths = widget.initialSong.fifths;
+    _selectedSolfegeShift = widget.initialSong.solfegeShift;
+    _selectedSolfegeTonicAlter = widget.initialSong.solfegeTonicAlter;
   }
 
   @override
@@ -1896,6 +1901,88 @@ class _SongMetadataDialogState extends State<_SongMetadataDialog> {
                 controller: _arrangerController,
                 decoration: const InputDecoration(labelText: 'Arranger'),
               ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                value: _selectedFifths,
+                decoration: const InputDecoration(labelText: 'Key'),
+                items: MusicConstants.fifthsToKeyName.entries.map((e) {
+                  return DropdownMenuItem(
+                    value: e.key,
+                    child: Text(e.value),
+                  );
+                }).toList(),
+                onChanged: (v) {
+                  if (v != null) {
+                    setState(() {
+                      _selectedFifths = v;
+                      if (_selectedSolfegeShift != null) {
+                        // Recalculate shift for Moveable Do
+                        int newShift = (-4 * v) % 7;
+                        if (newShift < 0) newShift += 7;
+                        _selectedSolfegeShift = newShift;
+                      }
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              const Text('Solfège Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+              CheckboxListTile(
+                title: const Text('Use Moveable Do (Tonic = Key)'),
+                value: _selectedSolfegeShift != null,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (v) {
+                  setState(() {
+                    if (v == true) {
+                      // Calculate shift from fifths
+                      // shift = (-4 * fifths) % 7
+                      _selectedSolfegeShift = (-4 * _selectedFifths) % 7;
+                      if (_selectedSolfegeShift! < 0) _selectedSolfegeShift = _selectedSolfegeShift! + 7;
+                      _selectedSolfegeTonicAlter = 0; // Simplified for now
+                    } else {
+                      _selectedSolfegeShift = null;
+                      _selectedSolfegeTonicAlter = null;
+                    }
+                  });
+                },
+              ),
+              if (_selectedSolfegeShift != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text('Do = '),
+                    Expanded(
+                      child: DropdownButton<int>(
+                        value: _selectedSolfegeShift,
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(value: 0, child: Text('C')),
+                          DropdownMenuItem(value: 6, child: Text('D')),
+                          DropdownMenuItem(value: 5, child: Text('E')),
+                          DropdownMenuItem(value: 4, child: Text('F')),
+                          DropdownMenuItem(value: 3, child: Text('G')),
+                          DropdownMenuItem(value: 2, child: Text('A')),
+                          DropdownMenuItem(value: 1, child: Text('B')),
+                        ],
+                        onChanged: (v) => setState(() => _selectedSolfegeShift = v),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButton<double>(
+                        value: _selectedSolfegeTonicAlter ?? 0.0,
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(value: -1.0, child: Text('♭')),
+                          DropdownMenuItem(value: 0.0, child: Text('♮')),
+                          DropdownMenuItem(value: 1.0, child: Text('♯')),
+                        ],
+                        onChanged: (v) => setState(() => _selectedSolfegeTonicAlter = v),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 20),
               Row(
                 children: [
@@ -2018,6 +2105,9 @@ class _SongMetadataDialogState extends State<_SongMetadataDialog> {
               composer: _composerController.text,
               arranger: _arrangerController.text,
               icon: _selectedEmoji,
+              fifths: _selectedFifths,
+              solfegeShift: _selectedSolfegeShift,
+              solfegeTonicAlter: _selectedSolfegeTonicAlter,
             ));
             Navigator.pop(context);
           },
