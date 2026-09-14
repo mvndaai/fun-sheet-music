@@ -76,6 +76,8 @@ names_launcher:
 
 flutter:
   uses-material-design: true
+  config:
+    enable-swift-package-manager: true
   assets:
     - assets/music/defaults/
     - assets/music/defaults/auto-add/
