@@ -22,15 +22,22 @@ class MusicXmlParser {
 
     final title = _getTitle(root);
     final icon = _getMiscellaneousField(root, 'icon');
+    final shiftStr = _getMiscellaneousField(root, 'solfegeShift');
+    final alterStr = _getMiscellaneousField(root, 'solfegeTonicAlter');
+    final solfegeShift = int.tryParse(shiftStr);
+    final solfegeTonicAlter = double.tryParse(alterStr);
     final xmlTags = _getMiscellaneousFields(root, 'tag');
     final lyricsVariables = _getLyricsVariables(root);
     final (lyricsVariableSets, defaultLyricsVariables) = _getLyricsVariableSets(root);
     final composer = _getComposer(root);
-    final measures = _parseMeasures(root);
+    final (measures, fifths) = _parseMeasures(root);
 
     return Song(
       id: id,
       title: title.isNotEmpty ? title : 'Untitled',
+      fifths: fifths,
+      solfegeShift: solfegeShift,
+      solfegeTonicAlter: solfegeTonicAlter,
       icon: icon,
       composer: composer,
       measures: measures,
@@ -61,6 +68,10 @@ class MusicXmlParser {
 
     final title = _getTitle(root);
     final icon = _getMiscellaneousField(root, 'icon');
+    final shiftStr = _getMiscellaneousField(root, 'solfegeShift');
+    final alterStr = _getMiscellaneousField(root, 'solfegeTonicAlter');
+    final solfegeShift = int.tryParse(shiftStr);
+    final solfegeTonicAlter = double.tryParse(alterStr);
     final xmlTags = _getMiscellaneousFields(root, 'tag');
     final composer = _getComposer(root);
 
@@ -231,12 +242,13 @@ class MusicXmlParser {
     return '';
   }
 
-  static List<Measure> _parseMeasures(XmlElement root) {
+  static (List<Measure>, int) _parseMeasures(XmlElement root) {
     final measures = <Measure>[];
+    int songFifths = 0;
 
     // For partwise score, use measures from the first part.
     final parts = root.findElements('part').toList();
-    if (parts.isEmpty) return measures;
+    if (parts.isEmpty) return (measures, 0);
 
     // Use the first part (typically melody).
     final firstPart = parts.first;
@@ -251,6 +263,16 @@ class MusicXmlParser {
       final isImplicit = measureEl.getAttribute('implicit') == 'yes';
       final attribEl = measureEl.findElements('attributes').firstOrNull;
       if (attribEl != null) {
+        final keyEl = attribEl.findElements('key').firstOrNull;
+        if (keyEl != null) {
+          final fifthsEl = keyEl.findElements('fifths').firstOrNull;
+          if (fifthsEl != null) {
+            final f = int.tryParse(fifthsEl.innerText) ?? 0;
+            if (measures.isEmpty) {
+              songFifths = f;
+            }
+          }
+        }
         final divisionsEl = attribEl.findElements('divisions').firstOrNull;
         if (divisionsEl != null) {
           currentDivisions = int.tryParse(divisionsEl.innerText) ?? 1;
@@ -280,7 +302,7 @@ class MusicXmlParser {
       ));
     }
 
-    return measures;
+    return (measures, songFifths);
   }
 
   static MusicNote _parseNote(XmlElement noteEl, int divisions) {

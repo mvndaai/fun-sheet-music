@@ -15,7 +15,8 @@ class SheetMusicWidget extends StatelessWidget {
   final int? ghostNoteIndex;
   final MusicNote? ghostNote;
   final bool showSolfege;
-  final int solfegeShift;
+  final int? solfegeShift;
+  final double? solfegeTonicAlter;
   final bool showLetter;
   final bool labelsBelow;
   final bool coloredLabels;
@@ -38,7 +39,8 @@ class SheetMusicWidget extends StatelessWidget {
     this.ghostNoteIndex,
     this.ghostNote,
     this.showSolfege = false,
-    this.solfegeShift = 0,
+    this.solfegeShift,
+    this.solfegeTonicAlter,
     this.showLetter = true,
     this.labelsBelow = true,
     this.coloredLabels = false,
@@ -60,6 +62,9 @@ class SheetMusicWidget extends StatelessWidget {
     final effectiveShowHeader = showHeader && ip.showLegend;
     final effectiveShowHighlight = showHighlight ?? (ip.showPlayControl || ip.showMicControl);
 
+    final int finalShift = solfegeShift ?? song.solfegeShift ?? ip.solfegeShift;
+    final double finalAlter = solfegeTonicAlter ?? song.solfegeTonicAlter ?? ip.solfegeTonicAlter;
+
     return SheetMusicRenderer(
       song: song,
       instrument: ip.activeScheme,
@@ -67,15 +72,15 @@ class SheetMusicWidget extends StatelessWidget {
       ghostNoteIndex: ghostNoteIndex,
       ghostNote: ghostNote,
       showSolfege: showSolfege,
-      solfegeShift: solfegeShift,
-      solfegeTonicAlter: ip.solfegeTonicAlter,
+      solfegeShift: finalShift,
+      solfegeTonicAlter: finalAlter,
       showLetter: showLetter,
       labelsBelow: labelsBelow,
       coloredLabels: coloredLabels,
       measuresPerRow: measuresPerRow,
       showNoteLabels: ip.showNoteLabels,
       includePickupInFirstRow: includePickupInFirstRow,
-      header: effectiveShowHeader ? _ColorLegend(showSolfege: showSolfege) : null,
+      header: effectiveShowHeader ? _ColorLegend(song: song, showSolfege: showSolfege) : null,
       scrollable: scrollable,
       labelRotation: labelRotation,
       scrollController: scrollController,
@@ -88,8 +93,9 @@ class SheetMusicWidget extends StatelessWidget {
 }
 
 class _ColorLegend extends StatelessWidget {
+  final Song song;
   final bool showSolfege;
-  const _ColorLegend({required this.showSolfege});
+  const _ColorLegend({required this.song, required this.showSolfege});
 
   @override
   Widget build(BuildContext context) {
@@ -99,14 +105,19 @@ class _ColorLegend extends StatelessWidget {
     final style = provider.legendStyle;
 
     if (style == LegendStyle.piano) {
+      final int finalShift = showSolfege ? (song.solfegeShift ?? provider.solfegeShift) : 0;
+      final double finalAlter = showSolfege ? (song.solfegeTonicAlter ?? provider.solfegeTonicAlter) : 0.0;
       return LegendPiano(
         instrument: scheme,
         showSolfege: showSolfege,
-        solfegeShift: provider.solfegeShift,
-        solfegeTonicAlter: provider.solfegeTonicAlter,
+        solfegeShift: finalShift,
+        solfegeTonicAlter: finalAlter,
         showLabels: showLabels,
       );
     }
+
+    final int finalShift = song.solfegeShift ?? provider.solfegeShift;
+    final double finalAlter = song.solfegeTonicAlter ?? provider.solfegeTonicAlter;
 
     final coloredNotes = kNoteKeys.where((n) => scheme.colors.containsKey(n));
     final overrideKeys = scheme.octaveOverrides.keys.toList()..sort();
@@ -121,16 +132,16 @@ class _ColorLegend extends StatelessWidget {
                 label: note,
                 color: scheme.colors[note]!,
                 showSolfege: showSolfege,
-                solfegeShift: provider.solfegeShift,
-                solfegeTonicAlter: provider.solfegeTonicAlter,
+                solfegeShift: finalShift,
+                solfegeTonicAlter: finalAlter,
                 showLabels: showLabels,
               )),
           ...overrideKeys.map((key) => LegendCircle(
                 label: key,
                 color: scheme.octaveOverrides[key]!,
                 showSolfege: showSolfege,
-                solfegeShift: provider.solfegeShift,
-                solfegeTonicAlter: provider.solfegeTonicAlter,
+                solfegeShift: finalShift,
+                solfegeTonicAlter: finalAlter,
                 showLabels: showLabels,
               )),
         ],

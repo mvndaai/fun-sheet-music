@@ -79,6 +79,24 @@ class MusicConstants {
   }
 
   /// Returns the MIDI number for a given note name (e.g. "C5", "F#4").
+  static const Map<int, String> fifthsToKeyName = {
+    -7: 'Cb Major / Ab Minor',
+    -6: 'Gb Major / Eb Minor',
+    -5: 'Db Major / Bb Minor',
+    -4: 'Ab Major / F Minor',
+    -3: 'Eb Major / C Minor',
+    -2: 'Bb Major / G Minor',
+    -1: 'F Major / D Minor',
+    0: 'C Major / A Minor',
+    1: 'G Major / E Minor',
+    2: 'D Major / B Minor',
+    3: 'A Major / F# Minor',
+    4: 'E Major / C# Minor',
+    5: 'B Major / G# Minor',
+    6: 'F# Major / D# Minor',
+    7: 'C# Major / A# Minor',
+  };
+
   static int noteNameToMidi(String name) {
     if (name.isEmpty) return -1;
     // Parse e.g. "C5", "F#4", "Bb3"
